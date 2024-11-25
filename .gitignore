@@ -1,0 +1,8 @@
+node_modules/
+# public/
+src/controller/backups/
+public/
+.log.txt/
+package-lock.json
+.env/
+yarn.lock
