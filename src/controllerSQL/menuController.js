@@ -8,7 +8,7 @@ module.exports = {
             res.send({
                 success: true,
                 message: "Data Fetched Successfully",
-                data: data. recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+                data: JSON.parse(data.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"])
             })
         } catch (error) {
             res.status(500).send({
