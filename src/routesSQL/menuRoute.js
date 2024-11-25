@@ -3,7 +3,7 @@ const router = express.Router();
 const controller = require('../controllerSQL/menuController')
 const auth = require('../config/auth')
 
-router.get('/list', controller.getMenuList)
+router.post('/list', controller.getMenuList)
 
 
 
