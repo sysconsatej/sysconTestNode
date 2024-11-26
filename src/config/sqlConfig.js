@@ -1,11 +1,11 @@
 const sql = require("mssql");
 
 const sqlConfig = {
-  user: "sa",
-  password: "sysuser@2804",
-  server: "156.67.111.117",
+  user: process.env.SQL_DB_USER,
+  password: process.env.SQL_DB_PASSWORD,
+  server: process.env.SQL_SERVER_IP,
   port: 15999, // Specify the custom port here
-  database: "syscon",
+  database: process.env.SQLDB,
   options: {
     encrypt: false,
     trustServerCertificate: true,

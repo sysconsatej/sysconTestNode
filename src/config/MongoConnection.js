@@ -18,6 +18,6 @@ db.on("error", console.error.bind(console, "connection error: ".red));
 db.once("open", function () {
   console.log("Connected successfully".green);
 });
-mongoos.set("debug", true)
+// mongoos.set("debug", true)
 mongoos.pluralize(false)
 module.exports = mongoos
