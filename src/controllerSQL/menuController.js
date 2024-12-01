@@ -5,8 +5,6 @@ module.exports = {
     getMenuList: async (req, res) => {
         try {
             const { loginCompany, loginBranch, loginfinYear } = req.body
-            console.log({ loginBranch, loginCompany, userId: req.userId });
-
             let data = await executeStoredProcedure("menuRetrievalApi", { loginBranch, loginCompany, userId: req.userId })
             if (data.recordset.length > 0) {
                 res.send({
