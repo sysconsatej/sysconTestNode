@@ -4,7 +4,10 @@ const { executeQuery, executeStoredProcedure } = require("../modelSQL/model")
 module.exports = {
     getMenuList: async (req, res) => {
         try {
-            let data = await executeStoredProcedure("menuRetrievalApi", {})
+            const { loginCompany, loginBranch, loginfinYear } = req.body
+            console.log({ loginBranch, loginCompany, userId: req.userId });
+
+            let data = await executeStoredProcedure("menuRetrievalApi", { loginBranch, loginCompany, userId: req.userId })
             if (data.recordset.length > 0) {
                 res.send({
                     success: true,
@@ -19,7 +22,7 @@ module.exports = {
                     data: []
                 })
             }
-            
+
         } catch (error) {
             res.status(500).send({
                 success: false,
