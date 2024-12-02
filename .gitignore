@@ -3,5 +3,5 @@ src/controller/backups/
 # public/
 .log.txt/
 package-lock.json
-.env/
+.env
 yarn.lock
