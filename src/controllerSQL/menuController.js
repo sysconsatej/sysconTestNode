@@ -4,8 +4,10 @@ const { executeQuery, executeStoredProcedure } = require("../modelSQL/model")
 module.exports = {
     getMenuList: async (req, res) => {
         try {
-            const { loginCompany, loginBranch, loginfinYear } = req.body
-            let data = await executeStoredProcedure("menuRetrievalApi", { loginBranch, loginCompany, userId: req.userId })
+            const { companyId, companyBranchId, userId } = req.body
+            const query = `menuRetrievalApi`;
+            const parameters = { companyId, companyBranchId, userId, }
+            let data = await executeStoredProcedure(query, parameters)
             if (data.recordset.length > 0) {
                 res.send({
                     success: true,
