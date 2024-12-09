@@ -119,9 +119,11 @@ app.use("/api/DRpt", DynamicReports);
 // SQL Code Started
 
 const SQlMenuRouter = require("./src/routesSQL/menuRoute");
+const SQlFormRouter = require("./src/routesSQL/formRoute");
 
 
 app.use("/Sql/api/menuControl", SQlMenuRouter);
+app.use("/Sql/api/FormControl", SQlFormRouter);
 
 
 
