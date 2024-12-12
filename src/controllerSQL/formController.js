@@ -34,5 +34,39 @@ module.exports = {
                 })
             }
         })
+    },
+    filterdDropDown: async (req, res) => {
+        const validationRule = {
+            // onfilterkey: "required",
+            referenceTable: "required",
+            // onfiltervalue: "required",
+            referenceColumn: "required",
+        };
+        validate(req.body, validationRule, {}, async (err, status) => {
+            if (!status) {
+                res.status(403).send({
+                    success: false,
+                    message: "validation Error",
+                    data: err,
+                });
+            } else {
+                try {
+                    const { onfilterkey, referenceTable, onfiltervalue, referenceColumn, dropdownFilter, sortingOrder } = req.body
+                    let data = await executeStoredProcedure('dynamicDataFetch', { clientId: 0, filterCondition: dropdownFilter || null, sortingOrder: sortingOrder || null, tableName: referenceTable, columnName: referenceColumn })
+                    if (data.length > 0) {
+                        return res.send({ success: true, message: "Data fetched successfully....!", data: data })
+                    }
+                    else {
+                        return res.send({ success: true, message: "No data found", data: data })
+                    }
+                } catch (error) {
+                    res.status(500).send({
+                        success: false,
+                        message: "Something went wrong",
+                        data: error.message,
+                    });
+                }
+            }
+        })
     }
 }
