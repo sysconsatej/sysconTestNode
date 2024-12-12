@@ -8,11 +8,11 @@ module.exports = {
             const query = `menuRetrievalApi`;
             const parameters = { companyId, companyBranchId, userId, }
             let data = await executeStoredProcedure(query, parameters)
-            if (data.recordset.length > 0) {
+            if (data) {
                 res.send({
                     success: true,
                     message: "Data Fetched Successfully",
-                    data: JSON.parse(data.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"])
+                    data: data,
                 })
             }
             else {

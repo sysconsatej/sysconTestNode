@@ -23,7 +23,7 @@ module.exports = {
                 request.input(key, value);
             };
             const result = await request.execute(procedureName);;
-            return result; // Return the result set
+            return JSON.parse(result.recordset[0]['JSON_F52E2B61-18A1-11d1-B105-00805F49916B']); // Return the result set
         } catch (error) {
             console.error('Error inserting data:', error);
             throw error;
