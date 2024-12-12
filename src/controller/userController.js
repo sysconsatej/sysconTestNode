@@ -10,6 +10,7 @@ const Mailtemplate = require("../helper/Mailtemplate");
 const { errorLogger } = require("../helper/loggerService");
 const mongoose = require("../config/MongoConnection");
 const client = require("../redis/redis_client");
+const { executeStoredProcedure } = require("../modelSQL/model")
 // const { config } = require('dotenv')
 const Redis_expire_time = process.env.REDIS_EXPIRE_TIME;
 
@@ -104,7 +105,7 @@ const loginFailHandler = async (isExits, userData) => {
   } else {
     let newUser = JSON.stringify({
       id: userData.id,
-      email: userData.email,
+      email: userData.emailId,
       count: 1, // Start count at 1 for new users
     });
     await client.rpush(userKey, newUser);
@@ -438,7 +439,7 @@ module.exports = {
     });
   },
   login: async (req, res) => {
-    //        console.log(req.body);
+
     const validationRule = {
       userName: "required",
       password: "required",
@@ -452,239 +453,40 @@ module.exports = {
         });
       } else {
         try {
-          let _match = {
-            status: Number(process.env.ACTIVE_STATUS),
-            password: md5(req.body.password),
-            $or: [
-              // {
-              //     userName: req.body.userName,
+
+          const parameters = { emailId: req.body.userName, password: md5(req.body.password) }
+          let { data , success } = await executeStoredProcedure('loginApi', parameters)
+
+          if (success) {
   
-              // },
-              {
-                email: req.body.userName,
-              },
-              {
-                mobile: req.body.userName,
-              },
-            ],
-          };
-          let query = [
-            {
-              $match: _match,
-            },
-            {
-              $addFields: {
-                profilePhoto: {
-                  $concat: [
-                    process.env.HOST + process.env.PORT + "/api/images/",
-                    "$profilePhoto",
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                password: 0,
-                menuAccess: 0,
-              },
-            },
-          ];
-          let data = await model.AggregateFetchData(
-            "tblUser",
-            "tblUser",
-            query,
-            res
-          );
-          if (data.length > 0) {
-            let userName = data[0].email || data[0].mobile;
-            let otp = generateOTP();
-  
-            if (
-              data[0].twoStepVerification == true &&
-              data[0].emailVerification == true &&
-              data[0].smsVerification == true
-            ) {
-              //                            console.log("heloo");
-              //                            console.log(`Sms sent on your Mobile Number ${data[0].mobile} is your otp for verification ${otp}`);
-              SendMail(
-                data[0].email,
-                "Opt Verification",
-                "Your OTP is " + otp,
-                ""
-              );
-              await model.updateIfAvailableElseInsert(
-                "tblOtpLog",
-                "tblOtpLog",
-                { id: "", userID: data[0].id, otp: otp, action: "login" },
-                {},
-                res
-              );
-              return res.send({
-                success: true,
-                message: "OTP Send Successfully",
-                data: [],
-              });
-            } else if (
-              data[0].twoStepVerification == true &&
-              data[0].emailVerification == true
-            ) {
-              //                            // console.log(`Sms sent on your Mobile Number ${data[0].mobile} is your otp for verification ${otp}`);
-              SendMail(
-                data[0].email,
-                "Opt Verification",
-                "Your OTP is " + otp,
-                ""
-              );
-              await model.updateIfAvailableElseInsert(
-                "tblOtpLog",
-                "tblOtpLog",
-                { id: "", userID: data[0].id, otp: otp, action: "login" },
-                {},
-                res
-              );
-              return res.send({
-                success: true,
-                message: "OTP Send Successfully",
-                data: [],
-              });
-            } else if (
-              data[0].twoStepVerification == true &&
-              data[0].smsVerification == true
-            ) {
-              //                            console.log(`Sms sent on your Mobile Number ${data[0].mobile} is your otp for verification ${otp}`);
-              await model.updateIfAvailableElseInsert(
-                "tblOtpLog",
-                "tblOtpLog",
-                { id: "", userID: data[0].id, otp: otp, action: "login" },
-                {},
-                res
-              );
-              return res.send({
-                success: true,
-                message: "OTP Send Successfully",
-                data: [],
-              });
-            }
-  
-            // Define the list of fields that require lookups in tblMasterList
-            const fieldsToLookup = [
-              "commonFontFamily",
-              "commonFontSize",
-              "commonFontWeight",
-              "navbarFontSize",
-              "navbarFontWeight",
-              "sidebarFontSize",
-              "sidebarFontWeight",
-              "tableHeaderFontSize",
-              "tableHeaderFontWeight",
-              "tableRowFontSize",
-              "tableRowFontWeight",
-              "accordionChildHeaderFontSize",
-              "accordionChildHeaderFontWeight",
-              "accordionParentHeaderFontSize",
-              "accordionParentHeaderFontWeight",
-              "inputFontSize",
-              "inputFontWeight",
-              "buttonFontSize",
-              "buttonFontWeight",
-            ];
-  
-            // Function to dynamically generate $lookup and $unwind stages for each field
-            const generateLookupsAndUnwinds = (fields) => {
-              return fields.flatMap((field) => [
-                {
-                  $lookup: {
-                    from: "tblMasterList",
-                    let: { fieldId: { $toObjectId: `$${field}` } }, // Convert the field to ObjectId
-                    pipeline: [
-                      { $match: { $expr: { $eq: ["$_id", "$$fieldId"] } } }, // Match _id from tblMasterList
-                      { $project: { name: 1 } }, // Only get the 'name' field
-                    ],
-                    as: `${field}Details`, // Store the result in {field}Details
-                  },
-                },
-                {
-                  $unwind: {
-                    path: `$${field}Details`,
-                    preserveNullAndEmptyArrays: true, // Retain the original document even if no match
-                  },
-                },
-              ]);
-            };
-  
-            // Dynamically generate the lookup and unwind stages
-            const lookupStages = generateLookupsAndUnwinds(fieldsToLookup);
-  
-            // Define the complete aggregation pipeline
-            let theamData = await model.AggregateFetchData(
-              "tblThemeMaster",
-              "tblThemeMaster",
-              [
-                {
-                  $match: {
-                    status: Number(process.env.ACTIVE_STATUS),
-                    $expr: {
-                      $and: [{ $eq: ["$_id", { $toObjectId: data[0].themeId }] }],
-                    },
-                  },
-                },
-                // Spread dynamically generated lookup and unwind stages
-                ...lookupStages,
-                // Dynamically project the fields without hardcoding all field names
-                {
-                  $project: {
-                    // Merge all existing fields with dynamically generated name values
-                    mergedFields: {
-                      $mergeObjects: [
-                        "$$ROOT", // Includes all original fields from the document
-                        fieldsToLookup.reduce((acc, field) => {
-                          acc[field] = `$${field}Details.name`; // Replace ObjectId with the corresponding name
-                          return acc;
-                        }, {}),
-                      ],
-                    },
-                  },
-                },
-                // Remove the unwanted detail fields
-                {
-                  $replaceRoot: { newRoot: "$mergedFields" },
-                },
-                {
-                  $unset: fieldsToLookup.map((field) => `${field}Details`), // Unset all detail fields (e.g., commonFontFamilyDetails)
-                },
-              ],
-              res
-            );
-  
-            if (theamData.length == 0) {
-              theamData = await model.AggregateFetchData(
-                "tblThemeMaster",
-                "tblThemeMaster",
-                [
-                  {
-                    $match: {
-                      status: Number(process.env.ACTIVE_STATUS),
-                      $expr: {
-                        $and: [{ $eq: ["$themeName", "New Default"] }],
-                      },
-                    },
-                  },
-                  {
-                    $project: {
-                      clientCode: 0,
-                    },
-                  },
-                ]
-              );
-            }
-            
-            // theamData[0].clientCode=data[0].clientCode
-            data[0] = {  ...theamData[0] , ...data[0] };
-            // data[0].twoStepVerification?:null
+            const parameters = { themeId: data.themeId}
+            let themeData = await executeStoredProcedure('themeApi', parameters)
+
+        //    let branchAccess = {
+        //      branchAccess :[
+        //       {
+        //           isChecked: true,
+        //           companyId: null,
+        //           companyBranchId: "65c475b803a75dcc8ec5b3f3",
+        //           menuAccess: [],
+        //           roleAccess: [
+        //               {
+        //                   isChecked: true,
+        //                   roleId: "66a7d0c88c62ef34f0e2c58b",
+        //                   _id: "66a8e9bdbd82c9d0297e6105"
+        //               }
+        //           ],
+        //           _id: "66addba1e1ce56bc29af3e2d"
+        //       }
+        //   ]
+        // }
+
+            data = [{...themeData, ...data, branchAccess}];
+
             let token = jwt.sign(
               {
                 id: data[0].id,
-                userName: data[0].email,
+                userName: data[0].emailId,
                 iat: Date.now(),
                 numberFormat: data[0].numberFormat,
                 clientCode: data[0].clientCode || "NCLP",
@@ -692,9 +494,9 @@ module.exports = {
               config.secret,
               { expiresIn: 7200000 }
             );
-            //                        console.log(token);
+
             try {
-              const checkWrongPass = await userFindByEmailLogin(data[0].email);
+              const checkWrongPass = await userFindByEmailLogin(data[0].emailId);
               if (checkWrongPass > 2) {
                 return res.status(400).send({
                   success: false,
@@ -703,12 +505,12 @@ module.exports = {
                 });
               } else {
                 const sessionExpiry = Redis_expire_time; // 2 days
-                const sessionKey = `user:${data[0].email}:session`;
+                const sessionKey = `user:${data[0].emailId}:session`;
                 // Check if user already exists
                 let userExists = await client.exists(sessionKey);
                 // Store session data with expiration
                 await client.hmset(sessionKey, {
-                  email: data[0].email,
+                  email: data[0].emailId,
                   token: token,
                 });
                 await client.expire(sessionKey, sessionExpiry);
@@ -743,61 +545,20 @@ module.exports = {
               });
             }
           } else {
-            let query = [
-              {
-                $match: {
-                  status: Number(process.env.ACTIVE_STATUS),
-                  $or: [
-                    // {
-                    //     userName: req.body.userName,
-  
-                    // },
-                    {
-                      email: req.body.userName,
-                    },
-                    {
-                      mobile: req.body.userName,
-                    },
-                  ],
-                },
-              },
-              {
-                $addFields: {
-                  profilePhoto: {
-                    $concat: [
-                      process.env.HOST + process.env.PORT + "/api/images/",
-                      "$profilePhoto",
-                    ],
-                  },
-                },
-              },
-              // {
-              //     $project: {
-              //         userName: 1,
-              //         name: 1,
-              //         email: 1,
-              //         profilePhoto: 1
-              //     }
-              // }
-            ];
-            //                        console.log("else");
-  
-            let data = await model.AggregateFetchData(
-              "tblUser",
-              "tblUser",
-              query,
-              res
-            );
-            if (data.length > 0) {
-              let findUser = await userFindByEmail(data[0].email);
-              let userActive = await loginFailHandler(findUser, data[0]);
+
+          const parameters = { emailId: req.body.userName, password: md5(req.body.password) }
+          let { error, data } = await executeStoredProcedure('loginApi', parameters)
+
+            if (error == 'Password is not valid!') {
+              let findUser = await userFindByEmail(data.emailId);
+              let userActive = await loginFailHandler(findUser, data);
   
               if (userActive === 3) {
                 res.status(403).send({
                   success: false,
                   message:
                     "Your account status is disabled. We have sent you an activation email. Kindly click on the activation link to activate your account.",
-                  data: data[0].email,
+                  data: data.emailId,
                 });
                 return; // Exit the function after sending the response
               }
@@ -806,7 +567,7 @@ module.exports = {
                 res.status(403).send({
                   success: false,
                   message: "Email can only be sent once every 2 hours.",
-                  data: data[0].email,
+                  data: data.emailId,
                 });
                 return; // Exit the function after sending the response
               }
@@ -816,6 +577,7 @@ module.exports = {
                 data: [],
               });
             } else {
+              console.log('Invalid UserName');
               res.status(403).send({
                 success: false,
                 message: "Invalid UserName",
