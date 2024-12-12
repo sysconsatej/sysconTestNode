@@ -18,8 +18,8 @@ module.exports = {
                 const { menuID } = req.query
                 let data = await executeStoredProcedure('formRetrievalApi', { menuID: menuID })
                 let message = "Data fetched successfully....!"
-                if (data.recordset.length > 0) {
-                    data = JSON.parse(data.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"])
+                if (data) {
+                    data = data
                 }
                 else {
                     message = "No data found"
