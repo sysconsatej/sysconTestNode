@@ -16,7 +16,12 @@ module.exports = {
             }
             try {
                 const { menuID } = req.query
-                let data = await executeStoredProcedure('formRetrievalApi', { menuID: menuID })
+                let parameter = { menuID: menuID }
+                if (menuID == "CreateFormcontrol") {
+                    parameter.menuID = 0
+                    parameter.isCreateFormControl = true
+                }
+                let data = await executeStoredProcedure('formRetrievalApi', parameter)
                 let message = "Data fetched successfully....!"
                 if (data) {
                     data = data
@@ -27,10 +32,11 @@ module.exports = {
                 }
                 return res.send({ success: true, message: message, data: data })
             } catch (error) {
-                return res.status(500).send({
+                return res.status(200).send({
                     success: false,
                     message: "Something went wrong",
-                    data: error.message
+                    data: [],
+                    error:error.message
                 })
             }
         })
