@@ -16,10 +16,10 @@ module.exports = {
             }
             try {
                 const { menuID } = req.query
-                let parameter = { menuID: menuID }
+                let parameter = { menuID: menuID , createForm: false }
                 if (menuID == "CreateFormcontrol") {
                     parameter.menuID = 0
-                    parameter.isCreateFormControl = true
+                    parameter.createForm = true
                 }
                 let data = await executeStoredProcedure('formRetrievalApi', parameter)
                 let message = "Data fetched successfully....!"
