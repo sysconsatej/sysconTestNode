@@ -18,7 +18,7 @@ module.exports = {
                 const { menuID } = req.query
                 let parameter = { menuID: menuID , createForm: false }
                 if (menuID == "CreateFormcontrol") {
-                    parameter.menuID = 0
+                    parameter.menuID = 1668
                     parameter.createForm = true
                 }
                 let data = await executeStoredProcedure('formRetrievalApi', parameter)
