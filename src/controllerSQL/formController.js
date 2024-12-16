@@ -16,9 +16,9 @@ module.exports = {
             }
             try {
                 const { menuID } = req.query
-                let parameter = { menuID: menuID , createForm: false }
+                let parameter = { menuID: menuID, createForm: false }
                 if (menuID == "CreateFormcontrol") {
-                    parameter.menuID = 0
+                    parameter.menuID = 1668
                     parameter.createForm = true
                 }
                 let data = await executeStoredProcedure('formRetrievalApi', parameter)
@@ -36,7 +36,7 @@ module.exports = {
                     success: false,
                     message: "Something went wrong",
                     data: [],
-                    error:error.message
+                    error: error.message
                 })
             }
         })
@@ -57,10 +57,12 @@ module.exports = {
                 });
             } else {
                 try {
-                    const { onfilterkey, referenceTable, onfiltervalue, referenceColumn, dropdownFilter, sortingOrder } = req.body
-                    let data = await executeStoredProcedure('dynamicDataFetch', { clientId: 0, filterCondition: dropdownFilter || null, sortingOrder: sortingOrder || null, tableName: referenceTable, columnName: referenceColumn })
+                    const { onfilterkey, referenceTable, onfiltervalue, referenceColumn, dropdownFilter, sortingOrder, search, pageNo, value } = req.body
+                    let data = await executeStoredProcedure('dynamicDataFetch', { clientId: 0, filterCondition: dropdownFilter || null, sortingOrder: sortingOrder || null, tableName: referenceTable, columnName: referenceColumn, search: search || null, pageNumber: pageNo || null, value: value })
+                    let nextPage = data.length < 1001 ? null : pageNo + 1;
+
                     if (data.length > 0) {
-                        return res.send({ success: true, message: "Data fetched successfully....!", data: data })
+                        return res.send({ success: true, message: "Data fetched successfully....!", data: data, nextPage: nextPage, prePage: pageNo - 1, })
                     }
                     else {
                         return res.send({ success: true, message: "No data found", data: data })
@@ -69,7 +71,8 @@ module.exports = {
                     res.status(500).send({
                         success: false,
                         message: "Something went wrong",
-                        data: error.message,
+                        data: [],
+                        error: error.message
                     });
                 }
             }
