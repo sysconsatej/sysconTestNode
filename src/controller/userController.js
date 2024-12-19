@@ -462,26 +462,7 @@ module.exports = {
             const parameters = { themeId: data.themeId}
             let themeData = await executeStoredProcedure('themeApi', parameters)
 
-        //    let branchAccess = {
-        //      branchAccess :[
-        //       {
-        //           isChecked: true,
-        //           companyId: null,
-        //           companyBranchId: "65c475b803a75dcc8ec5b3f3",
-        //           menuAccess: [],
-        //           roleAccess: [
-        //               {
-        //                   isChecked: true,
-        //                   roleId: "66a7d0c88c62ef34f0e2c58b",
-        //                   _id: "66a8e9bdbd82c9d0297e6105"
-        //               }
-        //           ],
-        //           _id: "66addba1e1ce56bc29af3e2d"
-        //       }
-        //   ]
-        // }
-
-            data = [{...themeData, ...data, branchAccess}];
+            data = [{...themeData, ...data}];
 
             let token = jwt.sign(
               {
@@ -796,30 +777,7 @@ module.exports = {
       userName: "required",
       newPassword: "required",
     };
-    if (req.body.forgotPassword) {
-      if (
-        req.body.forgotPassword &&
-        (req.body.forgotPassword == true || req.body.forgotPassword == "true")
-      ) {
-        validationRule = {
-          userName: "required",
-          newPassword: "required",
-          forgotPassword: "required",
-        };
-      } else {
-        validationRule = {
-          userName: "required",
-          oldPassword: "required",
-          newPassword: "required",
-        };
-      }
-    } else {
-      validationRule = {
-        userName: "required",
-        newPassword: "required",
-        forgotPassword: "required",
-      };
-    }
+
     validate(req.body, validationRule, {}, async (err, status) => {
       if (!status) {
         res.status(403).send({
@@ -834,31 +792,10 @@ module.exports = {
             (req.body.forgotPassword == true ||
               req.body.forgotPassword == "true")
           ) {
-            // let data = await model.Update("tblUser", "tblUser", { userName: req.body.userName, status: Number(process.env.ACTIVE_STATUS) }, { password: md5(req.body.newPassword) }, {}, res)
-            let data = await model.Update(
-              "tblUser",
-              "tblUser",
-              {
-                $or: [
-                  {
-                    userName: req.body.userName,
-                  },
-                  {
-                    email: req.body.userName,
-                  },
-                  {
-                    mobile: req.body.userName,
-                  },
-                ],
-                status: Number(process.env.ACTIVE_STATUS),
-              },
-              {
-                password: md5(req.body.newPassword),
-                passwordLastUpdateDate: new Date().toISOString().split("T")[0],
-              },
-              {},
-              res
-            );
+
+            const parameters = { emailId: req.body.userName, newPassword: md5(req.body.newPassword) }
+            let { data , error } = await executeStoredProcedure('changePasswordApi', parameters)
+            
             if (data) {
               res.send({
                 success: true,
@@ -869,50 +806,17 @@ module.exports = {
               res.status(400).send({
                 success: false,
                 message: "Password Not Changed",
-                data: data,
+                error: error,
               });
             }
           } else {
-            //                        console.log("hello");
-            // let data = await model.Update("tblUser", "tblUser", { userName: req.body.userName, status: Number(process.env.ACTIVE_STATUS), password: md5(req.body.oldPassword) }, { password: md5(req.body.newPassword) }, {}, res)
-            let data = await model.Update(
-              "tblUser",
-              "tblUser",
-              {
-                $or: [
-                  {
-                    userName: req.body.userName,
-                  },
-                  {
-                    email: req.body.userName,
-                  },
-                  {
-                    mobile: req.body.userName,
-                  },
-                ],
-                status: Number(process.env.ACTIVE_STATUS),
-                password: md5(req.body.oldPassword),
-              },
-              {
-                password: md5(req.body.newPassword),
-                passwordLastUpdateDate: new Date().toISOString().split("T")[0],
-              },
-              {},
-              ""
-            );
-            if (data.matchedCount > 0) {
-              res.send({
-                success: true,
-                message: "Password Changed Successfully",
-                data: data,
-              });
-            } else {
-              res.status(400).send({
-                success: false,
-                message: "Invalid old password",
-                data: [],
-              });
-            }
+
+            res.status(400).send({
+              success: false,
+              message: "Forgot password is false",
+              data: [],
+            });
+
           }
         } catch (error) {
           errorLogger(error, req);
@@ -925,14 +829,43 @@ module.exports = {
       }
     });
   },
+  resetPassword: async (req, res) => {
+        try {
+
+            const parameters = { emailId: req.body.emailId, oldPassword: md5(req.body.oldPassword), newPassword: md5(req.body.newPassword) }
+            let { data , error } = await executeStoredProcedure('resetPasswordApi', parameters)
+
+            if (data) {
+              res.send({
+                success: true,
+                message: "Password Changed Successfully",
+                data: data,
+              });
+            } else {
+              res.status(400).send({
+                success: false,
+                message: "Password Not Changed",
+                error: error,
+              });
+            }
+
+        } catch (error) {
+          errorLogger(error, req);
+          res.status(500).send({
+            success: false,
+            message: "something went wrong",
+            data: error.message,
+          });
+        }
+  },
   verifyEmail: async (req, res) => {
-    const tableName = "tblUser";
+
     const emailVal = req.body.email;
     try {
-      const collection = mongoose.connection.collection(tableName);
-      const email = emailVal;
-      const user = await collection.findOne({ email: email });
-      if (!user) {
+
+      let { data } = await executeStoredProcedure('forgotPasswordApi', {emailId:emailVal})
+
+      if (!data) {
         return res.status(404).json({
           success: false,
           message: "User not found!",
@@ -940,9 +873,9 @@ module.exports = {
       }
       const emailData = {
         from: "aakashvishwakarmarm4001@gmail.com",
-        to: user.email,
+        to: data.emailId,
         subject: "Verification Otp",
-        name: user.name,
+        name: data.name,
         OTP: generateOTP(),
       };
       return res.status(200).json({
