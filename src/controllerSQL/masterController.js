@@ -14,11 +14,15 @@ module.exports = {
                 let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
                 let limit = parseInt(req.body.limit, 10) || 10; // Default to 10 items per page if not specified
                 let parameter = { clientId: 0, tableName: tableName, columnName: null, filterCondition: null, sortingOrder: null, search: null, menuId: menuID }
+                let query = ``
                 if (keyName && keyName !== "" && keyName !== "undefined" && keyValue && keyValue !== "" && keyValue !== "undefined") {
                     parameter.columnName = keyName
                     parameter.search = keyValue
                 }
-                let query = ``
+                else if (searchQuery && searchQuery !== "undefined" && searchQuery !== "") {
+                    parameter.globalSearch = searchQuery
+                }
+
                 if (search && typeof search == "object") {
 
                     for (const key of Object.keys(search)) {
@@ -27,9 +31,7 @@ module.exports = {
                     parameter.filterCondition = query
 
                 }
-                if (searchQuery && searchQuery !== "undefined" && searchQuery !== "") {
-                    parameter.globalSearch = searchQuery
-                }
+                
                 let count = await executeQuery(`select count(*) as total from ${tableName} where status = 0` + query, {})
                 console.log(count.recordset[0].total === 0);
 
@@ -38,7 +40,7 @@ module.exports = {
                 }
                 let data = await executeStoredProcedure('dynamicSearchApi', parameter)
                 if (data.length > 0) {
-                    return res.send({ success: true, message: "Data fetched successfully....!", data: data, count: count.recordset[0].total })
+                    return res.send({ success: true, message: "Data fetched successfully....!", data: data, Count: count.recordset[0].total })
                 }
                 res.send({ success: true, message: "No data found", data: data })
             }
