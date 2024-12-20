@@ -31,5 +31,22 @@ module.exports = {
             console.error('Error inserting data:', error);
             throw error;
         }
+    },
+    executeNonJSONStoredProcedure: async (procedureName, data) => {
+        try {
+            const pool = await connectToSql();
+            const request = pool.request();
+            for (const [key, value] of Object.entries(data)) {
+                request.input(key, value);
+            };
+            const result = await request.execute(procedureName);
+            if (result.recordsets.length == 0) {
+                return [];
+            }
+            return result.recordset; // Return the result set
+        } catch (error) {
+            console.error('Error inserting data:', error);
+            throw error;
+        }
     }
 }
