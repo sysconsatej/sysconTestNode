@@ -1,5 +1,5 @@
 const validate = require('../helper/validate')
-const { executeQuery, executeStoredProcedure } = require("../modelSQL/model")
+const { executeQuery, executeStoredProcedure,executeNonJSONStoredProcedure } = require("../modelSQL/model")
 
 module.exports = {
     DisPlaySeacrchApi: async (req, res) => {
@@ -31,7 +31,7 @@ module.exports = {
                     parameter.filterCondition = query
 
                 }
-                
+
                 let count = await executeQuery(`select count(*) as total from ${tableName} where status = 0` + query, {})
                 console.log(count.recordset[0].total === 0);
 
@@ -48,5 +48,15 @@ module.exports = {
                 res.status(500).send({ success: false, message: "Something went wrong", data: [], error: error.message });
             }
         })
+    },
+    createMaster: async (req, res) => {
+        try {
+            let data = await executeNonJSONStoredProcedure('InsertDataFromJson', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.body.clientId || 3, createdBy: req.userId || 4 })
+            res.send({ success: true, message: "Data Inserted Successfully", data: data })
+        }
+        catch (error) {
+            res.status(500).send({ success: false, message: "Something went wrong", data: [], error: error.message });
+        }
     }
+
 }

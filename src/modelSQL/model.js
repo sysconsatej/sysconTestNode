@@ -23,6 +23,7 @@ module.exports = {
                 request.input(key, value);
             };
             const result = await request.execute(procedureName);
+            
             if (result.recordsets.length == 0) {
                 return [];
             }
@@ -40,11 +41,16 @@ module.exports = {
                 request.input(key, value);
             };
             const result = await request.execute(procedureName);
-            if (result.recordsets.length == 0) {
-                return [];
-            }
-            return result.recordset; // Return the result set
+            return result; // Return the result set
         } catch (error) {
+            if (error.originalError) {
+                console.error('SQL Error Details:');
+                console.error('Message:', error.originalError.message);
+                console.error('Procedure Name:', procedureName);
+                console.error('Data:', data);
+            } else {
+                console.error('Error Details:', error.message);
+            }
             console.error('Error inserting data:', error);
             throw error;
         }
