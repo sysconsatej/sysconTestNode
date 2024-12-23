@@ -121,11 +121,13 @@ app.use("/api/DRpt", DynamicReports);
 const SQlMenuRouter = require("./src/routesSQL/menuRoute");
 const SQlFormRouter = require("./src/routesSQL/formRoute");
 const SQlMasterRouter = require("./src/routesSQL/masterRoute");
+const SQLDynamicRouterMiddleware = require("./src/routesSQL/sqlDynamicRouterMiddleware");
 
-
+app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
 app.use("/Sql/api/FormControl", SQlFormRouter);
 app.use("/Sql/api/master", SQlMasterRouter);
+
 
 
 
