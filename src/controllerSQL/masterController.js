@@ -60,9 +60,7 @@ module.exports = {
     },
     infoData: async (req, res) => {
         try {
-            let query = { clientID: req.clientId || 3, menuID: req.body.menuID, recordID: req.body.id }
-            console.log(query);
-            
+            let query = { clientID: req.clientId || 3, menuID: req.body.menuID, recordID: req.body.id }            
             let data = await executeStoredProcedure('dynamicFetchApi', query)
             data.length > 0 ? res.send({ success: true, message: "list fetched", data: data }) : res.status(403).send({ success: false, message: "No Data Found", data: [] });
         }
