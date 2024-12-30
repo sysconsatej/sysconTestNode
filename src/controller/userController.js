@@ -594,7 +594,7 @@ module.exports = {
               return fields.flatMap((field) => [
                 {
                   $lookup: {
-                    from: "tblMasterList",
+                    from: "tblMasterData",
                     let: { fieldId: { $toObjectId: `$${field}` } }, // Convert the field to ObjectId
                     pipeline: [
                       { $match: { $expr: { $eq: ["$_id", "$$fieldId"] } } }, // Match _id from tblMasterList
