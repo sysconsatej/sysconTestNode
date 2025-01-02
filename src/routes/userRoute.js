@@ -11,6 +11,8 @@ router.post('/verifyEmail', controller.verifyEmail)
 router.post('/verifyOtp', controller.VerifyOtp)
 router.post('/forgotPassword', controller.forgotPassword)
 router.post('/changePassword', controller.changePassword)
+router.post('/resetPassword', controller.resetPassword)
+
 
 
 
