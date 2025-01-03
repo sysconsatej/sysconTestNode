@@ -37,7 +37,7 @@ app.set("views", path.join(__dirname, "views"));
 app.engine("html", require("ejs").renderFile);
 app.set("view engine", "html");
 app.use("/site", express.static("static"));
-sqllConnection.connectToSql()
+sqllConnection.connectToSql();
 
 app.use(logger("dev"));
 app.use(express.json({ limit: "100mb" }));
@@ -122,14 +122,13 @@ const SQlMenuRouter = require("./src/routesSQL/menuRoute");
 const SQlFormRouter = require("./src/routesSQL/formRoute");
 const SQlMasterRouter = require("./src/routesSQL/masterRoute");
 const SQLDynamicRouterMiddleware = require("./src/routesSQL/sqlDynamicRouterMiddleware");
+const SQlReportRouter = require("./src/routesSQL/reportsRoute");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
 app.use("/Sql/api/FormControl", SQlFormRouter);
 app.use("/Sql/api/master", SQlMasterRouter);
-
-
-
+app.use("/Sql/api/fetch", SQlReportRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
