@@ -18,8 +18,8 @@ module.exports = {
         const { menuID } = req.query;
         let parameter = { menuID: menuID, createForm: false };
         if (menuID == "CreateFormcontrol") {
-          parameter.menuID = 1668;
-          parameter.createForm = true;
+          parameter.menuID = 895;
+          parameter.createForm = 0;
         }
         let data = await executeStoredProcedure("formRetrievalApi", parameter);
         let message = "Data fetched successfully....!";
@@ -139,4 +139,46 @@ module.exports = {
       });
     }
   },
+  formList: async (req, res) => {
+    try {
+      const { label, menuID, order, searchQuery, tableName, search, keyName, keyValue } = req.body
+      let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
+      let limit = parseInt(req.body.limit, 10) || 10;
+      let parameter = { clientId: 0, tableName: 'tblForm', columnName: null, filterCondition: null, sortingOrder: null, search: null, menuId: 895, pageSize: limit, pageNumber: pageNo }
+      let query = ``
+      if (keyName && keyName !== "" && keyName !== "undefined" && keyValue && keyValue !== "" && keyValue !== "undefined") {
+        parameter.columnName = keyName
+        parameter.search = keyValue
+      }
+      else if (searchQuery && searchQuery !== "undefined" && searchQuery !== "") {
+        parameter.globalSearch = searchQuery
+      }
+
+      if (search && typeof search == "object") {
+
+        for (const key of Object.keys(search)) {
+          query += ` and ${key} = '${search[key]}'`
+        }
+        parameter.filterCondition = query
+
+      }
+      let count = await executeQuery(`select count(*) as total from tblForm where status = 0` + query, {})
+      if (count.recordset[0].total === 0) {
+        return res.send({ success: true, message: "No data found", data: [], count: count.recordset[0].total })
+      }
+      let data = await executeStoredProcedure('dynamicSearchApiCreateFormControl', parameter)
+      if (data.length > 0) {
+        return res.send({ success: true, message: "Data fetched successfully....!", data: data, Count: count.recordset[0].total })
+      }
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+
+    }
+  }
+
 };
