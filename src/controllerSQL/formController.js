@@ -1,5 +1,5 @@
 const validate = require("../helper/validate");
-const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
+const { executeQuery, executeStoredProcedure, executeNonJSONStoredProcedure } = require("../modelSQL/model");
 
 module.exports = {
   listControlToDrawScreen: async (req, res) => {
@@ -162,6 +162,9 @@ module.exports = {
         parameter.filterCondition = query
 
       }
+      if (req.body.id && req.body.id !== "undefined") {
+        parameter.filterCondition = ` and id = ${req.body.id}`
+      }
       let count = await executeQuery(`select count(*) as total from tblForm where status = 0` + query, {})
       if (count.recordset[0].total === 0) {
         return res.send({ success: true, message: "No data found", data: [], count: count.recordset[0].total })
@@ -178,6 +181,19 @@ module.exports = {
         error: error.message,
       });
 
+    }
+  },
+  CreateFormControl: async (req, res) => {
+    try {
+      let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: 895, clientId: req.clientId || 3, createdBy: req.userId || 4 })
+      res.send({ success: true, message: "Data Inserted Successfully", data: data })
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
     }
   }
 

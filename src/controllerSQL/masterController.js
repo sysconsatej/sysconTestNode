@@ -51,7 +51,7 @@ module.exports = {
     },
     createMaster: async (req, res) => {
         try {
-            let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.body.clientId || 3, createdBy: req.userId || 4 })
+            let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.clientId || 3, createdBy: req.userId || 4 })
             res.send({ success: true, message: "Data Inserted Successfully", data: data })
         }
         catch (error) {
