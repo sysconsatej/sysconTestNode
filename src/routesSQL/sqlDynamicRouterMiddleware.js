@@ -37,7 +37,7 @@ const dynamicRouterMiddleware = (req, res, next) => {
 
         case 'FormRoute':
             
-            req.url = '/api/FormControl/add';  // Modify the URL to route to /add
+            req.url = '/Sql/api/FormControl/add';  // Modify the URL to route to /add
             next('route');     // Continue to the next matching route
             break;
 
