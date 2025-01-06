@@ -37,7 +37,7 @@ app.set("views", path.join(__dirname, "views"));
 app.engine("html", require("ejs").renderFile);
 app.set("view engine", "html");
 app.use("/site", express.static("static"));
-sqllConnection.connectToSql()
+sqllConnection.connectToSql();
 
 app.use(logger("dev"));
 app.use(express.json({ limit: "100mb" }));
@@ -122,18 +122,26 @@ const SQlMenuRouter = require("./src/routesSQL/menuRoute");
 const SQlFormRouter = require("./src/routesSQL/formRoute");
 const SQlMasterRouter = require("./src/routesSQL/masterRoute");
 const SQLDynamicRouterMiddleware = require("./src/routesSQL/sqlDynamicRouterMiddleware");
+<<<<<<< HEAD
 const SQlUserRouter = require("./src/routesSQL/userRoute");
 
+=======
+const SQlReportRouter = require("./src/routesSQL/reportsRoute");
+>>>>>>> d44dc6c979745e4f05318625cc83734def0dbd7d
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
 app.use("/Sql/api/FormControl", SQlFormRouter);
 app.use("/Sql/api/master", SQlMasterRouter);
+<<<<<<< HEAD
 app.use("/Sql/api/userControl", SQlUserRouter);
 
 
 
 
+=======
+app.use("/Sql/api/fetch", SQlReportRouter);
+>>>>>>> d44dc6c979745e4f05318625cc83734def0dbd7d
 
 app.use(function (req, res, next) {
   next(createError(404));
