@@ -931,4 +931,32 @@ module.exports = {
         .json({ success: false, message: `server error ${error.message}` });
     }
   },
+  menuAccessByEmailId : async (req, res) => {
+    try {
+        const parameters = { emailId: req.body.emailId }
+        let { data , error } = await executeStoredProcedure('menuAccessByEmailIdApi', parameters)
+
+        if (data) {
+          res.send({
+            success: true,
+            message: "Get user data successfully!",
+            data: data,
+          });
+        } else {
+          res.status(400).send({
+            success: false,
+            message: "User not found!",
+            error: error,
+          });
+        }
+
+    } catch (error) {
+      errorLogger(error, req);
+      res.status(500).send({
+        success: false,
+        message: "something went wrong",
+        data: error.message,
+      });
+    }
+  },
 };
