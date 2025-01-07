@@ -69,7 +69,7 @@ module.exports = {
         headless: true,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
         timeout: 60000, // Increase timeout to 60 seconds
-        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+        //executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
       });
       const page = await browser.newPage();
       await page.setViewport({
@@ -160,7 +160,7 @@ module.exports = {
         headless: true,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
         timeout: 60000, // Increase timeout to 60 seconds
-        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+        //executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
       });
 
       const page = await browser.newPage();
@@ -278,13 +278,11 @@ module.exports = {
       res.send(pdfBuffer);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      res
-        .status(500)
-        .send({
-          success: false,
-          message: "Failed to generate PDF",
-          error: error.message,
-        });
+      res.status(500).send({
+        success: false,
+        message: "Failed to generate PDF",
+        error: error.message,
+      });
     } finally {
       if (browser) {
         await browser.close();
