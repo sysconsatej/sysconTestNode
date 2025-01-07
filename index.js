@@ -122,13 +122,17 @@ const SQlMenuRouter = require("./src/routesSQL/menuRoute");
 const SQlFormRouter = require("./src/routesSQL/formRoute");
 const SQlMasterRouter = require("./src/routesSQL/masterRoute");
 const SQLDynamicRouterMiddleware = require("./src/routesSQL/sqlDynamicRouterMiddleware");
+const SQlUserRouter = require("./src/routesSQL/userRoute");
 const SQlReportRouter = require("./src/routesSQL/reportsRoute");
+const spReports = require("./src/routesSQL/Reports&spRoute");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
 app.use("/Sql/api/FormControl", SQlFormRouter);
 app.use("/Sql/api/master", SQlMasterRouter);
+app.use("/Sql/api/userControl", SQlUserRouter);
 app.use("/Sql/api/fetch", SQlReportRouter);
+app.use("/Sql/api/Reports", spReports);
 
 app.use(function (req, res, next) {
   next(createError(404));
