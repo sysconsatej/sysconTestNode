@@ -8,5 +8,6 @@ router.post("/DropDownList", auth.verifyToken, controller.filterdDropDown);
 router.post("/dynamicFetch", auth.verifyToken, controller.dynamicFetch);
 router.post("/FormList", auth.verifyToken, controller.formList);
 router.post("/add", auth.verifyToken, controller.CreateFormControl);
+router.post("/getCopyData", controller.getCopyData);
 
 module.exports = router;

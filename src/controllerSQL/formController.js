@@ -195,6 +195,43 @@ module.exports = {
         error: error.message,
       });
     }
+  },
+  getCopyData: async (req, res) => {
+    const validationRule = {
+      id: "required",
+      menuID: "required"
+    }
+    validate(req.body, validationRule, {}, async (err, status) => {
+      if (!status) {
+        return res.status(403).send({
+          success: false,
+          message: "Vaidation Error",
+          data: err
+        })
+      }
+      try {
+        let { id, menuID,filterValue } = req.body
+        let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=0 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=0 and mappingName ='${id}' for json path`
+        let queryData = await executeQuery(query, {})
+        console.log(queryData);
+
+        let data = await executeStoredProcedure('GetCopyTableMapping', { mappingName: id, menuId: menuID, id: filterValue})
+        if (data > 0) {
+          res.send({
+            success: true, message: "Data fetched successfully....!", data: data,
+            keyToValidate: JSON.parse(queryData.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"])[0]
+          })
+        }
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: [],
+          error: error.message,
+        });
+      }
+    })
   }
+
 
 };
