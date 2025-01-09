@@ -160,7 +160,7 @@ module.exports = {
         headless: true,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
         timeout: 60000, // Increase timeout to 60 seconds
-        //executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
       });
 
       const page = await browser.newPage();
@@ -296,7 +296,7 @@ module.exports = {
       // Launch a new browser instance
       const browser = await puppeteer.launch({
         args: ["--no-sandbox", "--disable-setuid-sandbox"], // For environments like cloud servers
-        // executablePath: '/usr/bin/chromium-browser', // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
       });
       const page = await browser.newPage();
 
