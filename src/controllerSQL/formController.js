@@ -231,6 +231,23 @@ module.exports = {
         });
       }
     })
+  },
+  dropdownCreateForm: async (req, res) => {
+    try {
+      let parameter={ IsTable:1 }
+      if (req.body.dropdownFilter) {
+        parameter={IsTable:0, TableName:req.body.dropdownFilter}
+      }
+      let data = await executeNonJSONStoredProcedure('FetchDatabaseInfo',parameter )
+      res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
   }
 
 
