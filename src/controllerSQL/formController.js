@@ -67,17 +67,21 @@ module.exports = {
             pageNo,
             value,
           } = req.body;
+          console.log(dropdownFilter);
+
           let data = await executeStoredProcedure("dynamicDataFetch", {
             clientId: 0,
-            filterCondition: dropdownFilter || null,
+            filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
-            tableName: referenceTable,
-            columnName: referenceColumn,
+            tableName: referenceTable.trim(),
+            columnName: referenceColumn.trim(),
             search: search || null,
             pageNumber: pageNo || null,
-            value: value,
+            value: value||"",
           });
           let nextPage = data.length < 1001 ? null : pageNo + 1;
+          console.log(data);
+
 
           if (data.length > 0) {
             return res.send({
@@ -210,12 +214,12 @@ module.exports = {
         })
       }
       try {
-        let { id, menuID,filterValue } = req.body
+        let { id, menuID, filterValue } = req.body
         let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=0 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=0 and mappingName ='${id}' for json path`
         let queryData = await executeQuery(query, {})
         console.log(queryData);
 
-        let data = await executeStoredProcedure('GetCopyTableMapping', { mappingName: id, menuId: menuID, id: filterValue})
+        let data = await executeStoredProcedure('GetCopyTableMapping', { mappingName: id, menuId: menuID, id: filterValue })
         if (data > 0) {
           res.send({
             success: true, message: "Data fetched successfully....!", data: data,
@@ -231,6 +235,29 @@ module.exports = {
         });
       }
     })
+  },
+  dropdownCreateForm: async (req, res) => {
+    try {
+      let parameter = { IsTable: 1 }
+      if (req.body.dropdownFilter) {
+        parameter = { IsTable: 0, TableName: req.body.dropdownFilter }
+      }
+      let data = await executeNonJSONStoredProcedure('FetchDatabaseInfo', parameter)
+      if (data.recordsets[0]?.length > 0) {
+        return res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+      }
+      else {
+        return await module.exports.filterdDropDown(req, res)
+      }
+      res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
   }
 
 
