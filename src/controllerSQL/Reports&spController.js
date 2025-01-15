@@ -16,6 +16,7 @@ module.exports = {
         res.send({
           success: true,
           message: "Data Fetched Successfully",
+          count: data.length,
           data: data,
         });
       } else {
