@@ -31,6 +31,10 @@ module.exports = {
                     parameter.filterCondition = query
 
                 }
+                if (label && label !== "undefined" && label !== "" && order && order !== "undefined" && order !== "") {
+                    parameter.sortingOrder = `${order == 1 ? "asc" : "desc"}`
+                    parameter.sortingColumn= label
+                  }
 
                 let count = await executeQuery(`select count(*) as total from ${tableName} where status = 0` + query, {})
                 console.log(count.recordset[0].total === 0);

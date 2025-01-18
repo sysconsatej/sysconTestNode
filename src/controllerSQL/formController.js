@@ -77,7 +77,7 @@ module.exports = {
             columnName: referenceColumn.trim(),
             search: search || null,
             pageNumber: pageNo || null,
-            value: value||"",
+            value: value || "",
           });
           let nextPage = data.length < 1001 ? null : pageNo + 1;
           console.log(data);
@@ -153,6 +153,7 @@ module.exports = {
       if (keyName && keyName !== "" && keyName !== "undefined" && keyValue && keyValue !== "" && keyValue !== "undefined") {
         parameter.columnName = keyName
         parameter.search = keyValue
+        query += ` and ${keyName} like '%${keyValue}%'`
       }
       else if (searchQuery && searchQuery !== "undefined" && searchQuery !== "") {
         parameter.globalSearch = searchQuery
@@ -164,12 +165,16 @@ module.exports = {
           query += ` and ${key} = '${search[key]}'`
         }
         parameter.filterCondition = query
-
       }
+      if (label && label !== "undefined" && label !== "" && order && order !== "undefined" && order !== "") {
+        parameter.sortingOrder = `${label} ${order == 1 ? "asc" : "desc"}`
+      }
+
+
       if (req.body.id && req.body.id !== "undefined") {
         parameter.filterCondition = ` and id = ${req.body.id}`
       }
-      let count = await executeQuery(`select count(*) as total from tblForm where status = 0` + query, {})
+      let count = await executeQuery(`select count(*) as total from tblForm where status = 1` + query, {})
       if (count.recordset[0].total === 0) {
         return res.send({ success: true, message: "No data found", data: [], count: count.recordset[0].total })
       }
