@@ -80,7 +80,7 @@ module.exports = {
             value: value || "",
           });
           let nextPage = data.length < 1001 ? null : pageNo + 1;
-          console.log(data);
+          // console.log(data);
 
 
           if (data.length > 0) {
