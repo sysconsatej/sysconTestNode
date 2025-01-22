@@ -67,17 +67,21 @@ module.exports = {
             pageNo,
             value,
           } = req.body;
+          console.log(dropdownFilter);
+
           let data = await executeStoredProcedure("dynamicDataFetch", {
             clientId: 0,
-            filterCondition: dropdownFilter || null,
+            filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
-            tableName: referenceTable,
-            columnName: referenceColumn,
+            tableName: referenceTable.trim(),
+            columnName: referenceColumn.trim(),
             search: search || null,
             pageNumber: pageNo || null,
-            value: value,
+            value: value || "",
           });
           let nextPage = data.length < 1001 ? null : pageNo + 1;
+          // console.log(data);
+
 
           if (data.length > 0) {
             return res.send({
@@ -149,6 +153,7 @@ module.exports = {
       if (keyName && keyName !== "" && keyName !== "undefined" && keyValue && keyValue !== "" && keyValue !== "undefined") {
         parameter.columnName = keyName
         parameter.search = keyValue
+        query += ` and ${keyName} like '%${keyValue}%'`
       }
       else if (searchQuery && searchQuery !== "undefined" && searchQuery !== "") {
         parameter.globalSearch = searchQuery
@@ -160,12 +165,16 @@ module.exports = {
           query += ` and ${key} = '${search[key]}'`
         }
         parameter.filterCondition = query
-
       }
+      if (label && label !== "undefined" && label !== "" && order && order !== "undefined" && order !== "") {
+        parameter.sortingOrder = `${label} ${order == 1 ? "asc" : "desc"}`
+      }
+
+
       if (req.body.id && req.body.id !== "undefined") {
         parameter.filterCondition = ` and id = ${req.body.id}`
       }
-      let count = await executeQuery(`select count(*) as total from tblForm where status = 0` + query, {})
+      let count = await executeQuery(`select count(*) as total from tblForm where status = 1` + query, {})
       if (count.recordset[0].total === 0) {
         return res.send({ success: true, message: "No data found", data: [], count: count.recordset[0].total })
       }
@@ -195,6 +204,66 @@ module.exports = {
         error: error.message,
       });
     }
+  },
+  getCopyData: async (req, res) => {
+    const validationRule = {
+      id: "required",
+      menuID: "required"
+    }
+    validate(req.body, validationRule, {}, async (err, status) => {
+      if (!status) {
+        return res.status(403).send({
+          success: false,
+          message: "Vaidation Error",
+          data: err
+        })
+      }
+      try {
+        let { id, menuID, filterValue } = req.body
+        let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=0 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=0 and mappingName ='${id}' for json path`
+        let queryData = await executeQuery(query, {})
+        console.log(queryData);
+
+        let data = await executeStoredProcedure('GetCopyTableMapping', { mappingName: id, menuId: menuID, id: filterValue })
+        if (data > 0) {
+          res.send({
+            success: true, message: "Data fetched successfully....!", data: data,
+            keyToValidate: JSON.parse(queryData.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"])[0]
+          })
+        }
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: [],
+          error: error.message,
+        });
+      }
+    })
+  },
+  dropdownCreateForm: async (req, res) => {
+    try {
+      let parameter = { IsTable: 1 }
+      if (req.body.dropdownFilter) {
+        parameter = { IsTable: 0, TableName: req.body.dropdownFilter }
+      }
+      let data = await executeNonJSONStoredProcedure('FetchDatabaseInfo', parameter)
+      if (data.recordsets[0]?.length > 0) {
+        return res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+      }
+      else {
+        return await module.exports.filterdDropDown(req, res)
+      }
+      res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
   }
+
 
 };

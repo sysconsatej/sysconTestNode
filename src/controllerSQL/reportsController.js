@@ -1,4 +1,6 @@
 const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
+const sql = require("mssql");
+const { connectToSql } = require("../config/sqlConfig");
 
 module.exports = {
   getReportsData: async (req, res) => {
@@ -31,6 +33,52 @@ module.exports = {
         success: false,
         message: "Something went wrong",
         data: error.message,
+      });
+    }
+  },
+  insertUpdateData: async (req, res) => {
+    try {
+      const { TableName, Record, WhereCondition } = req.body;
+
+      // Convert the Record object to a JSON string
+      const formattedRecord = JSON.stringify(Record);
+
+      // Connect to the database
+      const pool = await connectToSql();
+
+      // Prepare the stored procedure request
+      const request = pool.request();
+      request.input("TableName", sql.NVarChar, TableName);
+      request.input("Record", sql.NVarChar(sql.MAX), formattedRecord);
+      request.input("WhereCondition", sql.NVarChar, WhereCondition);
+      request.output("RowsAffected", sql.Int); // Add output parameter
+
+      // Execute the stored procedure
+      const result = await request.execute("spDynamicInsertUpdate");
+
+      // Check the RowsAffected output parameter
+      const rowsAffected = result.output.RowsAffected;
+
+      // Respond to the client
+      if (rowsAffected > 0) {
+        res.send({
+          success: true,
+          message: "Data Inserted/Updated Successfully",
+          rowsAffected: rowsAffected,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No rows affected",
+          rowsAffected: rowsAffected,
+        });
+      }
+    } catch (error) {
+      console.error("Error executing stored procedure:", error);
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        error: error.message,
       });
     }
   },
