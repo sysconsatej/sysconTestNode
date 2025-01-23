@@ -125,6 +125,8 @@ const SQLDynamicRouterMiddleware = require("./src/routesSQL/sqlDynamicRouterMidd
 const SQlUserRouter = require("./src/routesSQL/userRoute");
 const SQlReportRouter = require("./src/routesSQL/reportsRoute");
 const spReports = require("./src/routesSQL/Reports&spRoute");
+const spProfile = require("./src/routesSQL/profileRoute");
+
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -133,6 +135,8 @@ app.use("/Sql/api/master", SQlMasterRouter);
 app.use("/Sql/api/userControl", SQlUserRouter);
 app.use("/Sql/api/fetch", SQlReportRouter);
 app.use("/Sql/api/Reports", spReports);
+app.use("/Sql/api/profile", spProfile);
+
 
 app.use(function (req, res, next) {
   next(createError(404));
