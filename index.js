@@ -161,4 +161,7 @@ app.use(function (err, req, res, next) {
   res.send({ success: false, message: "Api Not Found", data: [] });
 });
 
+const PORT = process.env.PORT || 3000;
+console.log(`Server is running on port ${PORT}`.green);
+
 module.exports = app;

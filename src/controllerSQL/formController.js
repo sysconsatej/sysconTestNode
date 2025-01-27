@@ -1,5 +1,9 @@
 const validate = require("../helper/validate");
-const { executeQuery, executeStoredProcedure, executeNonJSONStoredProcedure } = require("../modelSQL/model");
+const {
+  executeQuery,
+  executeStoredProcedure,
+  executeNonJSONStoredProcedure,
+} = require("../modelSQL/model");
 
 module.exports = {
   listControlToDrawScreen: async (req, res) => {
@@ -57,6 +61,7 @@ module.exports = {
       } else {
         try {
           const {
+            clientId,
             onfilterkey,
             referenceTable,
             onfiltervalue,
@@ -70,7 +75,7 @@ module.exports = {
           console.log(dropdownFilter);
 
           let data = await executeStoredProcedure("dynamicDataFetch", {
-            clientId: 0,
+            clientId: clientId,
             filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
             tableName: referenceTable.trim(),
@@ -81,7 +86,6 @@ module.exports = {
           });
           let nextPage = data.length < 1001 ? null : pageNo + 1;
           // console.log(data);
-
 
           if (data.length > 0) {
             return res.send({
@@ -145,42 +149,92 @@ module.exports = {
   },
   formList: async (req, res) => {
     try {
-      const { label, menuID, order, searchQuery, tableName, search, keyName, keyValue } = req.body
+      const {
+        label,
+        menuID,
+        order,
+        searchQuery,
+        tableName,
+        search,
+        keyName,
+        keyValue,
+      } = req.body;
       let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
       let limit = parseInt(req.body.limit, 10) || 10;
-      let parameter = { clientId: 0, tableName: 'tblForm', columnName: null, filterCondition: null, sortingOrder: null, search: null, menuId: 895, pageSize: limit, pageNumber: pageNo }
-      let query = ``
-      if (keyName && keyName !== "" && keyName !== "undefined" && keyValue && keyValue !== "" && keyValue !== "undefined") {
-        parameter.columnName = keyName
-        parameter.search = keyValue
-        query += ` and ${keyName} like '%${keyValue}%'`
-      }
-      else if (searchQuery && searchQuery !== "undefined" && searchQuery !== "") {
-        parameter.globalSearch = searchQuery
+      let parameter = {
+        clientId: 0,
+        tableName: "tblForm",
+        columnName: null,
+        filterCondition: null,
+        sortingOrder: null,
+        search: null,
+        menuId: 895,
+        pageSize: limit,
+        pageNumber: pageNo,
+      };
+      let query = ``;
+      if (
+        keyName &&
+        keyName !== "" &&
+        keyName !== "undefined" &&
+        keyValue &&
+        keyValue !== "" &&
+        keyValue !== "undefined"
+      ) {
+        parameter.columnName = keyName;
+        parameter.search = keyValue;
+        query += ` and ${keyName} like '%${keyValue}%'`;
+      } else if (
+        searchQuery &&
+        searchQuery !== "undefined" &&
+        searchQuery !== ""
+      ) {
+        parameter.globalSearch = searchQuery;
       }
 
       if (search && typeof search == "object") {
-
         for (const key of Object.keys(search)) {
-          query += ` and ${key} = '${search[key]}'`
+          query += ` and ${key} = '${search[key]}'`;
         }
-        parameter.filterCondition = query
+        parameter.filterCondition = query;
       }
-      if (label && label !== "undefined" && label !== "" && order && order !== "undefined" && order !== "") {
-        parameter.sortingOrder = `${label} ${order == 1 ? "asc" : "desc"}`
+      if (
+        label &&
+        label !== "undefined" &&
+        label !== "" &&
+        order &&
+        order !== "undefined" &&
+        order !== ""
+      ) {
+        parameter.sortingOrder = `${label} ${order == 1 ? "asc" : "desc"}`;
       }
-
 
       if (req.body.id && req.body.id !== "undefined") {
-        parameter.filterCondition = ` and id = ${req.body.id}`
+        parameter.filterCondition = ` and id = ${req.body.id}`;
       }
-      let count = await executeQuery(`select count(*) as total from tblForm where status = 1` + query, {})
+      let count = await executeQuery(
+        `select count(*) as total from tblForm where status = 1` + query,
+        {}
+      );
       if (count.recordset[0].total === 0) {
-        return res.send({ success: true, message: "No data found", data: [], count: count.recordset[0].total })
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+          count: count.recordset[0].total,
+        });
       }
-      let data = await executeStoredProcedure('dynamicSearchApiCreateFormControl', parameter)
+      let data = await executeStoredProcedure(
+        "dynamicSearchApiCreateFormControl",
+        parameter
+      );
       if (data.length > 0) {
-        return res.send({ success: true, message: "Data fetched successfully....!", data: data, Count: count.recordset[0].total })
+        return res.send({
+          success: true,
+          message: "Data fetched successfully....!",
+          data: data,
+          Count: count.recordset[0].total,
+        });
       }
     } catch (error) {
       return res.status(500).send({
@@ -189,13 +243,21 @@ module.exports = {
         data: [],
         error: error.message,
       });
-
     }
   },
   CreateFormControl: async (req, res) => {
     try {
-      let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: 895, clientId: req.clientId || 3, createdBy: req.userId || 4 })
-      res.send({ success: true, message: "Data Inserted Successfully", data: data })
+      let data = await executeNonJSONStoredProcedure("insertDataApi", {
+        json: JSON.stringify(req.body),
+        formId: 895,
+        clientId: req.clientId || 3,
+        createdBy: req.userId || 4,
+      });
+      res.send({
+        success: true,
+        message: "Data Inserted Successfully",
+        data: data,
+      });
     } catch (error) {
       return res.status(500).send({
         success: false,
@@ -208,28 +270,38 @@ module.exports = {
   getCopyData: async (req, res) => {
     const validationRule = {
       id: "required",
-      menuID: "required"
-    }
+      menuID: "required",
+    };
     validate(req.body, validationRule, {}, async (err, status) => {
       if (!status) {
         return res.status(403).send({
           success: false,
           message: "Vaidation Error",
-          data: err
-        })
+          data: err,
+        });
       }
       try {
-        let { id, menuID, filterValue } = req.body
-        let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=0 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=0 and mappingName ='${id}' for json path`
-        let queryData = await executeQuery(query, {})
+        let { id, menuID, filterValue } = req.body;
+        let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=0 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=0 and mappingName ='${id}' for json path`;
+        let queryData = await executeQuery(query, {});
         console.log(queryData);
 
-        let data = await executeStoredProcedure('GetCopyTableMapping', { mappingName: id, menuId: menuID, id: filterValue })
+        let data = await executeStoredProcedure("GetCopyTableMapping", {
+          mappingName: id,
+          menuId: menuID,
+          id: filterValue,
+        });
         if (data > 0) {
           res.send({
-            success: true, message: "Data fetched successfully....!", data: data,
-            keyToValidate: JSON.parse(queryData.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"])[0]
-          })
+            success: true,
+            message: "Data fetched successfully....!",
+            data: data,
+            keyToValidate: JSON.parse(
+              queryData.recordset[0][
+                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+              ]
+            )[0],
+          });
         }
       } catch (error) {
         res.status(500).send({
@@ -239,22 +311,32 @@ module.exports = {
           error: error.message,
         });
       }
-    })
+    });
   },
   dropdownCreateForm: async (req, res) => {
     try {
-      let parameter = { IsTable: 1 }
+      let parameter = { IsTable: 1 };
       if (req.body.dropdownFilter) {
-        parameter = { IsTable: 0, TableName: req.body.dropdownFilter }
+        parameter = { IsTable: 0, TableName: req.body.dropdownFilter };
       }
-      let data = await executeNonJSONStoredProcedure('FetchDatabaseInfo', parameter)
+      let data = await executeNonJSONStoredProcedure(
+        "FetchDatabaseInfo",
+        parameter
+      );
       if (data.recordsets[0]?.length > 0) {
-        return res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+        return res.send({
+          success: true,
+          message: "Data fetched successfully....!",
+          data: data.recordsets[0],
+        });
+      } else {
+        return await module.exports.filterdDropDown(req, res);
       }
-      else {
-        return await module.exports.filterdDropDown(req, res)
-      }
-      res.send({ success: true, message: "Data fetched successfully....!", data: data.recordsets[0] })
+      res.send({
+        success: true,
+        message: "Data fetched successfully....!",
+        data: data.recordsets[0],
+      });
     } catch (error) {
       return res.status(500).send({
         success: false,
@@ -263,7 +345,5 @@ module.exports = {
         error: error.message,
       });
     }
-  }
-
-
+  },
 };
