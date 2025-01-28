@@ -55,7 +55,7 @@ module.exports = {
     },
     createMaster: async (req, res) => {
         try {
-            let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.clientId || 3, createdBy: req.userId || 4 })
+            let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.body.clientId || 4, createdBy: req.userId || 4 })
             res.send({ success: true, message: "Data Inserted Successfully", data: data })
         }
         catch (error) {
@@ -64,7 +64,7 @@ module.exports = {
     },
     infoData: async (req, res) => {
         try {
-            let query = { clientID: req.clientId || 3, menuID: req.body.menuID, recordID: req.body.id }            
+            let query = { clientID: req.clientId || 4, menuID: req.body.menuID, recordID: req.body.id }            
             let data = await executeStoredProcedure('dynamicFetchApi', query)
             data.length > 0 ? res.send({ success: true, message: "list fetched", data: data }) : res.status(403).send({ success: false, message: "No Data Found", data: [] });
         }
