@@ -71,6 +71,21 @@ module.exports = {
         catch (error) {
             res.status(500).send({ success: false, message: "Something went wrong", data: [], error: error.message });
         }
+    },
+    delete: async (req, res) => {
+        const validationRule = { tableName: "required", id: "required" };
+        // validate for validation according to validationRule
+        validate(req.body, validationRule, {}, async (err, status) => {
+            if (!status) {
+                return res.status(403).send({ success: false, message: "Validation Error...!", data: err });
+            }
+            try {
+                let data = await executeNonJSONStoredProcedure('spDeleteRecord', { tableName: req.body.tableName, recordID: req.body.id})
+                res.send({ success: true, message: "Data Deleted Successfully", data: data })
+            }
+            catch (error) {
+                res.status(500).send({ success: false, message: "Something went wrong", data: [], error: error.message });
+            }
+        })
     }
-
 }
