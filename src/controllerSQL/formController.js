@@ -75,7 +75,7 @@ module.exports = {
           console.log(dropdownFilter);
 
           let data = await executeStoredProcedure("dynamicDataFetch", {
-            clientId: clientId,
+            clientId: clientId||4,
             filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
             tableName: referenceTable.trim(),

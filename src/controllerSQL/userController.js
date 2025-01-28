@@ -438,7 +438,6 @@ module.exports = {
     });
   },
   login: async (req, res) => {
-
     const validationRule = {
       userName: "required",
       password: "required",
@@ -452,16 +451,23 @@ module.exports = {
         });
       } else {
         try {
-
-          const parameters = { emailId: req.body.userName, password: md5(req.body.password) }
-          let { data , success } = await executeStoredProcedure('loginApi', parameters)
+          const parameters = {
+            emailId: req.body.userName,
+            password: md5(req.body.password),
+          };
+          let { data, success } = await executeStoredProcedure(
+            "loginApi",
+            parameters
+          );
 
           if (success) {
-  
-            const parameters = { themeId: data.themeId}
-            let themeData = await executeStoredProcedure('themeApi', parameters)
+            const parameters = { themeId: data.themeId };
+            let themeData = await executeStoredProcedure(
+              "themeApi",
+              parameters
+            );
 
-            data = [{...themeData, ...data}];
+            data = [{ ...themeData, ...data }];
 
             let token = jwt.sign(
               {
@@ -476,7 +482,9 @@ module.exports = {
             );
 
             try {
-              const checkWrongPass = await userFindByEmailLogin(data[0].emailId);
+              const checkWrongPass = await userFindByEmailLogin(
+                data[0].emailId
+              );
               if (checkWrongPass > 2) {
                 return res.status(400).send({
                   success: false,
@@ -525,14 +533,19 @@ module.exports = {
               });
             }
           } else {
+            const parameters = {
+              emailId: req.body.userName,
+              password: md5(req.body.password),
+            };
+            let { error, data } = await executeStoredProcedure(
+              "loginApi",
+              parameters
+            );
 
-          const parameters = { emailId: req.body.userName, password: md5(req.body.password) }
-          let { error, data } = await executeStoredProcedure('loginApi', parameters)
-
-            if (error == 'Password is not valid!') {
+            if (error == "Password is not valid!") {
               let findUser = await userFindByEmail(data.emailId);
               let userActive = await loginFailHandler(findUser, data);
-  
+
               if (userActive === 3) {
                 res.status(403).send({
                   success: false,
@@ -542,7 +555,7 @@ module.exports = {
                 });
                 return; // Exit the function after sending the response
               }
-  
+
               if (userActive >= 3) {
                 res.status(403).send({
                   success: false,
@@ -557,7 +570,7 @@ module.exports = {
                 data: [],
               });
             } else {
-              console.log('Invalid UserName');
+              console.log("Invalid UserName");
               res.status(403).send({
                 success: false,
                 message: "Invalid UserName",
@@ -791,10 +804,15 @@ module.exports = {
             (req.body.forgotPassword == true ||
               req.body.forgotPassword == "true")
           ) {
+            const parameters = {
+              emailId: req.body.userName,
+              newPassword: md5(req.body.newPassword),
+            };
+            let { data, error } = await executeStoredProcedure(
+              "changePasswordApi",
+              parameters
+            );
 
-            const parameters = { emailId: req.body.userName, newPassword: md5(req.body.newPassword) }
-            let { data , error } = await executeStoredProcedure('changePasswordApi', parameters)
-            
             if (data) {
               res.send({
                 success: true,
@@ -809,13 +827,11 @@ module.exports = {
               });
             }
           } else {
-
             res.status(400).send({
               success: false,
               message: "Forgot password is false",
               data: [],
             });
-
           }
         } catch (error) {
           errorLogger(error, req);
@@ -829,40 +845,45 @@ module.exports = {
     });
   },
   resetPassword: async (req, res) => {
-        try {
+    try {
+      const parameters = {
+        emailId: req.body.emailId,
+        oldPassword: md5(req.body.oldPassword),
+        newPassword: md5(req.body.newPassword),
+      };
+      let { data, error } = await executeStoredProcedure(
+        "resetPasswordApi",
+        parameters
+      );
 
-            const parameters = { emailId: req.body.emailId, oldPassword: md5(req.body.oldPassword), newPassword: md5(req.body.newPassword) }
-            let { data , error } = await executeStoredProcedure('resetPasswordApi', parameters)
-
-            if (data) {
-              res.send({
-                success: true,
-                message: "Password Changed Successfully",
-                data: data,
-              });
-            } else {
-              res.status(400).send({
-                success: false,
-                message: "Password Not Changed",
-                error: error,
-              });
-            }
-
-        } catch (error) {
-          errorLogger(error, req);
-          res.status(500).send({
-            success: false,
-            message: "something went wrong",
-            data: error.message,
-          });
-        }
+      if (data) {
+        res.send({
+          success: true,
+          message: "Password Changed Successfully",
+          data: data,
+        });
+      } else {
+        res.status(400).send({
+          success: false,
+          message: "Password Not Changed",
+          error: error,
+        });
+      }
+    } catch (error) {
+      errorLogger(error, req);
+      res.status(500).send({
+        success: false,
+        message: "something went wrong",
+        data: error.message,
+      });
+    }
   },
   verifyEmail: async (req, res) => {
-
     const emailVal = req.body.email;
     try {
-
-      let { data } = await executeStoredProcedure('forgotPasswordApi', {emailId:emailVal})
+      let { data } = await executeStoredProcedure("forgotPasswordApi", {
+        emailId: emailVal,
+      });
 
       if (!data) {
         return res.status(404).json({
@@ -918,7 +939,7 @@ module.exports = {
       const storedToken = await client.hget(sessionKey, "token");
       let tokenValid = storedToken.trim() === token.trim();
       if (tokenValid) {
-        await client.expire(sessionKey,Redis_expire_time);
+        await client.expire(sessionKey, Redis_expire_time);
         return res.status(200).json({ success: true });
       } else {
         return res
@@ -931,31 +952,58 @@ module.exports = {
         .json({ success: false, message: `server error ${error.message}` });
     }
   },
-  menuAccessByEmailId : async (req, res) => {
+  menuAccessByEmailId: async (req, res) => {
     try {
-        const parameters = { emailId: req.body.emailId }
-        let { data , error } = await executeStoredProcedure('menuAccessByEmailIdApi', parameters)
+      const parameters = { emailId: req.body.emailId };
+      let { data, error } = await executeStoredProcedure(
+        "menuAccessByEmailIdApi",
+        parameters
+      );
 
-        if (data) {
-          res.send({
-            success: true,
-            message: "Get user data successfully!",
-            data: data,
-          });
-        } else {
-          res.status(400).send({
-            success: false,
-            message: "User not found!",
-            error: error,
-          });
-        }
-
+      if (data) {
+        res.send({
+          success: true,
+          message: "Get user data successfully!",
+          data: data,
+        });
+      } else {
+        res.status(400).send({
+          success: false,
+          message: "User not found!",
+          error: error,
+        });
+      }
     } catch (error) {
       errorLogger(error, req);
       res.status(500).send({
         success: false,
         message: "something went wrong",
         data: error.message,
+      });
+    }
+  },
+  news: async (req, res) => {
+    const clientId = req.body.clientId;
+    try {
+      let data = await executeStoredProcedure("newsApi", { clientId: clientId });
+
+      if (!data) {
+        return res.status(404).json({
+          success: false,
+          message: "No data found!",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:"Data fetch successfully!",
+        data: data,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error!",
+        error:error
       });
     }
   },
