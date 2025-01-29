@@ -75,7 +75,7 @@ module.exports = {
           console.log(dropdownFilter);
 
           let data = await executeStoredProcedure("dynamicDataFetch", {
-            clientId: clientId||4,
+            clientId: req.clientId ||4,
             filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
             tableName: referenceTable.trim(),
@@ -162,7 +162,7 @@ module.exports = {
       let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
       let limit = parseInt(req.body.limit, 10) || 10;
       let parameter = {
-        clientId: 0,
+        clientId: req.clientId,
         tableName: "tblForm",
         columnName: null,
         filterCondition: null,
