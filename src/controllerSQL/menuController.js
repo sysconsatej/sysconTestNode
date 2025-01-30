@@ -6,7 +6,7 @@ module.exports = {
     try {
       const { companyId, companyBranchId, userId, clientId } = req.body;
       const query = `menuRetrievalApi`;
-      const parameters = { companyId, companyBranchId, userId, clientId };
+      const parameters = { companyId, companyBranchId, userId, clientId:req.clientId };
       let data = await executeStoredProcedure(query, parameters);
 
       if (data) {

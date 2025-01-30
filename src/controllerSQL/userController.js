@@ -476,6 +476,7 @@ module.exports = {
                 iat: Date.now(),
                 numberFormat: data[0].numberFormat,
                 clientCode: data[0].clientCode || "NCLP",
+                clientId: data[0].clientId
               },
               config.secret,
               { expiresIn: 7200000 }
