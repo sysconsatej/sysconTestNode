@@ -496,12 +496,7 @@ module.exports = {
                 const sessionKey = `user:${data[0].emailId}:session`;
                 // Check if user already exists
                 let userExists = await client.exists(sessionKey);
-                // Store session data with expiration
-                await client.hmset(sessionKey, {
-                  email: data[0].emailId,
-                  token: token,
-                });
-                await client.expire(sessionKey, sessionExpiry);
+
                 if (isDateOlderThan60Days(data[0].passwordLastUpdateDate)) {
                   return res.status(200).send({
                     success: "60DaysResetPassword",
@@ -517,6 +512,13 @@ module.exports = {
                     data: data,
                   });
                 } else {
+                  await client.expire(sessionKey, sessionExpiry);
+                  // Store session data with expiration
+                  await client.hmset(sessionKey, {
+                    email: data[0].emailId,
+                    token: token,
+                  });
+
                   return res.send({
                     success: true,
                     message: "User Login Successfully.",
@@ -985,7 +987,9 @@ module.exports = {
   news: async (req, res) => {
     const clientId = req.body.clientId;
     try {
-      let data = await executeStoredProcedure("newsApi", { clientId: clientId });
+      let data = await executeStoredProcedure("newsApi", {
+        clientId: clientId,
+      });
 
       if (!data) {
         return res.status(404).json({
@@ -996,14 +1000,36 @@ module.exports = {
 
       return res.status(200).json({
         success: true,
-        message:"Data fetch successfully!",
+        message: "Data fetch successfully!",
         data: data,
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
         message: "Internal Server Error!",
-        error:error
+        error: error,
+      });
+    }
+  },
+  changeDeviceByRedis: async (req, res) => {
+    const { emailId, token } = req.body;
+    try {
+      const sessionKey = `user:${emailId}:session`;
+      await client.expire(sessionKey, Redis_expire_time);
+      await client.hmset(sessionKey, {
+        email: emailId,
+        token: token,
+      });
+
+      return res.send({
+        success: true,
+        message: "User Change Device Successfully.",
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "something went wrong",
+        data: error.message,
       });
     }
   },
