@@ -467,7 +467,7 @@ module.exports = {
               parameters
             );
 
-            data = [{ ...themeData, ...data }];
+            data = [{ theme: themeData, ...data }];
 
             let token = jwt.sign(
               {
