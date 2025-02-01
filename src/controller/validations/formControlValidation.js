@@ -415,17 +415,10 @@ module.exports = {
     }
   },
   fetchAPIData: async (req, res) => {
-    const {
-      apiUrl,
-      filterCondition,
-      headers,
-      method,
-      dateCriteria,
-      clientCode,
-    } = req.body;
+    const { apiUrl, filterCondition, headers, method, clientId } = req.body;
 
     // Validate required fields
-    if (!clientCode) {
+    if (!clientId) {
       return res.status(400).json({
         success: false,
         message: "Missing required field: clientCode",
@@ -441,7 +434,7 @@ module.exports = {
     }
 
     // Add clientCode to the filterCondition
-    filterCondition.clientCode = clientCode;
+    filterCondition.clientId = clientId;
 
     // Prepare fetch options
     const fetchOptions = {
@@ -450,12 +443,11 @@ module.exports = {
         "Content-Type": "application/json",
         ...headers,
       },
-      body: JSON.stringify({ filterCondition }), // Send filterCondition in the request body
+      body: JSON.stringify(filterCondition), // Send filterCondition in the request body
     };
 
     try {
       const response = await fetch(apiUrl, fetchOptions);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response from API:", errorText, {
