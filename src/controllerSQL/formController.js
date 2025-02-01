@@ -213,7 +213,7 @@ module.exports = {
         parameter.filterCondition = ` and id = ${req.body.id}`;
       }
       let count = await executeQuery(
-        `select count(*) as total from tblForm where status = 1` + query,
+        `select count(*) as total from tblForm where status = 1 and clientId = ${req.clientId}` + query,
         {}
       );
       if (count.recordset[0].total === 0) {

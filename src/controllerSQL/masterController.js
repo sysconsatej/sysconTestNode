@@ -36,7 +36,7 @@ module.exports = {
                     parameter.sortingColumn= label
                   }
 
-                let count = await executeQuery(`select count(*) as total from ${tableName} where status = 1` + query, {})
+                let count = await executeQuery(`select count(*) as total from ${tableName} where status = 1 and clientId = ${req.clientId}` + query, {})
                 console.log(count.recordset[0].total === 0);
 
                 if (count.recordset[0].total === 0) {
