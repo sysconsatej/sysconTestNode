@@ -1,10 +1,21 @@
+const moment = require("moment");
 const validate = require("../helper/validate");
 const {
   executeQuery,
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
 } = require("../modelSQL/model");
+async function controlDefalutValue(data,clientId) {
+  if (data.controlname.toLowerCase() === "dropdown") {
+    let result = await executeNonJSONStoredProcedure("sp_GetControlDefaultValue", { ReferenceTable: data.referenceTable, ReferenceColumn: data.referenceColumn, controlDefaultValue: data.controlDefaultValue, clientId: clientId });
+    return JSON.parse(result.recordset[0].controlDefaultValue) || "";
+  }
+  else if (["date.now()", "Date.now()", "date.now", "Date.now"].includes(data.controlDefaultValue)) {
+    return moment().format("YYYY-MM-DD");
+  }
 
+  return data.controlDefaultValue;
+}
 module.exports = {
   listControlToDrawScreen: async (req, res) => {
     const ValidationRule = {
@@ -28,6 +39,35 @@ module.exports = {
         let data = await executeStoredProcedure("formRetrievalApi", parameter);
         let message = "Data fetched successfully....!";
         if (data) {
+          if (data.length > 0) {
+            let tempVar = data[0]
+
+            for (const element of tempVar.fields) {
+              if (element.controlDefaultValue) {
+                element.controlDefaultValue = await controlDefalutValue(element,req.clientId);
+              }
+            }
+            for (const child of tempVar.child) {
+              for (const element of child.fields) {
+                if (element.controlDefaultValue) {
+                  element.controlDefaultValue = await controlDefalutValue(element,req.clientId);
+                }
+                for (const element of child.subChild) {
+                  for (const element of child.fields) {
+                    if (element.controlDefaultValue) {
+                      element.controlDefaultValue = await controlDefalutValue(element,req.clientId);
+                    }
+                  }
+
+                }
+              }
+            }
+            data = [tempVar];
+
+
+
+
+          }
           data = data;
         } else {
           message = "No data found";
@@ -75,7 +115,7 @@ module.exports = {
           console.log(dropdownFilter);
 
           let data = await executeStoredProcedure("dynamicDataFetch", {
-            clientId: req.clientId ||4,
+            clientId: req.clientId || 4,
             filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
             tableName: referenceTable.trim(),
@@ -298,7 +338,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });
