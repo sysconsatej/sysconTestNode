@@ -24,6 +24,7 @@ exports.verifyToken = (req, res, next) => {
     req.logged_in_id = decoded.id;
     req.clientCode = decoded.clientCode;
     req.userName = decoded.userName;
+    req.clientId = decoded.clientId;
     req.userId= decoded.id;
     // req.logged_in_id = decoded.id;
     // req.logged_in_id = decoded.id;
