@@ -14,6 +14,8 @@ router.post('/changePassword', controller.changePassword)
 router.post('/resetPassword', controller.resetPassword)
 router.post('/menuAccessByEmailId', controller.menuAccessByEmailId)
 router.post('/news', controller.news)
+router.post('/changeDeviceByRedis', controller.changeDeviceByRedis)
+
 
 
 
