@@ -31,10 +31,10 @@ module.exports = {
       }
       try {
         const { menuID } = req.query;
-        let parameter = { menuID: menuID, createForm: false };
+        let parameter = { menuID: menuID, createForm: 0,clientId:req.clientId };
         if (menuID == "CreateFormcontrol") {
           parameter.menuID = 895;
-          parameter.createForm = 0;
+          parameter.createForm = 1;
         }
         let data = await executeStoredProcedure("formRetrievalApi", parameter);
         let message = "Data fetched successfully....!";
