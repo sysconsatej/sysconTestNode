@@ -3,7 +3,7 @@ const { executeStoredProcedure } = require("../modelSQL/model");
 module.exports = {
   dropdowns: async (req, res) => {
     try {
-      let { data } = await executeStoredProcedure("profileAllDropdowns", {});
+      let { data } = await executeStoredProcedure("profileAllDropdowns", {companyId:req.body.companyId});
 
       if (data) {
         res.send({
