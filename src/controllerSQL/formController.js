@@ -290,8 +290,7 @@ module.exports = {
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
         formId: 895,
-        clientId: req.clientId || 3,
-        createdBy: req.userId || 4,
+        clientId: req.clientId, createdBy: req.userId, loginCompanyId: req.body.loginCompany, loginCompanyBranchId: req.body.loginBranch, finYearId: req.body.loginfinYear 
       });
       res.send({
         success: true,
