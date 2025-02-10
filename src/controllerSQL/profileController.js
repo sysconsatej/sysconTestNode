@@ -1,9 +1,13 @@
 const { executeStoredProcedure } = require("../modelSQL/model");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   dropdowns: async (req, res) => {
     try {
-      let { data } = await executeStoredProcedure("profileAllDropdowns", {companyId:req.body.companyId});
+      let { data } = await executeStoredProcedure("profileAllDropdowns", {
+        companyId: req.body.companyId,
+      });
 
       if (data) {
         res.send({
@@ -16,6 +20,44 @@ module.exports = {
       res.status(500).send({
         success: false,
         message: "something went wrong",
+        data: error.message,
+      });
+    }
+  },
+  profileSubmit: async (req, res) => {
+    const { avatar, oldAvatar, ...remainingData } = req.body;
+
+    try {
+      let uploadedFile = req.files.avatar;
+      const fileName = "/uploads/" + Date.now() + "-" + uploadedFile.name;
+
+      const setProfile = { profilePhoto: fileName, ...remainingData };
+
+      await executeStoredProcedure("profileSubmitApi", setProfile);
+      
+      //const oldAvatarPath = path.join(__dirname, oldAvatar);
+      // if (fs.existsSync(oldAvatarPath)) {
+      //   console.log("✅ Old file exists, deleting...");
+      //   fs.unlink(oldAvatarPath, (err) => {
+      //     if (err) console.log("❌ Error deleting old file:", err.message);
+      //     else console.log("✅ Old file deleted successfully");
+      //   });
+      // } else {
+      //   console.log("❌ Old file does not exist!");
+      // }
+
+      uploadedFile.mv('.' + fileName, (err) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        res.json({ success: true, message: "Profile updated successfully!" });
+      });
+
+    } catch (error) {
+      console.log("Error:", error.message);
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
         data: error.message,
       });
     }
