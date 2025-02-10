@@ -33,8 +33,8 @@ module.exports = {
                 }
                 if (label && label !== "undefined" && label !== "" && order && order !== "undefined" && order !== "") {
                     parameter.sortingOrder = `${order == 1 ? "asc" : "desc"}`
-                    parameter.sortingColumn= label
-                  }
+                    parameter.sortingColumn = label
+                }
 
                 let count = await executeQuery(`select count(*) as total from ${tableName} where status = 1 and clientId = ${req.clientId}` + query, {})
                 console.log(count.recordset[0].total === 0);
@@ -55,7 +55,10 @@ module.exports = {
     },
     createMaster: async (req, res) => {
         try {
-            let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.clientId, createdBy: req.userId})
+            req.body.companyId = req.body.loginCompany
+            req.body.companyBranchId = req.body.loginBranch
+            req.body.financialYearId = req.body.loginfinYear
+            let data = await executeNonJSONStoredProcedure('insertDataApi', { json: JSON.stringify(req.body), formId: req.body.menuID, clientId: req.clientId, createdBy: req.userId, loginCompanyId: req.body.loginCompany, loginCompanyBranchId: req.body.loginBranch, finYearId: req.body.loginfinYear })
             res.send({ success: true, message: "Data Inserted Successfully", data: data })
         }
         catch (error) {
@@ -64,7 +67,7 @@ module.exports = {
     },
     infoData: async (req, res) => {
         try {
-            let query = { clientID: req.clientId || 4, menuID: req.body.menuID, recordID: req.body.id }            
+            let query = { clientID: req.clientId || 4, menuID: req.body.menuID, recordID: req.body.id }
             let data = await executeStoredProcedure('dynamicFetchApi', query)
             data.length > 0 ? res.send({ success: true, message: "list fetched", data: data }) : res.status(403).send({ success: false, message: "No Data Found", data: [] });
         }
@@ -80,7 +83,7 @@ module.exports = {
                 return res.status(403).send({ success: false, message: "Validation Error...!", data: err });
             }
             try {
-                let data = await executeNonJSONStoredProcedure('spDeleteRecord', { tableName: req.body.tableName, recordID: req.body.id})
+                let data = await executeNonJSONStoredProcedure('spDeleteRecord', { tableName: req.body.tableName, recordID: req.body.id })
                 res.send({ success: true, message: "Data Deleted Successfully", data: data })
             }
             catch (error) {

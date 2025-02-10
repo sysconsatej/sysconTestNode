@@ -5,3 +5,4 @@ src/controller/backups/
 package-lock.json
 .env
 yarn.lock
+public/
