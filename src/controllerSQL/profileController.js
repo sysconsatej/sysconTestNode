@@ -27,7 +27,7 @@ module.exports = {
     const { avatar, oldAvatar, ...remainingData } = req.body;
 
     try {
-      let uploadedFile = req.files.avatar;
+      let uploadedFile = req?.files?.avatar;
       let setProfile;
 
       if (uploadedFile) {
@@ -56,6 +56,8 @@ module.exports = {
       } else {
         setProfile = { profilePhoto: oldAvatar, ...remainingData };
       }
+
+      console.log('setProfile',setProfile);
 
       await executeStoredProcedure("profileSubmitApi", setProfile);
       res.json({ success: true, message: "Profile updated successfully!" });
