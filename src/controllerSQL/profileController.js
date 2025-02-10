@@ -1,6 +1,5 @@
 const { executeStoredProcedure } = require("../modelSQL/model");
 const fs = require("fs");
-const path = require("path");
 
 module.exports = {
   dropdowns: async (req, res) => {
@@ -43,16 +42,17 @@ module.exports = {
           console.log("Image save in directory!");
         });
 
-        //const oldAvatarPath = path.join(__dirname, oldAvatar);
-        // if (fs.existsSync(oldAvatarPath)) {
-        //   console.log("✅ Old file exists, deleting...");
-        //   fs.unlink(oldAvatarPath, (err) => {
-        //     if (err) console.log("❌ Error deleting old file:", err.message);
-        //     else console.log("✅ Old file deleted successfully");
-        //   });
-        // } else {
-        //   console.log("❌ Old file does not exist!");
-        // }
+        const oldAvatarPath = '.' + oldAvatar;
+        if (fs.existsSync(oldAvatarPath)) {
+          console.log("Old file exists, deleting...");
+          fs.unlink(oldAvatarPath, (err) => {
+            if (err) console.log("Error deleting old file:", err.message);
+            else console.log("Old file deleted successfully"),  console.log('oldAvatarPath',oldAvatarPath);
+          });
+        } else {
+          console.log('oldAvatarPath',oldAvatarPath);
+          console.log("Old file does not exist!");
+        }
       } else {
         setProfile = { profilePhoto: oldAvatar, ...remainingData };
       }
