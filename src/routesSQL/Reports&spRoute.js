@@ -5,5 +5,6 @@ const auth = require("../config/auth");
 
 router.post("/rateRequest", controller.spRateRequest);
 router.post("/containerPlanning", controller.spContainerPlanning);
+router.post("/getDynamicReportDetails", controller.getDynamicReportDetails);
 
 module.exports = router;
