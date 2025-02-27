@@ -2,6 +2,10 @@ const mongoose = require("../../config/MongoConnection");
 const { ObjectId } = require("mongodb");
 const client = require("../../redis/redis_client");
 const { body } = require("express-validator");
+const {
+  executeQuery,
+  executeStoredProcedure,
+} = require("../../modelSQL/model");
 
 const userFindByEmail = async (email) => {
   let userKey = "userWrongPassword";
@@ -415,76 +419,30 @@ module.exports = {
     }
   },
   fetchAPIData: async (req, res) => {
-    const { apiUrl, filterCondition, headers, method, clientId } = req.body;
+    const { filterCondition, clientId, spName } = req.body;
 
-    // Validate required fields
-    if (!clientId) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required field: clientCode",
-      });
-    }
-
-    if (!apiUrl || !filterCondition || typeof filterCondition !== "object") {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Missing or incorrect required fields: apiUrl, filterCondition",
-      });
+    if (!spName) {
+      console.log("Stored procedure name not found", spName);
+      return;
     }
 
     // Add clientCode to the filterCondition
     filterCondition.clientId = clientId;
 
-    // Prepare fetch options
-    const fetchOptions = {
-      method: method || "POST", // Assuming a POST request to send the filterCondition
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify(filterCondition), // Send filterCondition in the request body
-    };
-
     try {
-      const response = await fetch(apiUrl, fetchOptions);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response from API:", errorText, {
-          apiUrl,
-          filterCondition,
-        });
-        return res.status(response.status).json({
-          success: false,
-          message: "Failed to fetch data from external API",
-          error: errorText,
-        });
-      }
-
-      const responseData = await response.json();
-
-      if (!Array.isArray(responseData.data)) {
+      const response = await executeStoredProcedure(spName, filterCondition);
+      if (!Array.isArray(response)) {
         return res.status(400).json({
           success: false,
           message: "Fetched data is not an array",
-          data: responseData,
+          data: response,
         });
       }
-
-      // Define the color options
-      const colors = ["#A6AEBF", "#C5D3E8", "#D0E8C5", "#FFF8DE"];
-
-      // Add the colorCode field to each object in the array
-      const filteredData = responseData.data.map((item) => ({
-        ...item,
-        colorCode: colors[Math.floor(Math.random() * colors.length)],
-      }));
-
       res.status(200).json({
         success: true,
         message: "Data fetched and filtered successfully!",
-        length: filteredData.length,
-        data: filteredData,
+        length: response.length,
+        data: response,
       });
     } catch (error) {
       res.status(500).json({
