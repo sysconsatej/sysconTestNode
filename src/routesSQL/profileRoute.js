@@ -4,6 +4,8 @@ const controller = require("../controllerSQL/profileController");
 
 router.post("/dropdowns", controller.dropdowns);
 router.post("/profileSubmit", controller.profileSubmit);
+router.post("/themeChange", controller.themeChange);
+
 
 
 
