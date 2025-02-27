@@ -42,22 +42,24 @@ module.exports = {
           console.log("Image save in directory!");
         });
 
-        const oldAvatarPath = '.' + oldAvatar;
+        const oldAvatarPath = "." + oldAvatar;
         if (fs.existsSync(oldAvatarPath)) {
           console.log("Old file exists, deleting...");
           fs.unlink(oldAvatarPath, (err) => {
             if (err) console.log("Error deleting old file:", err.message);
-            else console.log("Old file deleted successfully"),  console.log('oldAvatarPath',oldAvatarPath);
+            else
+              console.log("Old file deleted successfully"),
+                console.log("oldAvatarPath", oldAvatarPath);
           });
         } else {
-          console.log('oldAvatarPath',oldAvatarPath);
+          console.log("oldAvatarPath", oldAvatarPath);
           console.log("Old file does not exist!");
         }
       } else {
         setProfile = { profilePhoto: oldAvatar, ...remainingData };
       }
 
-      console.log('setProfile',setProfile);
+      console.log("setProfile", setProfile);
 
       await executeStoredProcedure("profileSubmitApi", setProfile);
       res.json({ success: true, message: "Profile updated successfully!" });
@@ -66,6 +68,32 @@ module.exports = {
       res.status(500).send({
         success: false,
         message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
+  themeChange: async (req, res) => {
+    try {
+      if (!req.body.themeId) {
+        res.status(400).send({
+          success: false,
+          message: "themeId is missing!",
+        });
+      }
+      const parameters = { themeId: req.body.themeId };
+      let themeData = await executeStoredProcedure("themeApi", parameters);
+
+      if (themeData) {
+        res.send({
+          success: true,
+          message: "Data fetch Successfully",
+          data: themeData,
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "something went wrong",
         data: error.message,
       });
     }
