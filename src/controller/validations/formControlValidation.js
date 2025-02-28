@@ -428,9 +428,43 @@ module.exports = {
 
     // Add clientCode to the filterCondition
     filterCondition.clientId = clientId;
-
+    console.log("filterCondition", filterCondition);
     try {
       const response = await executeStoredProcedure(spName, filterCondition);
+      if (!Array.isArray(response)) {
+        return res.status(400).json({
+          success: false,
+          message: "Fetched data is not an array",
+          data: response,
+        });
+      }
+      res.status(200).json({
+        success: true,
+        message: "Data fetched and filtered successfully!",
+        length: response.length,
+        data: response,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch data!",
+        error: error.message,
+      });
+    }
+  },
+  fetchReportAPIData: async (req, res) => {
+    const { filterCondition, spName } = req.body;
+
+    if (!spName) {
+      console.log("Stored procedure name not found", spName);
+      return;
+    }
+    console.log("filterCondition", filterCondition);
+    const requestBody = {
+      filterCondition: filterCondition,
+    };
+    try {
+      const response = await executeStoredProcedure(spName, requestBody);
       if (!Array.isArray(response)) {
         return res.status(400).json({
           success: false,
