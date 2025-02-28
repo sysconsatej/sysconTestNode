@@ -17,7 +17,6 @@ module.exports = {
   },
   executeStoredProcedure: async (procedureName, data) => {
     try {
-      console.log("procedureName", data);
       const pool = await connectToSql();
       const request = pool.request();
       for (const [key, value] of Object.entries(data)) {
