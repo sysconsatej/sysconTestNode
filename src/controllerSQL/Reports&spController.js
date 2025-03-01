@@ -5,11 +5,10 @@ const { connectToSql } = require("../config/sqlConfig");
 module.exports = {
   spRateRequest: async (req, res) => {
     try {
-      const { id, clientId } = req.body;
-      const query = `spRateRequest`;
+      const { filterCondition } = req.body;
+      const query = `rateRequestData`;
       const parameters = {
-        id,
-        clientId,
+        filterCondition,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
