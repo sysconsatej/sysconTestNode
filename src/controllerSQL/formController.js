@@ -5,12 +5,23 @@ const {
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
 } = require("../modelSQL/model");
-async function controlDefalutValue(data,clientId) {
+async function controlDefalutValue(data, clientId) {
   if (data.controlname.toLowerCase() === "dropdown") {
-    let result = await executeNonJSONStoredProcedure("sp_GetControlDefaultValue", { ReferenceTable: data.referenceTable, ReferenceColumn: data.referenceColumn, controlDefaultValue: data.controlDefaultValue, clientId: clientId });
+    let result = await executeNonJSONStoredProcedure(
+      "sp_GetControlDefaultValue",
+      {
+        ReferenceTable: data.referenceTable,
+        ReferenceColumn: data.referenceColumn,
+        controlDefaultValue: data.controlDefaultValue,
+        clientId: clientId,
+      }
+    );
     return JSON.parse(result.recordset[0].controlDefaultValue) || "";
-  }
-  else if (["date.now()", "Date.now()", "date.now", "Date.now"].includes(data.controlDefaultValue)) {
+  } else if (
+    ["date.now()", "Date.now()", "date.now", "Date.now"].includes(
+      data.controlDefaultValue
+    )
+  ) {
     return moment().format("YYYY-MM-DD");
   }
 
@@ -31,7 +42,11 @@ module.exports = {
       }
       try {
         const { menuID } = req.query;
-        let parameter = { menuID: menuID, createForm: 0,clientId:req.clientId };
+        let parameter = {
+          menuID: menuID,
+          createForm: 0,
+          clientId: req.clientId,
+        };
         if (menuID == "CreateFormcontrol") {
           parameter.menuID = 895;
           parameter.createForm = 1;
@@ -40,33 +55,37 @@ module.exports = {
         let message = "Data fetched successfully....!";
         if (data) {
           if (data.length > 0) {
-            let tempVar = data[0]
+            let tempVar = data[0];
 
             for (const element of tempVar.fields) {
               if (element.controlDefaultValue) {
-                element.controlDefaultValue = await controlDefalutValue(element,req.clientId);
+                element.controlDefaultValue = await controlDefalutValue(
+                  element,
+                  req.clientId
+                );
               }
             }
             for (const child of tempVar.child) {
               for (const element of child.fields) {
                 if (element.controlDefaultValue) {
-                  element.controlDefaultValue = await controlDefalutValue(element,req.clientId);
+                  element.controlDefaultValue = await controlDefalutValue(
+                    element,
+                    req.clientId
+                  );
                 }
                 for (const element of child.subChild) {
                   for (const element of child.fields) {
                     if (element.controlDefaultValue) {
-                      element.controlDefaultValue = await controlDefalutValue(element,req.clientId);
+                      element.controlDefaultValue = await controlDefalutValue(
+                        element,
+                        req.clientId
+                      );
                     }
                   }
-
                 }
               }
             }
             data = [tempVar];
-
-
-
-
           }
           data = data;
         } else {
@@ -232,6 +251,8 @@ module.exports = {
         parameter.globalSearch = searchQuery;
       }
 
+      console.log("parameter", parameter);
+
       if (search && typeof search == "object") {
         for (const key of Object.keys(search)) {
           query += ` and ${key} = '${search[key]}'`;
@@ -253,7 +274,8 @@ module.exports = {
         parameter.filterCondition = ` and id = ${req.body.id}`;
       }
       let count = await executeQuery(
-        `select count(*) as total from tblForm where status = 1 and clientId = ${req.clientId}` + query,
+        `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
+          query,
         {}
       );
       if (count.recordset[0].total === 0) {
@@ -290,7 +312,11 @@ module.exports = {
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
         formId: 895,
-        clientId: req.clientId, createdBy: req.userId, loginCompanyId: req.body.loginCompany, loginCompanyBranchId: req.body.loginBranch, finYearId: req.body.loginfinYear 
+        clientId: req.clientId,
+        createdBy: req.userId,
+        loginCompanyId: req.body.loginCompany,
+        loginCompanyBranchId: req.body.loginBranch,
+        finYearId: req.body.loginfinYear,
       });
       res.send({
         success: true,
@@ -337,7 +363,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });
