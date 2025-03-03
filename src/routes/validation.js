@@ -43,5 +43,9 @@ router.post(
   "/formControlValidation/fetchCharge",
   formControlController.fetchCharge
 );
+router.post(
+  "/formControlValidation/fetchDynamicReportSpData",
+  formControlController.fetchDynamicReportSpData
+);
 
 module.exports = router;

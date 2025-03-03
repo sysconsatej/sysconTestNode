@@ -59,4 +59,38 @@ module.exports = {
       throw error;
     }
   },
+  executeMultipleStoredProcedure: async (procedureName, data) => {
+    try {
+      const pool = await connectToSql();
+      const request = pool.request();
+      for (const [key, value] of Object.entries(data)) {
+        request.input(key, value);
+      }
+      const result = await request.execute(procedureName);
+
+      // Initialize an empty array to hold each JSON-parsed recordset
+      const allData = [];
+
+      // Iterate over each recordset and parse its JSON content
+      result.recordsets.forEach((recordset) => {
+        // Ensure the recordset is not empty and has the expected JSON data column
+        if (
+          recordset.length > 0 &&
+          recordset[0] &&
+          Object.keys(recordset[0]).length > 0
+        ) {
+          // Parse each key in the recordset's first row (assuming each key is a JSON string)
+          Object.keys(recordset[0]).forEach((key) => {
+            const parsedData = JSON.parse(recordset[0][key]);
+            allData.push(parsedData);
+          });
+        }
+      });
+
+      return allData; // Return the array of all parsed JSON objects
+    } catch (error) {
+      console.error("Error executing stored procedure:", error);
+      throw error;
+    }
+  },
 };
