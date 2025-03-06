@@ -129,7 +129,7 @@ const SQlReportRouter = require("./src/routesSQL/reportsRoute");
 const spReports = require("./src/routesSQL/Reports&spRoute");
 const spProfile = require("./src/routesSQL/profileRoute");
 const SQLSendEmail = require("./src/routesSQL/Email");
-const SQLCompanyDetails = require("./src/routesSQL/companyDetailsRoute");
+const SQLUploadLogo = require("./src/routesSQL/uploadLogoRoute");
 
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
@@ -141,7 +141,7 @@ app.use("/Sql/api/fetch", SQlReportRouter);
 app.use("/Sql/api/Reports", spReports);
 app.use("/Sql/api/profile", spProfile);
 app.use("/Sql/api/send", SQLSendEmail);
-app.use("/Sql/api/companyDetails", SQLCompanyDetails);
+app.use("/Sql/api/uploadLogo", SQLUploadLogo);
 
 
 
