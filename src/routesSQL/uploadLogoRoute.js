@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllerSQL/companyDetailsController");
+const controller = require("../controllerSQL/uploadLogoController");
 
 router.post("/logoChange", controller.logoChange);
 
