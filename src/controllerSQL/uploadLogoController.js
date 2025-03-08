@@ -3,13 +3,13 @@ const fs = require("fs");
 
 module.exports = {
   logoChange: async (req, res) => {
-    const { avatar, oldAvatar, clientId } = req.body;
+    const {oldAvatar, clientId, companyId, userId } = req.body;
 
     try {
-      if (!oldAvatar || !clientId) {
+      if (!oldAvatar || !clientId || !companyId || !userId) {
         res.status(400).json({
           success: false,
-          message: "oldAvatar or avatar or clientId is messing!",
+          message: "oldAvatar or companyId or clientId or userId is messing!",
         });
       }
 
@@ -19,7 +19,7 @@ module.exports = {
       if (uploadedFile) {
         const fileName = "/uploads/" + Date.now() + "-" + uploadedFile.name;
 
-        setProfile = { logoPath: fileName, clientId: clientId };
+        setProfile = { logoPath: fileName, clientId: clientId, companyId: companyId, userId:userId};
 
         uploadedFile.mv("." + fileName, (err) => {
           if (err) {
@@ -42,7 +42,7 @@ module.exports = {
           console.log("Old file does not exist!");
         }
       } else {
-        setProfile = { logoPath: oldAvatar, clientId: clientId };
+        setProfile = {logoPath: oldAvatar, clientId: clientId, companyId: companyId, userId: userId};
       }
 
       await executeStoredProcedure("CompanyLogoChangeApi", setProfile);
