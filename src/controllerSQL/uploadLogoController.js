@@ -3,7 +3,7 @@ const fs = require("fs");
 
 module.exports = {
   logoChange: async (req, res) => {
-    const {oldAvatar, clientId, companyId, userId } = req.body;
+    const { oldAvatar, clientId, companyId, userId } = req.body;
 
     try {
       if (!oldAvatar || !clientId || !companyId || !userId) {
@@ -19,7 +19,12 @@ module.exports = {
       if (uploadedFile) {
         const fileName = "/uploads/" + Date.now() + "-" + uploadedFile.name;
 
-        setProfile = { logoPath: fileName, clientId: clientId, companyId: companyId, userId:userId};
+        setProfile = {
+          logoPath: fileName,
+          clientId: clientId,
+          companyId: companyId,
+          userId: userId,
+        };
 
         uploadedFile.mv("." + fileName, (err) => {
           if (err) {
@@ -42,7 +47,12 @@ module.exports = {
           console.log("Old file does not exist!");
         }
       } else {
-        setProfile = {logoPath: oldAvatar, clientId: clientId, companyId: companyId, userId: userId};
+        setProfile = {
+          logoPath: oldAvatar,
+          clientId: clientId,
+          companyId: companyId,
+          userId: userId,
+        };
       }
 
       await executeStoredProcedure("CompanyLogoChangeApi", setProfile);
@@ -59,27 +69,28 @@ module.exports = {
     }
   },
   headerAndFooterLogoChange: async (req, res) => {
-    const { clientId } = req.body;
+    const { clientId, userId, branchId, oldHeader, oldFooter } = req.body;
 
     try {
-      // if (!oldAvatar || !clientId) {
-      //   res.status(400).json({
-      //     success: false,
-      //     message: "oldAvatar or avatar or clientId is messing!",
-      //   });
-      // }
+      if (!oldHeader || !clientId || !oldFooter || !userId || !branchId) {
+        res.status(400).json({
+          success: false,
+          message:
+            "oldHeader or oldFooter or clientId or userId or branchId is messing!",
+        });
+      }
 
       let uploadedHeader = req?.files?.headerLogo;
       let uploadedFooter = req?.files?.footerLogo;
       let setProfile;
 
-      setProfile = { clientId: clientId };
+      setProfile = { clientId, branchId, userId };
 
       if (uploadedHeader) {
         const fileNameHeader =
           "/uploads/" + Date.now() + "-" + uploadedHeader.name;
 
-        setProfile = { ...setProfile, headerLogoPath: fileNameHeader };
+        setProfile = { ...setProfile, headerPath: fileNameHeader };
 
         uploadedHeader.mv("." + fileNameHeader, (err) => {
           if (err) {
@@ -88,28 +99,28 @@ module.exports = {
           console.log("Image save in directory!");
         });
 
-        // const oldAvatarPath = "." + oldAvatar;
-        // if (fs.existsSync(oldAvatarPath)) {
-        //   console.log("Old file exists, deleting...");
-        //   fs.unlink(oldAvatarPath, (err) => {
-        //     if (err) console.log("Error deleting old file:", err.message);
-        //     else
-        //       console.log("Old file deleted successfully"),
-        //         console.log("oldAvatarPath", oldAvatarPath);
-        //   });
-        // } else {
-        //   console.log("oldAvatarPath", oldAvatarPath);
-        //   console.log("Old file does not exist!");
-        // }
+        const oldAvatarPath = "." + oldHeader;
+        if (fs.existsSync(oldAvatarPath)) {
+          console.log("Old file exists, deleting...");
+          fs.unlink(oldAvatarPath, (err) => {
+            if (err) console.log("Error deleting old file:", err.message);
+            else
+              console.log("Old file deleted successfully"),
+                console.log("oldAvatarPath", oldAvatarPath);
+          });
+        } else {
+          console.log("oldAvatarPath", oldAvatarPath);
+          console.log("Old file does not exist!");
+        }
       } else {
-        setProfile = { ...setProfile, headerLogoPath: "old path" };
+        setProfile = { ...setProfile, headerPath: oldHeader };
       }
 
       if (uploadedFooter) {
         const fileNameFooter =
           "/uploads/" + Date.now() + "-" + uploadedFooter.name;
 
-        setProfile = { ...setProfile, footerLogoPath: fileNameFooter };
+        setProfile = { ...setProfile, footerPath: fileNameFooter };
 
         uploadedFooter.mv("." + fileNameFooter, (err) => {
           if (err) {
@@ -118,26 +129,24 @@ module.exports = {
           console.log("Image save in directory!");
         });
 
-        // const oldAvatarPath = "." + oldAvatar;
-        // if (fs.existsSync(oldAvatarPath)) {
-        //   console.log("Old file exists, deleting...");
-        //   fs.unlink(oldAvatarPath, (err) => {
-        //     if (err) console.log("Error deleting old file:", err.message);
-        //     else
-        //       console.log("Old file deleted successfully"),
-        //         console.log("oldAvatarPath", oldAvatarPath);
-        //   });
-        // } else {
-        //   console.log("oldAvatarPath", oldAvatarPath);
-        //   console.log("Old file does not exist!");
-        // }
+        const oldAvatarPath = "." + oldFooter;
+        if (fs.existsSync(oldAvatarPath)) {
+          console.log("Old file exists, deleting...");
+          fs.unlink(oldAvatarPath, (err) => {
+            if (err) console.log("Error deleting old file:", err.message);
+            else
+              console.log("Old file deleted successfully"),
+                console.log("oldAvatarPath", oldAvatarPath);
+          });
+        } else {
+          console.log("oldAvatarPath", oldAvatarPath);
+          console.log("Old file does not exist!");
+        }
       } else {
-        setProfile = { ...setProfile, footerLogoPath: "old path" };
+        setProfile = { ...setProfile, footerPath: oldFooter };
       }
 
-      console.log("setProfile", setProfile);
-
-      // await executeStoredProcedure("CompanyLogoChangeApi", setProfile);
+      await executeStoredProcedure("companyHeaderFooterLogoChangeApi", setProfile);
 
       res
         .status(200)
