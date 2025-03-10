@@ -68,6 +68,7 @@ const chartRoutes = require("./src/routes/chartRoutes");
 const eInvoicing = require("./src/routes/eInvoicingRoute");
 const DynamicReports = require("./src/routes/DynamicReports");
 const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
+const SQLSp = require("./src/routes/storeProcedure ");
 
 // const redashQuery = require('./src/routes/redashRoutes');
 
@@ -131,7 +132,6 @@ const spProfile = require("./src/routesSQL/profileRoute");
 const SQLSendEmail = require("./src/routesSQL/Email");
 const SQLUploadLogo = require("./src/routesSQL/uploadLogoRoute");
 
-
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
 app.use("/Sql/api/FormControl", SQlFormRouter);
@@ -142,8 +142,7 @@ app.use("/Sql/api/Reports", spReports);
 app.use("/Sql/api/profile", spProfile);
 app.use("/Sql/api/send", SQLSendEmail);
 app.use("/Sql/api/uploadLogo", SQLUploadLogo);
-
-
+app.use("/Sql/api/sp", SQLSp);
 
 app.use(function (req, res, next) {
   next(createError(404));
