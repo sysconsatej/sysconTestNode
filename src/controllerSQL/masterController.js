@@ -92,12 +92,23 @@ module.exports = {
           });
         }
         let data = await executeStoredProcedure("dynamicSearchApi", parameter);
+        let parameterForCount = {
+          ...parameter,
+          pageSize: 1001,
+          pageNumber: 1,
+        };
+        let getDataCount = await executeStoredProcedure(
+          "dynamicSearchApi",
+          parameterForCount
+        );
+        console.log(getDataCount.length);
         if (data.length > 0) {
           return res.send({
             success: true,
             message: "Data fetched successfully....!",
             data: data,
-            Count: count.recordset[0].total,
+            //Count: count.recordset[0].total,
+            Count: getDataCount?.length,
           });
         }
         res.send({ success: true, message: "No data found", data: data });
