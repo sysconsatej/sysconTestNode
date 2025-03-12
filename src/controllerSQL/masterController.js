@@ -101,7 +101,7 @@ module.exports = {
           "dynamicSearchApi",
           parameterForCount
         );
-        console.log(getDataCount.length);
+        console.log("=>", getDataCount?.length);
         if (data.length > 0) {
           return res.send({
             success: true,
