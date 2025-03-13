@@ -59,9 +59,14 @@ module.exports = {
         setProfile = { profilePhoto: oldAvatar, ...remainingData };
       }
 
-      console.log("setProfile", setProfile);
+      const formattedObj = Object.fromEntries(
+        Object.entries(setProfile).map(([key, value]) => [
+          key,
+          value === 'null' ? null : isNaN(value) ? value : Number(value)
+        ])
+      );
 
-      await executeStoredProcedure("profileSubmitApi", setProfile);
+      await executeStoredProcedure("profileSubmitApi", formattedObj);
       res.json({ success: true, message: "Profile updated successfully!" });
     } catch (error) {
       console.log("Error:", error.message);
