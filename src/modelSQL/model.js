@@ -27,14 +27,17 @@ module.exports = {
       if (result.recordsets.length == 0) {
         return [];
       }
+      else if (result.recordset.length == 0) {
+        return [];
+      }
       return (
         JSON.parse(
-          result.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+          result.recordset[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
         ) || []
       ); // Return the result set
     } catch (error) {
       console.error("Error inserting data:", error);
-      throw error;
+      return [];
     }
   },
   executeNonJSONStoredProcedure: async (procedureName, data) => {

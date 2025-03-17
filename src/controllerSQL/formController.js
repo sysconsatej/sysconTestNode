@@ -185,18 +185,11 @@ module.exports = {
       };
       let data = await executeStoredProcedure("dynamicFetchApi", parameter);
       let message = "Data fetched successfully....!";
-      if (data) {
-        data = data;
-      } else {
-        message = "No data found";
-        data = [];
+      let success = true
+      if (data.length>0) {
+        return res.send({ success: true, message: message, data: data });
       }
-      return res.status(200).send({
-        success: true,
-        message: message,
-        length: data.length,
-        data: data,
-      });
+      return res.send({ success: false, message: 'This Data is Ristricted for you. View and edit is not allowed', data: [] });
     } catch (error) {
       return res.status(500).send({
         success: false,
@@ -275,7 +268,7 @@ module.exports = {
       }
       let count = await executeQuery(
         `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
-          query,
+        query,
         {}
       );
       if (count.recordset[0].total === 0) {
@@ -363,7 +356,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });

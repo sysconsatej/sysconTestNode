@@ -78,7 +78,7 @@ module.exports = {
 
         let count = await executeQuery(
           `select count(*) as total from ${tableName} where status = 1 and clientId in ( ${req.clientId}, (select id from tblClient where clientCode = 'SYSCON') )` +
-            query,
+          query,
           {}
         );
         console.log(count.recordset[0].total === 0);
@@ -161,8 +161,8 @@ module.exports = {
       data.length > 0
         ? res.send({ success: true, message: "list fetched", data: data })
         : res
-            .status(403)
-            .send({ success: false, message: "No Data Found", data: [] });
+          .status(403)
+          .send({ success: false, message: "No Data Found", data: [] });
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -173,7 +173,7 @@ module.exports = {
     }
   },
   delete: async (req, res) => {
-    const validationRule = { tableName: "required", id: "required" };
+    const validationRule = { tableName: "required", id: "required", clientId: "required" };
     // validate for validation according to validationRule
     validate(req.body, validationRule, {}, async (err, status) => {
       if (!status) {
@@ -182,9 +182,19 @@ module.exports = {
           .send({ success: false, message: "Validation Error...!", data: err });
       }
       try {
+        let query = `select * from ${req.body.tableName} where id = ${req.body.id} and clientId = ${req.body.clientId}`;
+        let deleteCheck = await executeQuery(query, {});
+        if (deleteCheck.recordset.length == 0) {
+          return res.send({
+            success: false,
+            message: "This data is restricted for you. Deletion is not allowed.",
+            data: [],
+          });
+        }
         let data = await executeNonJSONStoredProcedure("spDeleteRecord", {
           tableName: req.body.tableName,
           recordID: req.body.id,
+          clientId: req.body.clientId,
         });
         res.send({
           success: true,

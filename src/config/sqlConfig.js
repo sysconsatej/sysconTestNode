@@ -7,7 +7,7 @@ const sqlConfig = {
   port: 15999, // Specify the custom port here
   database: process.env.SQLDB,
   options: {
-    encrypt: true,
+    encrypt: false,
     trustServerCertificate: true,
   },
 };
