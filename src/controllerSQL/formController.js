@@ -347,7 +347,7 @@ module.exports = {
       }
       try {
         let { id, menuID, filterValue } = req.body;
-        let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=0 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=0 and mappingName ='${id}' for json path`;
+        let query = `select tctm.*, ISNULL((select * from tblCopyTableMapingFields where [status]=1 and copyTableMapingId=tctm.id for json path ),'[]') as fieldsMaping from tblCopyTableMaping as tctm WHERE tctm.[status]=1 and mappingName ='${id}' for json path`;
         let queryData = await executeQuery(query, {});
         console.log(queryData);
 
@@ -356,7 +356,7 @@ module.exports = {
           menuId: menuID,
           id: filterValue,
         });
-        if (data > 0) {
+        if (data.length > 0) {
           res.send({
             success: true,
             message: "Data fetched successfully....!",

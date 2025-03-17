@@ -6,3 +6,4 @@ package-lock.json
 .env
 yarn.lock
 public/
+.qodo
