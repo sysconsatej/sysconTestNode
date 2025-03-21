@@ -57,4 +57,27 @@ module.exports = {
       });
     }
   },
+  getUserDashboard: async (req, res) => {
+    const { userId } = req.body;
+    try {
+      if (!userId) {
+        res.status(400).json({ success: false, message: "userId is messing!" });
+      }
+      const resData = await executeStoredProcedure("getDashboardApi", {
+        userId: userId,
+      });
+      res.status(200).json({
+        success: true,
+        message: "User Dashboard Data get successfully!",
+        data: resData,
+      });
+    } catch (error) {
+      console.log("Error:", error.message);
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
 };
