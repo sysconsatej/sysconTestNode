@@ -189,7 +189,7 @@ module.exports = {
       if (data.length>0) {
         return res.send({ success: true, message: message, data: data });
       }
-      return res.send({ success: false, message: 'This Data is Ristricted for you. View and edit is not allowed', data: [] });
+      return res.send({ success: false, message: 'Restricted access can not edit!', data: [] });
     } catch (error) {
       return res.status(500).send({
         success: false,
