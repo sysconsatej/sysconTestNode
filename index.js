@@ -131,8 +131,8 @@ const spReports = require("./src/routesSQL/Reports&spRoute");
 const spProfile = require("./src/routesSQL/profileRoute");
 const SQLSendEmail = require("./src/routesSQL/Email");
 const SQLUploadLogo = require("./src/routesSQL/uploadLogoRoute");
-const SQLUserDashboard= require("./src/routesSQL/createDashboardRoute");
-
+const SQLUserDashboard = require("./src/routesSQL/createDashboardRoute");
+const SQLSpInvoice = require("./src/routesSQL/storeProcedureSql");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -146,6 +146,7 @@ app.use("/Sql/api/send", SQLSendEmail);
 app.use("/Sql/api/uploadLogo", SQLUploadLogo);
 app.use("/Sql/api/sp", SQLSp);
 app.use("/Sql/api/userDashboard", SQLUserDashboard);
+app.use("/Sql/api/spInvoice", SQLSpInvoice);
 
 app.use(function (req, res, next) {
   next(createError(404));
