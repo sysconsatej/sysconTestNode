@@ -6,5 +6,7 @@ const auth = require("../config/auth");
 router.post("/reportData", controller.getReportsData);
 router.post("/insertUpdateData", controller.insertUpdateData);
 router.post("/reportSearchCriteria", controller.reportSearchCriteriaApi);
+router.post("/rp-app", controller.reportSearchCriteriaAppApi);
+
 
 module.exports = router;
