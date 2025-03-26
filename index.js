@@ -68,7 +68,7 @@ const chartRoutes = require("./src/routes/chartRoutes");
 const eInvoicing = require("./src/routes/eInvoicingRoute");
 const DynamicReports = require("./src/routes/DynamicReports");
 const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
-const SQLSp = require("./src/routes/storeProcedure ");
+const SQLSp = require("./src/routesSQL/storeProcedureSql");
 
 // const redashQuery = require('./src/routes/redashRoutes');
 

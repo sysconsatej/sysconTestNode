@@ -8,5 +8,6 @@ router.post(
   auth.verifyToken,
   controller.getJobChargeDetails
 );
-
+router.post("/gettingTaxDetails", auth.verifyToken, controller.gettaxDetails);
+router.post("/gettingTdsDetails", auth.verifyToken, controller.getTDSDetails);
 module.exports = router;

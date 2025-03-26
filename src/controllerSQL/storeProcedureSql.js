@@ -88,4 +88,76 @@ module.exports = {
       });
     }
   },
+
+  gettaxDetails: async (req, res) => {
+    try {
+      const { SelectedParentInvId, glId, taxType, sacCodeId } = req.body;
+      let parameters = {
+        SelectedParentInvId: SelectedParentInvId,
+        glId: glId,
+        taxType: taxType,
+        sacCodeId: sacCodeId,
+      }
+      let data = await executeStoredProcedure("getTaxDetails", parameters);
+      if (data[0].tblTax === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          tblTax: [],
+        });
+      }
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        tblTax: data[0].tblTax,
+        count: data?.length,
+      })
+
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+  getTDSDetails: async (req, res) => {
+    try {
+      const { partyId, glId, formControlId, totalAmount, exchangeRateGrid, invoiceDate, companyId } = req.body;
+      let parameters = {
+        glId: glId,
+        partyId: partyId,
+        totalAmount: totalAmount,
+        invoiceDate: invoiceDate,
+        exchangeRateGrid: exchangeRateGrid,
+        companyId: companyId,
+        clientId: req.clientId
+
+      }
+      let data = await executeStoredProcedure("GetTdsDetails", parameters);
+      if (data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          tblTDS: [],
+        });
+      }
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        data: data,
+        count: data?.length,
+      })
+
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+
+    }
+  }
 };
