@@ -113,4 +113,35 @@ module.exports = {
       });
     }
   },
+  reportSearchCriteriaAppApi: async (req, res) => {
+    try {
+      const { menuId, clientId } = req.body;
+      const query = `reportSearchCriteriaMobileApi`;
+      const parameters = {
+        menuId,
+        clientId,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
 };
