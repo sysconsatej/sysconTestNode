@@ -45,49 +45,27 @@ module.exports = {
   getJobChargeDetails: async (req, res) => {
     try {
       let {
-        id,
-        //menuID,
-        // pageMode,
-        // moduleTemplateId,
         clientId,
         voucherType,
-        // chargeBasedOn,
         DepartmentId,
         jobIds,
-        // blIds,
-        //  vesselId,
-        //  voyageId,
         billingPartyId,
-        // principalId,
-        // invoiceType,
         companyId,
         companyBranchId,
-        // filterValue,
       } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("getJobChargeDetails", {
-        //menuId: menuID,
-        // pageMode,
-        // moduleTemplateId,
         clientId,
         voucherType,
-        // chargeBasedOn,
         DepartmentId,
         jobIds,
-        // blIds,
-        //  vesselId,
-        //  voyageId,
         billingPartyId,
-        //  principalId,
-        // invoiceType,
         companyId,
         companyBranchId,
-        //id: filterValue,
       });
-      console.log("DATA------", data);
 
-      if (data.length === 0) {
+      if (data?.length === 0) {
         return res.send({
           success: true,
           message: "No data found",
@@ -95,38 +73,11 @@ module.exports = {
         });
       }
 
-      let finalData = [];
-      if (Array.isArray(data)) {
-        for (const item of data) {
-          let value = item.tblJobCharge;
-          let temp = {
-            jobChargeId: value?._id || null,
-            description: value?.chargeDescription || "",
-            jobId: item?._id || null,
-            jobIddropdown: [{ value: item?._id, label: item?.jobNo }],
-            rate: value?.sellRate || 0,
-            qty: value?.qty || 0,
-            chargeId: value?.chargeId || null,
-            chargeIddropdown: [
-              { value: value?.chargeId, label: item?.tblChargeDesc?.name },
-            ],
-            currencyId: value?.sellCurrencyId || null,
-            currencyIddropdown: [
-              { value: value?.sellCurrencyId, label: item?.sellCur?.name },
-            ],
-            totalAmount: value?.sellNetAmount || 0,
-            totalAmountFc: value?.sellNetAmount || 0,
-            exchangeRate: value?.sellExchangeRate || 1,
-            tblInvoiceChargeTax: [],
-          };
-          finalData.push(temp);
-        }
-      }
-
       return res.send({
         success: true,
         message: "Data fetched successfully!",
-        Chargers: finalData,
+        Chargers: data,
+        count: data?.length,
       });
     } catch (error) {
       res.status(500).send({
