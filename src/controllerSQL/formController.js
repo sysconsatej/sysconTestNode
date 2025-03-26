@@ -185,11 +185,15 @@ module.exports = {
       };
       let data = await executeStoredProcedure("dynamicFetchApi", parameter);
       let message = "Data fetched successfully....!";
-      let success = true
-      if (data.length>0) {
+      let success = true;
+      if (data.length > 0) {
         return res.send({ success: true, message: message, data: data });
       }
-      return res.send({ success: false, message: 'This Data is Ristricted for you. View and edit is not allowed', data: [] });
+      return res.send({
+        success: false,
+        message: "Restricted access can not edit!",
+        data: [],
+      });
     } catch (error) {
       return res.status(500).send({
         success: false,
@@ -268,7 +272,7 @@ module.exports = {
       }
       let count = await executeQuery(
         `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
-        query,
+          query,
         {}
       );
       if (count.recordset[0].total === 0) {
@@ -302,15 +306,18 @@ module.exports = {
   },
   CreateFormControl: async (req, res) => {
     try {
-      let data = await executeNonJSONStoredProcedure("insertDataApi", {
-        json: JSON.stringify(req.body),
-        formId: 895,
-        clientId: req.clientId,
-        createdBy: req.userId,
-        loginCompanyId: req.body.loginCompany,
-        loginCompanyBranchId: req.body.loginBranch,
-        finYearId: req.body.loginfinYear,
-      });
+      let data = await executeNonJSONStoredProcedure(
+        "insertDataApiCreateFormControl",
+        {
+          json: JSON.stringify(req.body),
+          formId: 895,
+          clientId: req.clientId,
+          createdBy: req.userId,
+          loginCompanyId: req.body.loginCompany,
+          loginCompanyBranchId: req.body.loginBranch,
+          finYearId: req.body.loginfinYear,
+        }
+      );
       res.send({
         success: true,
         message: "Data Inserted Successfully",
@@ -356,7 +363,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });

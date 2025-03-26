@@ -4215,4 +4215,98 @@ module.exports = {
             });
         }
     },
+
+    getJobChargeDetails: async (req, res) => {
+        // const validationRule = {
+        //     id: "required",
+        //     menuID: "required",
+        // };
+    
+        validate(req.body, validationRule, {}, async (err, status) => {
+            if (!status) {
+                return res.status(403).send({
+                    success: false,
+                    message: "Validation Error",
+                    data: err,
+                });
+            }
+            try {
+                let {
+                    id, menuID, pageMode, moduleTemplateId, clientName, voucherType, chargeBasedOn,
+                    DepartmentId, jobIds, blIds, vesselId, voyageId, billingPartyId, 
+                    principalId, invoiceType, companyId, companyBranchId, filterValue
+                } = req.body;
+    
+                // Call stored procedure with all necessary parameters
+                let data = await executeStoredProcedure("getJobChargeDetails", {
+                    mappingName: id,
+                    menuId: menuID,
+                    pageMode,
+                    moduleTemplateId,
+                    clientName,
+                    voucherType,
+                    chargeBasedOn,
+                    DepartmentId,
+                    jobIds,
+                    blIds,
+                    vesselId,
+                    voyageId,
+                    billingPartyId,
+                    principalId,
+                    invoiceType,
+                    companyId,
+                    companyBranchId,
+                    id: filterValue
+                });
+    
+                if (data.length === 0) {
+                    return res.send({
+                        success: true,
+                        message: "No data found",
+                        data: [],
+                    });
+                }
+    
+                let finalData = [];
+                if (Array.isArray(data)) {
+                    for (const item of data) {
+                        let value = item.tblJobCharge;
+                        let temp = {
+                            jobChargeId: value?._id || null,
+                            description: value?.chargeDescription || "",
+                            jobId: item?._id || null,
+                            jobIddropdown: [{ value: item?._id, label: item?.jobNo }],
+                            rate: value?.sellRate || 0,
+                            qty: value?.qty || 0,
+                            chargeId: value?.chargeId || null,
+                            chargeIddropdown: [{ value: value?.chargeId, label: item?.tblChargeDesc?.name }],
+                            currencyId: value?.sellCurrencyId || null,
+                            currencyIddropdown: [{ value: value?.sellCurrencyId, label: item?.sellCur?.name }],
+                            totalAmount: value?.sellNetAmount || 0,
+                            totalAmountFc: value?.sellNetAmount || 0,
+                            exchangeRate: value?.sellExchangeRate || 1,
+                            tblInvoiceChargeTax: [],
+                        };
+                        finalData.push(temp);
+                    }
+                }
+    
+                return res.send({
+                    success: true,
+                    message: "Data fetched successfully!",
+                    Chargers: finalData
+                });
+    
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: "Something went wrong",
+                    data: [],
+                    error: error.message,
+                });
+            }
+        });
+    },
+    
+    
 }
