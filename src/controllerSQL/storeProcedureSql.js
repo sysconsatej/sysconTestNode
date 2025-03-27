@@ -91,12 +91,14 @@ module.exports = {
 
   gettaxDetails: async (req, res) => {
     try {
-      const { SelectedParentInvId, glId, taxType, sacCodeId } = req.body;
+      const { SelectedParentInvId, glId, taxType, sacCodeId, totalAmount,totalAmountFc } = req.body;
       let parameters = {
         SelectedParentInvId: SelectedParentInvId,
         glId: glId,
         taxType: taxType,
         sacCodeId: sacCodeId,
+        totalAmount:totalAmount,
+        totalAmountFc:totalAmountFc,
       }
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
