@@ -10,4 +10,5 @@ router.post(
 );
 router.post("/gettingTaxDetails", auth.verifyToken, controller.gettaxDetails);
 router.post("/gettingTdsDetails", auth.verifyToken, controller.getTDSDetails);
+router.post("/getGeneralLedgerData", auth.verifyToken, controller.getGeneralLedgerData);
 module.exports = router;
