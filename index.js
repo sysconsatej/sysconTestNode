@@ -5,7 +5,7 @@ const fileUpload = require("express-fileupload");
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-var { errorLogger } = require("./src/helper/loggerService");
+// var { errorLogger } = require("./src/helper/loggerService");
 var bodyParser = require("body-parser");
 var session = require("express-session");
 var status = require("express-status-monitor");
@@ -105,7 +105,7 @@ app.use("/api", BalanceSheet);
 process.on("uncaughtException", (error) => {
   console.log(error);
   // logger.error('Uncaught Exception:', error);
-  errorLogger(error);
+  // errorLogger(error);
   // Optionally, perform a graceful shutdown:
   // process.exit(1); // Exiting the process after logging an uncaught exception is a common practice
 });
