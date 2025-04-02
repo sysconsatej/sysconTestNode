@@ -238,4 +238,48 @@ module.exports = {
       });
     }
   },
+
+  getVoucherData: async (req, res) => {
+    try {
+      let {
+        clientId,
+        billingPartyId,
+        companyId,
+        // companyBranchId
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getInvoiceForVoucher", {
+        clientId,
+        billingPartyId,
+        companyId,
+        // branchId:companyBranchId
+      });
+      console.log('data',billingPartyId)
+      console.log('data',data)
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
 };
