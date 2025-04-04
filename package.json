@@ -48,6 +48,7 @@
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.15.0",
     "puppeteer": "^22.15.0",
+    "qrcode": "^1.5.4",
     "request": "^2.88.2",
     "validatorjs": "^3.22.1",
     "winston": "^3.13.0",

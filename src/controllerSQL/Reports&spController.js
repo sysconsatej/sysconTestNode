@@ -33,6 +33,38 @@ module.exports = {
       });
     }
   },
+  spInvoice: async (req, res) => {
+    try {
+      const { filterCondition } = req.body;
+      const query = `invoiceData`;
+      const parameters = {
+        filterCondition,
+      };
+      console.log("parameters", filterCondition);
+      let data = await executeStoredProcedure(query, parameters);
+      console.log("data", data);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
   spContainerPlanning: async (req, res) => {
     try {
       const { filterCondition, spName } = req.body;
