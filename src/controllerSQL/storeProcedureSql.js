@@ -137,6 +137,7 @@ module.exports = {
         billingPartyBranch: billingPartyBranch,
         billingPartyState: billingPartyState,
       };
+      console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
         return res.send({
@@ -255,8 +256,8 @@ module.exports = {
         companyId,
         // branchId:companyBranchId
       });
-      console.log('data',billingPartyId)
-      console.log('data',data)
+      console.log("data", billingPartyId);
+      console.log("data", data);
 
       if (data?.length === 0) {
         return res.send({
@@ -281,5 +282,4 @@ module.exports = {
       });
     }
   },
-
 };
