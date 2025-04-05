@@ -1,7 +1,7 @@
 const model = require("../models/module");
 const mongoose = require("mongoose");
 const validate = require("../helper/validate");
-const { errorLogger } = require("../helper/loggerService");
+// const { errorLogger } = require("../helper/loggerService");
 const moment = require("moment");
 const { ref } = require("pdfkit");
 function createObjectId(companyId) {
@@ -2288,7 +2288,7 @@ module.exports = {
             data: data,
           }); // model.AuditTrailLog(req.body, res)
         } catch (error) {
-          errorLogger(error, req);
+          // errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "Something went wrong",
@@ -8695,7 +8695,7 @@ module.exports = {
             data: data,
           }); // model.AuditTrailLog(req.body, res)
         } catch (error) {
-          errorLogger(error, req);
+          // errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "Something went wrong",

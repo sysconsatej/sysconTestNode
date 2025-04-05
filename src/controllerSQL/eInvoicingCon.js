@@ -3,7 +3,7 @@ const model = require("../modelSQL/model");
 const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
 const mongoose = require("mongoose");
 const moment = require("moment");
-const { errorLogger } = require("../helper/loggerService");
+// const { errorLogger } = require("../helper/loggerService");
 
 const {
   executeQuery,
@@ -109,7 +109,7 @@ module.exports = {
             throw new Error("CLIENT CODE NOT FOUND");
           }
         } catch (error) {
-          errorLogger(error, req);
+          //errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "something went wrong",

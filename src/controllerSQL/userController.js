@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const SendMail = require("../helper/NodeMailer");
 const config = require("../config/auth.config");
 const Mailtemplate = require("../helper/Mailtemplate");
-const { errorLogger } = require("../helper/loggerService");
+// const { errorLogger } = require("../helper/loggerService");
 // const mongoose = require("../config/MongoConnection");
 const client = require("../redis/redis_client");
 const { executeStoredProcedure } = require("../modelSQL/model")
@@ -427,7 +427,7 @@ module.exports = {
                 data: data,
               });
         } catch (error) {
-          errorLogger(error, req);
+          //errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "Data not inserted Successfully...",
@@ -582,7 +582,7 @@ module.exports = {
             }
           }
         } catch (error) {
-          errorLogger(error, req);
+          //errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "something went wrong",
@@ -705,7 +705,7 @@ module.exports = {
             });
           }
         } catch (error) {
-          errorLogger(error, req);
+          //errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "something went wrong",
@@ -777,7 +777,7 @@ module.exports = {
             });
           }
         } catch (error) {
-          errorLogger(error, req);
+          //errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "something went wrong",
@@ -837,7 +837,7 @@ module.exports = {
             });
           }
         } catch (error) {
-          errorLogger(error, req);
+          //errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "something went wrong",
@@ -873,7 +873,7 @@ module.exports = {
         });
       }
     } catch (error) {
-      errorLogger(error, req);
+      //errorLogger(error, req);
       res.status(500).send({
         success: false,
         message: "something went wrong",
@@ -977,7 +977,7 @@ module.exports = {
         });
       }
     } catch (error) {
-      errorLogger(error, req);
+      //errorLogger(error, req);
       res.status(500).send({
         success: false,
         message: "something went wrong",
