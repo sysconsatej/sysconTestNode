@@ -91,15 +91,53 @@ module.exports = {
 
   gettaxDetails: async (req, res) => {
     try {
-      const { SelectedParentInvId, glId, taxType, sacCodeId, totalAmount,totalAmountFc } = req.body;
+      const {
+        chargeId,
+        SelectedParentInvId,
+        invoiceDate,
+        glId,
+        taxType,
+        sacCodeId,
+        totalAmount,
+        totalAmountFc,
+        departmentId,
+        placeOfSupply_state,
+        sez,
+        customerId,
+        ownStateId,
+        companyId,
+        branchId,
+        finYearId,
+        userId,
+        clientId,
+        totalAmtInvoiceCurr,
+        billingPartyBranch,
+        billingPartyState,
+      } = req.body;
       let parameters = {
+        chargeId: chargeId,
+        invoiceDate: invoiceDate,
         SelectedParentInvId: SelectedParentInvId,
         glId: glId,
         taxType: taxType,
         sacCodeId: sacCodeId,
-        totalAmount:totalAmount,
-        totalAmountFc:totalAmountFc,
-      }
+        totalAmount: totalAmount,
+        totalAmountFc: totalAmountFc,
+        departmentId: departmentId,
+        placeOfSupply_state: placeOfSupply_state,
+        sez: sez,
+        customerId: customerId,
+        ownStateId: ownStateId,
+        companyId: companyId,
+        branchId: branchId,
+        finYearId: finYearId,
+        userId: userId,
+        clientId: clientId,
+        totalAmtInvoiceCurr: totalAmtInvoiceCurr,
+        billingPartyBranch: billingPartyBranch,
+        billingPartyState: billingPartyState,
+      };
+      console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
         return res.send({
@@ -113,8 +151,7 @@ module.exports = {
         message: "Data fetched successfully!",
         tblTax: data[0].tblTax,
         count: data?.length,
-      })
-
+      });
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -126,7 +163,15 @@ module.exports = {
   },
   getTDSDetails: async (req, res) => {
     try {
-      const { partyId, glId, formControlId, totalAmount, exchangeRateGrid, invoiceDate, companyId } = req.body;
+      const {
+        partyId,
+        glId,
+        formControlId,
+        totalAmount,
+        exchangeRateGrid,
+        invoiceDate,
+        companyId,
+      } = req.body;
       let parameters = {
         glId: glId,
         partyId: partyId,
@@ -134,9 +179,8 @@ module.exports = {
         invoiceDate: invoiceDate,
         exchangeRateGrid: exchangeRateGrid,
         companyId: companyId,
-        clientId: req.clientId
-
-      }
+        clientId: req.clientId,
+      };
       let data = await executeStoredProcedure("GetTdsDetails", parameters);
       if (data.length === 0) {
         return res.send({
@@ -150,8 +194,7 @@ module.exports = {
         message: "Data fetched successfully!",
         data: data,
         count: data?.length,
-      })
-
+      });
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -159,22 +202,19 @@ module.exports = {
         data: [],
         error: error.message,
       });
-
     }
   },
 
   getGeneralLedgerData: async (req, res) => {
     try {
-      let {
-        billingPartyId,
-      } = req.body;
+      let { billingPartyId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GeneralLedgerData", {
-       billingPartyId
+        billingPartyId,
       });
-      console.log('data',billingPartyId)
-      console.log('data',data)
+      console.log("data", billingPartyId);
+      console.log("data", data);
 
       if (data?.length === 0) {
         return res.send({
@@ -200,4 +240,46 @@ module.exports = {
     }
   },
 
+  getVoucherData: async (req, res) => {
+    try {
+      let {
+        clientId,
+        billingPartyId,
+        companyId,
+        // companyBranchId
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getInvoiceForVoucher", {
+        clientId,
+        billingPartyId,
+        companyId,
+        // branchId:companyBranchId
+      });
+      console.log("data", billingPartyId);
+      console.log("data", data);
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
 };

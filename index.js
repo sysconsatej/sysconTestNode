@@ -5,7 +5,7 @@ const fileUpload = require("express-fileupload");
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-var { errorLogger } = require("./src/helper/loggerService");
+// var { errorLogger } = require("./src/helper/loggerService");
 var bodyParser = require("body-parser");
 var session = require("express-session");
 var status = require("express-status-monitor");
@@ -105,7 +105,7 @@ app.use("/api", BalanceSheet);
 process.on("uncaughtException", (error) => {
   console.log(error);
   // logger.error('Uncaught Exception:', error);
-  errorLogger(error);
+  // errorLogger(error);
   // Optionally, perform a graceful shutdown:
   // process.exit(1); // Exiting the process after logging an uncaught exception is a common practice
 });
@@ -133,6 +133,7 @@ const SQLSendEmail = require("./src/routesSQL/Email");
 const SQLUploadLogo = require("./src/routesSQL/uploadLogoRoute");
 const SQLUserDashboard = require("./src/routesSQL/createDashboardRoute");
 const SQLSpInvoice = require("./src/routesSQL/storeProcedureSql");
+const SQLeInvoicing = require("./src/routesSQL/eInvoicingRoute");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -147,6 +148,7 @@ app.use("/Sql/api/uploadLogo", SQLUploadLogo);
 app.use("/Sql/api/sp", SQLSp);
 app.use("/Sql/api/userDashboard", SQLUserDashboard);
 app.use("/Sql/api/spInvoice", SQLSpInvoice);
+app.use("/Sql/api/eInvoicing", SQLeInvoicing);
 
 app.use(function (req, res, next) {
   next(createError(404));
