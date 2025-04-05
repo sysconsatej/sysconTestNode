@@ -25,6 +25,9 @@ module.exports = {
           search,
           keyName,
           keyValue,
+          loginBranch,
+          loginCompany,
+          loginfinYear
         } = req.body;
         let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
         let limit = parseInt(req.body.limit, 10) || 10; // Default to 10 items per page if not specified
@@ -38,6 +41,9 @@ module.exports = {
           menuId: menuID,
           pageSize: limit,
           pageNumber: pageNo,
+          loginCompanyBranchId: loginBranch,
+          loginCompanyId: loginCompany,
+          loginfinYearId: loginfinYear
         };
         let query = ``;
         if (
