@@ -67,14 +67,12 @@ module.exports = {
   },
   spJob: async (req, res) => {
     try {
-      const { id } = req.body;
+      const { filterCondition } = req.body;
       const query = `jobData`;
       const parameters = {
-        id,
+        filterCondition,
       };
-      console.log("parameters", id);
       let data = await executeStoredProcedure(query, parameters);
-      console.log("data", data);
       if (data) {
         res.send({
           success: true,
