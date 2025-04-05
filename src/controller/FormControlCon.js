@@ -2,7 +2,7 @@ const validate = require("../helper/validate");
 const model = require("../models/module");
 const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
 const mongoose = require("mongoose");
-const { errorLogger, logger } = require("../helper/loggerService");
+// const { errorLogger, logger } = require("../helper/loggerService");
 const viewController = require("./viewController");
 const moment = require("moment");
 const sql = require("mssql");
@@ -432,7 +432,7 @@ module.exports = {
                   message: "Data not inserted Successfully...",
                 });
           } catch (error) {
-            errorLogger(error, req);
+            // errorLogger(error, req);
             res.status(500).send({
               success: false,
               message: "Something went wrong",
@@ -443,7 +443,7 @@ module.exports = {
       });
     } catch (error) {
       // Handle any errors during the process and send an error response
-      errorLogger(error, req);
+      // errorLogger(error, req);
       res.status(500).send({
         success: false,
         message: "Something went wrong",
@@ -551,7 +551,7 @@ module.exports = {
         : res.send({ success: false, message: "Data Not Found", data: [] });
     } catch (error) {
       // Handle any errors during the process and send an error response
-      errorLogger(error, req);
+      // errorLogger(error, req);
       res.send({
         success: false,
         message: "Something went wrong",
@@ -664,7 +664,7 @@ module.exports = {
             Count: Count,
           });
     } catch (error) {
-      errorLogger(error, req);
+      // errorLogger(error, req);
       res.status(500).send({
         success: false,
         message: "Something went wrong",
@@ -710,7 +710,7 @@ module.exports = {
                 data: data,
               });
         } catch (error) {
-          errorLogger(error, req);
+          // errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "Something went wrong",
@@ -1025,7 +1025,7 @@ module.exports = {
                 data: data,
               });
         } catch (error) {
-          errorLogger(error, req);
+          // errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: error.message,
@@ -1079,7 +1079,7 @@ module.exports = {
                 data: data,
               });
         } catch (error) {
-          errorLogger(error, req);
+          // errorLogger(error, req);
           res.status(500).send({
             success: false,
             message: "Something went wrong",
@@ -1320,7 +1320,7 @@ module.exports = {
         throw new Error("No Maping Found");
       }
     } catch (error) {
-      errorLogger(error, req);
+      // errorLogger(error, req);
       res.status(500).send({
         success: false,
         message: "Something went wrong",

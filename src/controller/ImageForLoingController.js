@@ -1,6 +1,6 @@
 const moment = require("moment");
 const model = require("../models/module");
-const { errorLogger } = require("../helper/loggerService");
+// const { errorLogger } = require("../helper/loggerService");
 
 module.exports = {
     AddImage: async (req, res) => {
@@ -30,7 +30,7 @@ module.exports = {
                 })
             }
         } catch (error) {
-            errorLogger(error, req)
+            // errorLogger(error, req)
             res.status(500).send({
                 success: false,
                 message: "Something went wrong",
@@ -76,7 +76,7 @@ module.exports = {
                 data: data
             })
         } catch (error) {
-            errorLogger(error, req)
+            // errorLogger(error, req)
             res.status(500).send({
                 success: false,
                 message: "Something went wrong",

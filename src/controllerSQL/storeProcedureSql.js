@@ -4,7 +4,7 @@ const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
 const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
 const mongoose = require("mongoose");
 const moment = require("moment");
-const { errorLogger } = require("../helper/loggerService");
+// const { errorLogger } = require("../helper/loggerService");
 const { log } = require("winston");
 function createObjectId(companyId) {
   try {
