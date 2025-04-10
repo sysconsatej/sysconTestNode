@@ -35,12 +35,12 @@ module.exports = {
   },
   spInvoice: async (req, res) => {
     try {
-      const { filterCondition } = req.body;
+      const { invoiceId } = req.body;
       const query = `invoiceData`;
       const parameters = {
-        filterCondition,
+        invoiceId,
       };
-      console.log("parameters", filterCondition);
+      console.log("parameters", invoiceId);
       let data = await executeStoredProcedure(query, parameters);
       console.log("data", data);
       if (data) {
