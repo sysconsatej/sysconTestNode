@@ -27,7 +27,7 @@ module.exports = {
           keyValue,
           loginBranch,
           loginCompany,
-          loginfinYear
+          loginfinYear,
         } = req.body;
         let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
         let limit = parseInt(req.body.limit, 10) || 10; // Default to 10 items per page if not specified
@@ -43,7 +43,7 @@ module.exports = {
           pageNumber: pageNo,
           loginCompanyBranchId: loginBranch,
           loginCompanyId: loginCompany,
-          loginfinYearId: loginfinYear
+          loginfinYearId: loginfinYear,
         };
         let query = ``;
         if (
@@ -84,7 +84,7 @@ module.exports = {
 
         let count = await executeQuery(
           `select count(*) as total from ${tableName} where status = 1 and clientId in ( ${req.clientId}, (select id from tblClient where clientCode = 'SYSCON') )` +
-          query,
+            query,
           {}
         );
         console.log(count.recordset[0].total === 0);
@@ -97,6 +97,7 @@ module.exports = {
             count: count.recordset[0].total,
           });
         }
+        console.log("=>", parameter);
         let data = await executeStoredProcedure("dynamicSearchApi", parameter);
         let parameterForCount = {
           ...parameter,
@@ -167,8 +168,8 @@ module.exports = {
       data.length > 0
         ? res.send({ success: true, message: "list fetched", data: data })
         : res
-          .status(403)
-          .send({ success: false, message: "No Data Found", data: [] });
+            .status(403)
+            .send({ success: false, message: "No Data Found", data: [] });
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -179,7 +180,11 @@ module.exports = {
     }
   },
   delete: async (req, res) => {
-    const validationRule = { tableName: "required", id: "required", clientId: "required" };
+    const validationRule = {
+      tableName: "required",
+      id: "required",
+      clientId: "required",
+    };
     // validate for validation according to validationRule
     validate(req.body, validationRule, {}, async (err, status) => {
       if (!status) {
@@ -193,7 +198,8 @@ module.exports = {
         if (deleteCheck.recordset.length == 0) {
           return res.send({
             success: false,
-            message: "This data is restricted for you. Deletion is not allowed.",
+            message:
+              "This data is restricted for you. Deletion is not allowed.",
             data: [],
           });
         }
