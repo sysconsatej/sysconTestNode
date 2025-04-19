@@ -8,5 +8,6 @@ router.post("/invoice", controller.spInvoice);
 router.post("/job", controller.spJob);
 router.post("/containerPlanning", controller.spContainerPlanning);
 router.post("/getDynamicReportDetails", controller.getDynamicReportDetails);
+router.post("/voucher", controller.spVocher);
 
 module.exports = router;
