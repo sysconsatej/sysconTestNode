@@ -133,7 +133,7 @@ module.exports = {
         });
       }
       const { ackDate, ackNo, irn, signedQrCode, signedInvoice } = Response;
-      let updateQuery = `UPDATE tblInvoice set ackDate=${ackDate}, ackNo=${ackNo}, irn=${irn}, signedQrCode=${signedQrCode}, signedInvoice=${signedInvoice}  where id=${invoiceId}`;
+      let updateQuery = `UPDATE tblInvoice set ackDate='${ackDate}', ackNo='${ackNo}', irn='${irn}', signedQrCode='${signedQrCode}', signedInvoice='${signedInvoice}'  where id=${invoiceId}`;
       await executeQuery(updateQuery, {});
 
       // Step 6: Return response
@@ -452,7 +452,9 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
   CancelanIRN_GSTHero: async (req, res) => {
     try {
-      const { accInvId } = req.body;
+      const accInvId = req.body.invoiceId;
+      const { billingPartyId, companyId } = req.body;
+
 
       if (!accInvId) {
         return res.status(400).send({
@@ -461,13 +463,22 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           data: [],
         });
       }
+      // check IRN is generated or not
+      const irnResult = await executeQuery(`
+        EXEC CheckIRNStatus @InvoiceId = ${accInvId};
+      `, {});
 
-      await sql.connect(config);
-
+      if (!irnResult.recordset[0].isIRN == 'true') {
+        return res.send({
+          success: false,
+          message: "IRN is not generated yet",
+          data: [],
+        });
+      }
       // 1. Call the stored procedure to get the JSON string
-      const jsonResult = await sql.query`
+      const jsonResult = await executeQuery(`
         EXEC irn_cancellation_gsthero @account_invoice_id = ${accInvId}
-      `;
+      `, {});
 
       const jsonOutput = jsonResult.recordset.map(row => Object.values(row)[0]).join('');
 
@@ -478,24 +489,29 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           data: [],
         });
       }
+      //  Fetch auth credentials
+      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(req, res);
+      //  Authenticate with GSTHero
+      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(req, res);
 
       // 2. Fetch configuration values from DB
-      const [linkRes, gstinRes, authTokenRes, xTokenRes] = await Promise.all([
-        sql.query`SELECT ISNULL(einvoice_server_link, '') AS val FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
-        sql.query`SELECT ISNULL(gstin, '') AS val FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
-        sql.query`SELECT ISNULL(AuthToken, '') AS val FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
-        sql.query`SELECT ISNULL(XConnectorAuthToken, '') AS val FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
+        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(authToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
       ]);
 
-      const serverLink = linkRes.recordset[0].val;
-      const gstin = gstinRes.recordset[0].val;
-      const authToken = `Bearer ${authTokenRes.recordset[0].val}`;
-      const xConnectorAuthToken = xTokenRes.recordset[0].val;
+      const serverLink = serverLinkResult.recordset[0].link;
+      const gstin = gstinResult.recordset[0].gstin;
+      const authToken = `Bearer ${tokenResult.recordset[0].token}`;
+      const xConnectorAuthToken = xConnectorResult.recordset[0].token;
 
       const cancelIRNUrl = `${serverLink}/invoice/cancel`;
 
       // 3. Make POST request to cancel IRN
-      const response = await axios.post(cancelIRNUrl, jsonOutput, {
+      const response = await fetch(cancelIRNUrl, {
+        method: 'POST',
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
@@ -504,7 +520,18 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           gstin: gstin,
           action: "CANCELIRN",
         },
+        body: jsonOutput,
       });
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          success: false,
+          message: Response.error.map((err) => err.errorMsg).join(", "),
+        });
+      }
+      let result = await response.json();
+      // update invoice Table ( fields are not Proper need to work on it )
+      await executeQuery(`UPDATE tblInvoice set cancelIrnNo=${result.cancelIrnNo} where id=${accInvId}`, {})
 
       return res.send({
         success: true,
