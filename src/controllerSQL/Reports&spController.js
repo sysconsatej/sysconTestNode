@@ -95,6 +95,36 @@ module.exports = {
       });
     }
   },
+  spVocher: async (req, res) => {
+    try {
+      const { id } = req.body;
+      const query = `voucherData`;
+      const parameters = {
+        id,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
   spContainerPlanning: async (req, res) => {
     try {
       const { filterCondition, spName } = req.body;
@@ -135,6 +165,66 @@ module.exports = {
         fromDate,
         toDate,
         clientId,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
+  reportTheme: async (req, res) => {
+    try {
+      const { clientId, reportId } = req.body;
+      const query = `reportThemeApi`;
+      const parameters = {
+        clientId,
+        reportId,
+      };
+      const data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+    }
+  },
+  spBl: async (req, res) => {
+    try {
+      const { filterCondition } = req.body;
+      const query = `blData`;
+      const parameters = {
+        filterCondition,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {

@@ -10,6 +10,7 @@ const {
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
 } = require("../modelSQL/model");
+const { response } = require("express");
 
 function createObjectId(companyId) {
   try {
@@ -25,1430 +26,533 @@ function createObjectId(companyId) {
   }
 }
 
+function Isnull(value, defaultValue) {
+  return value === null || value === undefined || value === ""
+    ? defaultValue
+    : value;
+}
+function isDateBetweenGivenDates(givenDate, json) {
+  const date = new Date(givenDate);
+
+  // Iterate through tblTaxDetails array to find the effective and validity dates
+  for (const taxDetail of json.taxData.tblTaxDetails) {
+    const startDate = new Date(taxDetail.effectiveDate);
+    const endDate = new Date(taxDetail.validityDate);
+
+    // Check if the given date is between the start and end dates
+    if (date >= startDate && date <= endDate) {
+      return json;
+    }
+  }
+
+  return false;
+}
+
 // myModule.js
-module.exports = {
-  generateIRN: async (req, res) => {
-    const validationRule = {
-      companyId: "required",
-      companyBranchId: "required",
-      finYearId: "required",
-      accountInvoiceId: "required",
-    };
-    validate(req.body, validationRule, {}, async (errr, status) => {
-      if (!status) {
-        res.status(403).send({
-          success: false,
-          message: "validation error",
-          data: errr,
-        });
-      } else {
-        try {
-          const { companyId, companyBranchId, finYearId, accountInvoiceId } =
-            req.body;
-          var next_fin_year_id;
-          var clientCode = req.clientCode;
+// Reusable function version
+const generateIRNFunction = async (invoiceId) => {
+  // Here, fetch the necessary data to generate IRN using invoiceId
+  // Adjust SP and params as per your business logic
+  const data = await executeStoredProcedure("getInvoiceForVoucher", {
+    invoiceId,
+  });
 
-          console.log(clientCode);
-          var userName;
-          var password;
-          var einvoiceLink;
-
-          if (clientCode == "NCLP") {
-            // Fetch usernames where companybranchid is 8331
-            // userName = await tblCompanyBranchParameter.find({ companybranchid: companyBranchId}, { projection: { _id: 0, username: 1 } }).toArray();
-            userName = await model.AggregateFetchData(
-              "tblCompanyBranchParameter",
-              "tblCompanyBranchParameter",
-              [{ $match: { companyBranchId: companyBranchId } }],
-              res
-            );
-            // console.log(userName);
-            // return  res.status(200).send({
-            //     success: true,
-            //     message: "username fetched successfully",
-            //     data: userName
-            // })
-
-            let userNameDetails = await model.AggregateFetchData(
-              "tblInvoice",
-              "tblInvoice",
-              [
-                {
-                  $match: {
-                    _id: createObjectId(accountInvoiceId),
-                  },
-                },
-                {
-                  $lookup: {
-                    from: "tblCompanyBranchParameter",
-                    let: { branchId: "$companyBranchId" },
-                    pipeline: [
-                      {
-                        $match: {
-                          $expr: {
-                            $and: [
-                              {
-                                $eq: ["$companyBranchId", "$$branchId"],
-                              },
-                            ],
-                          },
-                        },
-                      },
-                    ],
-                    as: "companyBranchParameterData",
-                  },
-                },
-              ]
-            );
-            res.send(userNameDetails);
-          } else if (clientCode == "SSL") {
-            next_fin_year_id = finYearId;
-          } else if (clientCode == "COSCO") {
-            next_fin_year_id = finYearId;
-          } else {
-            throw new Error("CLIENT CODE NOT FOUND");
-          }
-        } catch (error) {
-          //errorLogger(error, req);
-          res.status(500).send({
-            success: false,
-            message: "something went wrong",
-            data: error.message,
-          });
-        }
-      }
-    });
-  },
-  eInvoicingGSTHero: async (req, res) => {
-    const validationRule = {
-      invoiceId: "required",
-    };
-    validate(req.body, validationRule, {}, async (errr, status) => {
-      if (!status) {
-        res.status(403).send({
-          success: false,
-          message: "validation error",
-          data: errr,
-        });
-      } else {
-        try {
-          const { invoiceId } = req.body;
-          const invoiceData = await model.AggregateFetchData(
-            "tblInvoice",
-            "tblInvoice",
-            [
-              {
-                $match: {
-                  _id: createObjectId(invoiceId),
-                  clientCode: req.clientCode,
-                },
-              },
-              {
-                $lookup: {
-                  from: "tblVoucherType",
-                  let: {
-                    id: "$voucherTypeId",
-                  },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $and: [
-                            {
-                              $eq: ["$_id", { $toObjectId: "$$id" }],
-                            },
-                          ],
-                        },
-                      },
-                    },
-                  ],
-                  as: "voucherType",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$voucherType",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "tblMasterData",
-                  let: { sez: "$sez" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $and: [
-                            { $eq: ["$clientCode", req.clientCode] },
-                            {
-                              $eq: ["$_id", { $toObjectId: "$$sez" }],
-                            },
-                          ],
-                        },
-                      },
-                    },
-                  ],
-                  as: "sez",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$sez",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "tblCompany",
-                  let: { id: "$loginCompany", branchId: "$loginBranch" },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $and: [{ $eq: ["$_id", { $toObjectId: "$$id" }] }],
-                        },
-                      },
-                    },
-                    {
-                      $addFields: {
-                        tblCompanyBranch: {
-                          $filter: {
-                            input: "$tblCompanyBranch",
-                            as: "branch",
-                            cond: {
-                              $eq: [
-                                "$$branch._id",
-                                { $toObjectId: "$$branchId" },
-                              ],
-                            },
-                          },
-                        },
-                      },
-                    },
-                    {
-                      $unwind: {
-                        path: "$tblCompanyBranch",
-                        includeArrayIndex: "string",
-                        preserveNullAndEmptyArrays: false,
-                      },
-                    },
-                    {
-                      $lookup: {
-                        from: "tblCountry",
-                        let: {
-                          stateId: "$tblCompanyBranch.stateId",
-                          cityId: "$tblCompanyBranch.cityId",
-                        },
-                        pipeline: [
-                          {
-                            $match: {
-                              clientCode: "NCLP",
-                            },
-                          },
-                          {
-                            $unwind: {
-                              path: "$tblState",
-                            },
-                          },
-                          {
-                            $match: {
-                              $expr: {
-                                $and: [
-                                  {
-                                    $eq: [
-                                      "$tblState._id",
-                                      { $toObjectId: "$$stateId" },
-                                    ],
-                                  },
-                                ],
-                              },
-                            },
-                          },
-                          {
-                            $addFields: {
-                              tblCity: {
-                                $filter: {
-                                  input: "$tblCity",
-                                  as: "city",
-                                  cond: {
-                                    $eq: [
-                                      "$$city._id",
-                                      { $toObjectId: "$$cityId" },
-                                    ],
-                                  },
-                                },
-                              },
-                            },
-                          },
-                          { $unwind: { path: "$tblCity" } },
-                        ],
-                        as: "country",
-                      },
-                    },
-                    {
-                      $unwind: {
-                        path: "$country",
-                        preserveNullAndEmptyArrays: true,
-                      },
-                    },
-                  ],
-                  as: "OwncompanyData",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$OwncompanyData",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "tblGeneralLedger",
-                  let: {
-                    id: "$billingPartyId",
-                    gstId: "$billingPartyGstinNoId",
-                  },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $and: [
-                            {
-                              $eq: ["$_id", { $toObjectId: "$$id" }],
-                            },
-                          ],
-                        },
-                      },
-                    },
-                    {
-                      $addFields: {
-                        tblGlGst: {
-                          $filter: {
-                            input: "$tblGlGst",
-                            as: "branch",
-                            cond: {
-                              $eq: ["$$branch._id", { $toObjectId: "$$gstId" }],
-                            },
-                          },
-                        },
-                      },
-                    },
-                    {
-                      $unwind: {
-                        path: "$tblGlGst",
-                        includeArrayIndex: "string",
-                        preserveNullAndEmptyArrays: false,
-                      },
-                    },
-                    {
-                      $lookup: {
-                        from: "tblCountry",
-                        let: {
-                          stateId: "$tblGlGst.stateId",
-                          cityId: "$tblGlGst.cityId",
-                        },
-                        pipeline: [
-                          {
-                            $match: {
-                              clientCode: "NCLP",
-                            },
-                          },
-                          {
-                            $unwind: {
-                              path: "$tblState",
-                            },
-                          },
-                          {
-                            $match: {
-                              $expr: {
-                                $and: [
-                                  {
-                                    $eq: [
-                                      "$tblState._id",
-                                      { $toObjectId: "$$stateId" },
-                                    ],
-                                  },
-                                ],
-                              },
-                            },
-                          },
-                          {
-                            $addFields: {
-                              tblCity: {
-                                $filter: {
-                                  input: "$tblCity",
-                                  as: "city",
-                                  cond: {
-                                    $eq: [
-                                      "$$city._id",
-                                      { $toObjectId: "$$cityId" },
-                                    ],
-                                  },
-                                },
-                              },
-                            },
-                          },
-                          { $unwind: { path: "$tblCity" } },
-                        ],
-                        as: "country",
-                      },
-                    },
-                    {
-                      $unwind: {
-                        path: "$country",
-                        preserveNullAndEmptyArrays: true,
-                      },
-                    },
-                  ],
-                  as: "custGL",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$custGL",
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
-                $lookup: {
-                  from: "tblCountry",
-                  let: { id: "$placeOfSupplyStateId" },
-                  pipeline: [
-                    {
-                      $match: {
-                        clientCode: "NCLP",
-                      },
-                    },
-                    {
-                      $unwind: {
-                        path: "$tblState",
-                      },
-                    },
-                    {
-                      $match: {
-                        $expr: {
-                          $eq: ["$tblState._id", { $toObjectId: "$$id" }],
-                        },
-                      },
-                    },
-                    {
-                      $project: {
-                        tblState: 1,
-                      },
-                    },
-                  ],
-                  as: "placeOfSupplyStateData",
-                },
-              },
-              {
-                $unwind: {
-                  path: "$placeOfSupplyStateData",
-                  // preserveNullAndEmptyArrays: true
-                },
-              },
-              {
-                $lookup: {
-                  from: "tblInvoice",
-                  let: {
-                    id: "$parentInvoiceId",
-                    voucherTypeId: "$voucherTypeId",
-                  },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $and: [
-                            {
-                              $eq: ["$_id", { $toObjectId: "$$id" }],
-                            },
-                          ],
-                        },
-                      },
-                    },
-                    {
-                      $lookup: {
-                        from: "tblVoucherType",
-                        let: {
-                          id: {
-                            $ifNull: ["$voucherTypeId", "$$voucherTypeId"],
-                          },
-                        },
-                        pipeline: [
-                          {
-                            $match: {
-                              $expr: {
-                                $and: [
-                                  {
-                                    $eq: ["$_id", { $toObjectId: "$$id" }],
-                                  },
-                                ],
-                              },
-                            },
-                          },
-                        ],
-                        as: "voucherType",
-                      },
-                    },
-                  ],
-                  as: "parent_invoice",
-                },
-              },
-              {
-                $project: {
-                  action: { $literal: "GENERATEIRN" },
-                  "data.version": { $literal: "1.01" },
-                  "data.tranDtls.supTyp": {
-                    $switch: {
-                      branches: [
-                        {
-                          case: { $eq: ["$sez.code", "Y"] },
-                          then: "SEZWP",
-                        },
-                        {
-                          case: { $eq: ["$sez.code", "E"] },
-                          then: "SEZWOP",
-                        },
-                        {
-                          case: {
-                            $and: [
-                              {
-                                $eq: [
-                                  "$custGL.country.tblState.name",
-                                  "OTHER TERRITORY",
-                                ],
-                              },
-                              {
-                                $or: [
-                                  {
-                                    $eq: [
-                                      {
-                                        $ifNull: [
-                                          "$custGL.tblGlGst.gstinNo",
-                                          "",
-                                        ],
-                                      },
-                                      "",
-                                    ],
-                                  },
-                                  {
-                                    $eq: [
-                                      {
-                                        $ifNull: [
-                                          "$custGL.tblGlGst.gstinNo",
-                                          "",
-                                        ],
-                                      },
-                                      "NA",
-                                    ],
-                                  },
-                                ],
-                              },
-                              { $ne: [{ $ifNull: ["$taxAmount", 0] }, 0] },
-                            ],
-                          },
-                          then: "EXPWP",
-                        },
-                        {
-                          case: {
-                            $and: [
-                              {
-                                $eq: [
-                                  "$custGL.country.tblState.name",
-                                  "OTHER TERRITORY",
-                                ],
-                              },
-                              {
-                                $or: [
-                                  {
-                                    $eq: [
-                                      {
-                                        $ifNull: [
-                                          "$custGL.tblGlGst.gstinNo",
-                                          "",
-                                        ],
-                                      },
-                                      "",
-                                    ],
-                                  },
-                                  {
-                                    $eq: [
-                                      {
-                                        $ifNull: [
-                                          "$custGL.tblGlGst.gstinNo",
-                                          "",
-                                        ],
-                                      },
-                                      "NA",
-                                    ],
-                                  },
-                                ],
-                              },
-                              { $eq: [{ $ifNull: ["$taxAmount", 0] }, 0] },
-                            ],
-                          },
-                          then: "EXPWOP",
-                        },
-                      ],
-                      default: "B2B",
-                    },
-                  },
-                  "data.tranDtls.regRev": { $literal: "N" },
-                  "data.tranDtls.igstOnIntra": { $literal: "N" },
-                  "data.docDtls.typ": {
-                    $switch: {
-                      branches: [
-                        {
-                          case: {
-                            $eq: [
-                              { $trim: { input: "$voucherType.code" } },
-                              "BSE",
-                            ],
-                          },
-                          then: "BOS",
-                        },
-                        {
-                          case: {
-                            $eq: [
-                              { $trim: { input: "$voucherType.code" } },
-                              "CN",
-                            ],
-                          },
-                          then: "CRN",
-                        },
-                        {
-                          case: {
-                            $eq: [
-                              { $trim: { input: "$voucherType.code" } },
-                              "CRN",
-                            ],
-                          },
-                          then: "CRN",
-                        },
-                        {
-                          case: {
-                            $eq: [
-                              { $trim: { input: "$voucherType.code" } },
-                              "DN",
-                            ],
-                          },
-                          then: "DBN",
-                        },
-                        {
-                          case: {
-                            $eq: [
-                              { $trim: { input: "$voucherType.code" } },
-                              "DRN",
-                            ],
-                          },
-                          then: "DBN",
-                        },
-                      ],
-                      default: "INV",
-                    },
-                  },
-                  "data.docDtls.no": "$invoiceNo",
-                  "data.docDtls.dt": {
-                    $dateToString: { format: "%d/%m/%Y", date: "$invoiceDate" },
-                  },
-                  "data.sellerDtls.gstin": "$OwncompanyData.gstinNo",
-                  "data.sellerDtls.lglNm": "$OwncompanyData.name",
-                  "data.sellerDtls.trdNm": "$OwncompanyData.name",
-                  "data.sellerDtls.addr1": {
-                    $cond: {
-                      if: {
-                        $and: [
-                          {
-                            $gt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          },
-                          {
-                            $lt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              53,
-                            ],
-                          },
-                        ],
-                      },
-                      then: {
-                        $substrCP: [
-                          "$OwncompanyData.tblCompanyBranch.address",
-                          0,
-                          5,
-                        ],
-                      },
-                      else: {
-                        $cond: {
-                          if: {
-                            $lte: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          },
-                          then: {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              0,
-                              5,
-                            ],
-                          },
-                          else: {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              0,
-                              50,
-                            ],
-                          },
-                        },
-                      },
-                    },
-                  },
-                  "data.sellerDtls.addr2": {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $gt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          },
-                          {
-                            $lt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              53,
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        $substrCP: [
-                          "$OwncompanyData.tblCompanyBranch.address",
-                          5,
-                          55,
-                        ],
-                      }, // 0-based index
-                      {
-                        $cond: [
-                          {
-                            $lte: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          },
-                          {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              5,
-                              50,
-                            ],
-                          }, // Extract from position 6 up to length 50
-                          {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              50,
-                              100,
-                            ],
-                          }, // Extract from position 51 up to length 100
-                        ],
-                      },
-                    ],
-                  },
-                  "data.sellerDtls.loc": "$OwncompanyData.country.tblCity.name", // Maps ownbrcity.city_name to data.sellerDtls.loc
-                  "data.sellerDtls.pin":
-                    "$OwncompanyData.tblCompanyBranch.pincode", // Maps owncompbr.pin_code to data.sellerDtls.pin
-                  "data.sellerDtls.stcd": {
-                    // Extracts the first two characters of ownbrstate.state_code_sb_file
-                    $substrCP: ["$OwncompanyData.country.tblState.code", 0, 2],
-                  },
-                  "data.sellerDtls.ph": null, // Null value for data.sellerDtls.ph
-                  "data.sellerDtls.em": null,
-                  "data.buyerDtls.gstin": {
-                    $cond: [
-                      { $eq: [{ $strLenCP: "$custGL.tblGlGst.gstinNo" }, 15] }, // Check if length of gstin_no is 15
-                      "$custGL.tblGlGst.gstinNo", // Return gstin_no if true
-                      {
-                        $cond: [
-                          {
-                            $or: [
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "",
-                                ],
-                              }, // Check if gstin_no is null or empty
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "NA",
-                                ],
-                              }, // Check if gstin_no is 'NA'
-                            ],
-                          },
-                          "URP", // Return 'URP' if gstin_no is null or 'NA'
-                          "", // Return empty string otherwise
-                        ],
-                      },
-                    ],
-                  },
-                  "data.buyerDtls.lglNm": "$custGL.name", // Maps custGL.name to data.buyerDtls.lglNm
-                  "data.buyerDtls.trdNm": "$custGL.name",
-                  "data.buyerDtls.pos": {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$custGL.country.tblState.name",
-                              "OTHER TERRITORY",
-                            ],
-                          }, // Check if custstate.state_name is 'OTHER TERRITORY'
-                          {
-                            $or: [
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "",
-                                ],
-                              }, // Check if gstin_no is null or empty
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "NA",
-                                ],
-                              }, // Check if gstin_no is 'NA'
-                            ],
-                          },
-                          { $eq: [{ $ifNull: ["$taxAmount", 0] }, 0] }, // Check if tax_amount is 0 or null
-                        ],
-                      },
-                      "96", // Return '96' if the above conditions are true
-                      {
-                        // Else block
-                        $ifNull: [
-                          {
-                            $substrCP: [
-                              "$placeOfSupplyStateData.tblState.code",
-                              0,
-                              2,
-                            ],
-                          }, // Try to get the first 2 characters from posstate.state_code_sb_file
-                          {
-                            $substrCP: ["$custGL.country.tblState.code", 0, 2],
-                          }, // Fallback to the first 2 characters from custstate.state_code_sb_file if posstate is null
-                        ],
-                      },
-                    ],
-                  },
-                  "data.buyerDtls.addr1": {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gt: [{ $strLenCP: "$address" }, 50] },
-                          { $lt: [{ $strLenCP: "$address" }, 53] },
-                        ],
-                      },
-                      { $substrCP: ["$address", 0, 5] }, // Extracts first 5 characters
-                      {
-                        $cond: [
-                          { $lte: [{ $strLenCP: "$address" }, 50] },
-                          { $substrCP: ["$address", 0, 5] }, // Extracts first 5 characters if length <= 50
-                          { $substrCP: ["$address", 0, 50] }, // Extracts first 50 characters if length > 53
-                        ],
-                      },
-                    ],
-                  },
-                  "data.buyerDtls.addr2": {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gt: [{ $strLenCP: "$address" }, 50] },
-                          { $lt: [{ $strLenCP: "$address" }, 53] },
-                        ],
-                      },
-                      { $substrCP: ["$address", 5, 55] }, // Extracts 55 characters starting from position 6 (index 5 in MongoDB)
-                      {
-                        $cond: [
-                          { $lte: [{ $strLenCP: "$address" }, 50] },
-                          { $substrCP: ["$address", 5, 50] }, // Extracts 50 characters starting from position 6 (index 5) if length <= 50
-                          { $substrCP: ["$address", 50, 100] }, // Extracts 100 characters starting from position 51 (index 50) if length > 50
-                        ],
-                      },
-                    ],
-                  },
-                  "data.buyerDtls.loc": {
-                    $cond: [
-                      {
-                        $eq: [
-                          "$custGL.country.tblState.name",
-                          "Other Territory",
-                        ],
-                      }, // Check if state_name is 'Other Territory'
-                      "Other Country", // Return 'Other Country' if true
-                      "$custGL.country.tblCity.name", // Else return custcity.city_name
-                    ],
-                  },
-                  "data.buyerDtls.pin": {
-                    $cond: [
-                      {
-                        $eq: [
-                          "$custGL.country.tblState.name",
-                          "Other Territory",
-                        ],
-                      }, // Check if state_name is 'Other Territory'
-                      "999999", // Return '999999' if true
-                      "$custGL.tblGlGst.pincode", // Else return custgst.pincode
-                    ],
-                  },
-                  "data.buyerDtls.stcd": {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$custGL.country.tblState.name",
-                              "Other Territory",
-                            ],
-                          }, // Check if custstate.state_name is 'Other Territory'
-                          {
-                            $or: [
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "",
-                                ],
-                              }, // Check if gstin_no is null or empty
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "NA",
-                                ],
-                              }, // Check if gstin_no is 'NA'
-                            ],
-                          },
-                        ],
-                      },
-                      96, // Return 96 if the above conditions are true
-                      { $substrCP: ["$custGL.country.tblState.code", 0, 2] }, // Else return the first 2 characters of state_code_sb_file
-                    ],
-                  },
-                  "data.buyerDtls.ph": null, // Null value for data.buyerDtls.ph
-                  "data.buyerDtls.em": null, // Null value for data.buyerDtls.em
-                  "data.dispDtls.nm": "$OwncompanyData.name",
-                  "data.dispDtls.addr1": {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $gt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          }, // Check if length of address is greater than 50
-                          {
-                            $lt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              53,
-                            ],
-                          }, // Check if length of address is less than 53
-                        ],
-                      },
-                      {
-                        $substrCP: [
-                          "$OwncompanyData.tblCompanyBranch.address",
-                          0,
-                          5,
-                        ],
-                      }, // Extract first 5 characters if length is between 51 and 52
-                      {
-                        $cond: [
-                          {
-                            $lte: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          }, // Check if length of address is less than or equal to 50
-                          {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              0,
-                              5,
-                            ],
-                          }, // Extract first 5 characters if true
-                          {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              0,
-                              50,
-                            ],
-                          }, // Extract first 50 characters if length is greater than 52
-                        ],
-                      },
-                    ],
-                  },
-                  "data.dispDtls.addr2": {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $gt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          }, // Check if length of address is greater than 50
-                          {
-                            $lt: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              53,
-                            ],
-                          }, // Check if length of address is less than 53
-                        ],
-                      },
-                      {
-                        $substrCP: [
-                          "$OwncompanyData.tblCompanyBranch.address",
-                          5,
-                          55,
-                        ],
-                      }, // Extract substring starting from position 6 (index 5) for 55 characters
-                      {
-                        $cond: [
-                          {
-                            $lte: [
-                              {
-                                $strLenCP:
-                                  "$OwncompanyData.tblCompanyBranch.address",
-                              },
-                              50,
-                            ],
-                          }, // Check if length of address is less than or equal to 50
-                          {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              5,
-                              50,
-                            ],
-                          }, // Extract substring starting from position 6 (index 5) for 50 characters
-                          {
-                            $substrCP: [
-                              "$OwncompanyData.tblCompanyBranch.address",
-                              50,
-                              100,
-                            ],
-                          }, // Extract substring starting from position 51 (index 50) for 100 characters
-                        ],
-                      },
-                    ],
-                  },
-                  "data.dispDtls.loc": "$OwncompanyData.country.tblCity.name", // Map ownbrcity.city_name to data.dispDtls.loc
-                  "data.dispDtls.pin":
-                    "$OwncompanyData.tblCompanyBranch.pincode", // Map owncompbr.pin_code to data.dispDtls.pin
-                  "data.dispDtls.stcd": {
-                    $substrCP: ["$OwncompanyData.country.tblState.code", 0, 2],
-                  }, // Extract first 2 characters from state_code_sb_file
-                  "data.shipDtls.gstin": {
-                    $cond: [
-                      { $eq: [{ $strLenCP: "$custGL.tblGlGst.gstinNo" }, 15] }, // Check if gstin_no length is 15
-                      "$custGL.tblGlGst.gstinNo", // Return gstin_no if true
-                      {
-                        $cond: [
-                          {
-                            $or: [
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "",
-                                ],
-                              }, // Check if gstin_no is null or empty
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "NA",
-                                ],
-                              }, // Check if gstin_no is 'NA'
-                            ],
-                          },
-                          "URP", // Return 'URP' if true
-                          "", // Return empty string otherwise
-                        ],
-                      },
-                    ],
-                  },
-                  "data.shipDtls.lglNm": "$custGL.name", // Map custGL.gl_desc to data.shipDtls.lglNm
-                  "data.shipDtls.trdNm": "$custGL.name",
-                  "data.shipDtls.addr1": {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gt: [{ $strLenCP: "$address" }, 50] }, // Check if length of address is greater than 50
-                          { $lt: [{ $strLenCP: "$address" }, 53] }, // Check if length of address is less than 53
-                        ],
-                      },
-                      { $substrCP: ["$address", 0, 5] }, // Extract first 5 characters if length is between 51 and 52
-                      {
-                        $cond: [
-                          { $lte: [{ $strLenCP: "$address" }, 50] }, // Check if length of address is less than or equal to 50
-                          { $substrCP: ["$address", 0, 5] }, // Extract first 5 characters if true
-                          { $substrCP: ["$address", 0, 50] }, // Extract first 50 characters if length is greater than 52
-                        ],
-                      },
-                    ],
-                  },
-                  "data.shipDtls.addr2": {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gt: [{ $strLenCP: "$address" }, 50] }, // Check if length of address is greater than 50
-                          { $lt: [{ $strLenCP: "$address" }, 53] }, // Check if length of address is less than 53
-                        ],
-                      },
-                      { $substrCP: ["$address", 5, 55] }, // Extract substring starting from position 6 for 55 characters
-                      {
-                        $cond: [
-                          { $lte: [{ $strLenCP: "$address" }, 50] }, // Check if length of address is less than or equal to 50
-                          { $substrCP: ["$address", 5, 50] }, // Extract substring starting from position 6 for 50 characters
-                          { $substrCP: ["$address", 50, 100] }, // Extract substring starting from position 51 for 100 characters
-                        ],
-                      },
-                    ],
-                  },
-                  "data.shipDtls.loc": {
-                    $cond: [
-                      {
-                        $eq: [
-                          "$custGL.country.tblState.name",
-                          "Other Territory",
-                        ],
-                      }, // Check if state_name is 'Other Territory'
-                      "Other Country", // Return 'Other Country' if true
-                      "$custGL.country.tblState.name", // Otherwise, return city_name
-                    ],
-                  },
-                  "data.shipDtls.pin": {
-                    $cond: [
-                      {
-                        $eq: [
-                          "$custGL.country.tblState.name",
-                          "Other Territory",
-                        ],
-                      }, // Check if state_name is 'Other Territory'
-                      "999999", // Return '999999' if true
-                      "$custGL.tblGlGst.pincode", // Otherwise, return pincode
-                    ],
-                  },
-                  "data.shipDtls.stcd": {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $eq: [
-                              "$custGL.country.tblState.name",
-                              "Other Territory",
-                            ],
-                          }, // Check if state_name is 'Other Territory'
-                          {
-                            $or: [
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "",
-                                ],
-                              }, // Check if gstin_no is null or empty
-                              {
-                                $eq: [
-                                  { $ifNull: ["$custGL.tblGlGst.gstinNo", ""] },
-                                  "NA",
-                                ],
-                              }, // Check if gstin_no is 'NA'
-                            ],
-                          },
-                        ],
-                      },
-                      96, // Return 96 if both conditions are true
-                      { $substrCP: ["$custGL.country.tblState.code", 0, 2] }, // Otherwise, return the first 2 characters of state_code_sb_file
-                    ],
-                  },
-                  "data.itemList": {
-                    $map: {
-                      input: "$tblInvoiceCharge",
-                      as: "ip",
-                      in: {
-                        slNo: {
-                          $substr: [
-                            { $toString: "$$ip.jobId" },
-                            {
-                              $subtract: [
-                                { $strLenCP: { $toString: "$$ip.jobId" } },
-                                3,
-                              ],
-                            },
-                            0,
-                          ],
-                        },
-                        prdDesc: "$$ip.description",
-                        isServc: "Y",
-                        hsnCd: { $ifNull: ["$$ip.sacId", "$$ip.hsnId"] },
-                        barcde: null,
-                        qty: {
-                          $toString: {
-                            $round: [
-                              {
-                                $convert: {
-                                  input: "$$ip.qty",
-                                  to: "decimal",
-                                  onError: null,
-                                  onNull: null,
-                                },
-                              },
-                              2,
-                            ],
-                          },
-                        },
-                        freeQty: null,
-                        unit: null,
-                        unitPrice: {
-                          $toString: {
-                            $round: [
-                              {
-                                $convert: {
-                                  input: "$$ip.rate",
-                                  to: "decimal",
-                                  onError: null,
-                                  onNull: null,
-                                },
-                              },
-                              2,
-                            ],
-                          },
-                        },
-                        totAmt: {
-                          $toString: {
-                            $round: [
-                              {
-                                $convert: {
-                                  input: "$$ip.totalAmount",
-                                  to: "decimal",
-                                  onError: null,
-                                  onNull: null,
-                                },
-                              },
-                              2,
-                            ],
-                          },
-                        },
-                        discount: null,
-                        preTaxVal: null,
-                        assAmt: {
-                          $toString: {
-                            $round: [
-                              {
-                                $convert: {
-                                  input: { $ifNull: ["$$ip.totalAmountHc", 0] },
-                                  to: "decimal",
-                                  onError: 0,
-                                  onNull: 0,
-                                },
-                              },
-                            ],
-                          },
-                        },
-                        gstRt: {
-                          $sum: "$$ip.tblInvoiceChargeTax.taxPercentage",
-                        },
-                        discount: null,
-                        preTaxVal: null,
-                        cesRt: null,
-                        cesAmt: null,
-                        cesNonAdvlAmt: null,
-                        stateCesRt: null,
-                        stateCesAmt: null,
-                        stateCesNonAdvlAmt: null,
-                        othChrg: null,
-                        totItemVal: {
-                          $sum: [
-                            "$$ip.totalAmountHc",
-                            { $sum: "$$ip.tblInvoiceChargeTax.taxAmountHc" },
-                          ],
-                        },
-                        taxArray: "$$ip.tblInvoiceChargeTax",
-                        orgCntry: null,
-                        prdSlNo: null,
-                      },
-                    },
-                  },
-                  "data.valDtls.assVal": {
-                    $toString: {
-                      $round: [
-                        {
-                          $convert: {
-                            input: { $ifNull: ["$invoiceAmount", 0] },
-                            to: "decimal",
-                          },
-                        },
-                        2,
-                      ],
-                    },
-                  },
-                  "data.valDtls.cesVal": null,
-                  "data.valDtls.stCesVal": null,
-                  "data.valDtls.totInvVal": {
-                    $toString: {
-                      $round: [
-                        {
-                          $convert: {
-                            input: { $ifNull: ["$totalInvoiceAmount", 0] },
-                            to: "decimal",
-                          },
-                        },
-                        2,
-                      ],
-                    },
-                  },
-                  "data.valDtls.rndOffAmt": {
-                    $toString: {
-                      $round: [
-                        {
-                          $convert: {
-                            input: { $ifNull: ["$roundOffAmount", 0] },
-                            to: "decimal",
-                          },
-                        },
-                        2,
-                      ],
-                    },
-                  },
-                  "data.valDtls.totInvValFc": null,
-                },
-              },
-            ]
-          );
-
-          let taxArray = new Set();
-          let hncIds = new Set();
-          invoiceData[0].data.itemList?.map((item) => {
-            hncIds.add(createObjectId(item.hsnCd));
-            item.taxArray.map((tax) => {
-              taxArray.add(createObjectId(tax.taxId));
-            });
-          });
-          let findTaxData = await model.AggregateFetchData(
-            "tblTax",
-            "tblTax",
-            [
-              {
-                $match: {
-                  _id: { $in: Array.from(taxArray) },
-                  clientCode: req.clientCode,
-                },
-              },
-            ],
-            res
-          );
-          let findHncData = await model.AggregateFetchData(
-            "tblSacHsn",
-            "tblSacHsn",
-            [
-              {
-                $match: {
-                  _id: { $in: Array.from(hncIds) },
-                  clientCode: req.clientCode,
-                },
-              },
-            ],
-            res
-          );
-          invoiceData[0].data.valDtls.igstVal = 0;
-          invoiceData[0].data.valDtls.sgstVal = 0;
-          invoiceData[0].data.valDtls.cgstVal = 0;
-          invoiceData[0].data.itemList = invoiceData[0].data.itemList.map(
-            (item) => {
-              item.hsnCd = findHncData.find(
-                (data) => data._id.toString() == item.hsnCd
-              )?.code;
-              item.igstAmt = 0;
-              item.cgstAmt = 0;
-              item.sgstAmt = 0;
-              item.taxArray = item.taxArray.map((tax) => {
-                let findData = findTaxData.find(
-                  (data) => data._id.toString() == tax.taxId
-                );
-
-                if (findData?.code == "IGST") {
-                  item.igstAmt = item.igstAmt + tax.taxAmountHc;
-                  invoiceData[0].data.valDtls.igstVal =
-                    invoiceData[0].data.valDtls.igstVal + tax.taxAmountHc;
-                } else if (findData?.code == "CGST") {
-                  item.cgstAmt = item.cgstAmt + tax.taxAmountHc;
-                  invoiceData[0].data.valDtls.cgstVal =
-                    invoiceData[0].data.valDtls.cgstVal + tax.taxAmountHc;
-                } else if (findData?.code == "SGST") {
-                  item.sgstAmt = item.sgstAmt + tax.taxAmountHc;
-                  invoiceData[0].data.valDtls.sgstVal =
-                    invoiceData[0].data.valDtls.sgstVal + tax.taxAmountHc;
-                }
-                tax.taxCode = findData?.code;
-                return tax;
-              });
-              delete item.taxArray;
-
-              return item;
-            }
-          );
-
-          if (invoiceData.length == 0)
-            return res.status(403).send({
-              success: false,
-              message: "invoice not found",
-              data: [],
-            });
-          res.send({
-            success: true,
-            message: "invoice fetched successfully",
-            data: invoiceData[0],
-          });
-        } catch (error) {
-          res.status(500).send({
-            success: false,
-            message: "something went wrong",
-            data: error.message,
-          });
-        }
-      }
-    });
-  },
+  console.log("generateIRNFunction data:", data);
+  return data;
 };
+
+module.exports = {
+
+  isEInvoicing: async (req, res) => {
+    try {
+      const { invoiceId, billingPartyId, companyId } = req.body;
+
+      if (!invoiceId || !billingPartyId || !companyId) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameter: invoiceId , billingPartyId, companyId",
+          data: [],
+        });
+      }
+
+      // Step 1: Check if invoice is eligible
+      const result = await executeNonJSONStoredProcedure("isEinvoicing", { invoiceId });
+      const isEinvoicing = result?.recordset[0]?.isenvoicing || 'n';
+
+      console.log("E-invoicing result:", result);
+
+      if (isEinvoicing !== 'y') {
+        return res.send({
+          success: true,
+          message: "Invoice is not eligible for e-invoicing",
+          isEinvoicing,
+        });
+      }
+
+
+
+      // Step 2: Fetch auth credentials
+      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(req, res);
+      // Step 3: Authenticate with GSTHero
+      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(req, res);
+      const accessToken = authRespons.access_token;
+      const gstin = authRespons.gstin;
+
+
+      // Step 4: Fetch invoice data
+      const invoiceData = await executeStoredProcedure("getInvoiceForVoucher", {
+        // invoiceId,
+        clientId: req.clientId,
+        billingPartyId: req.body.billingPartyId,
+        companyId: req.body.companyId
+      });
+
+      if (!invoiceData || invoiceData.length === 0) {
+        return res.send({
+          success: true,
+          message: "No invoice data found",
+          data: [],
+        });
+      }
+
+      // Step 5: Send data to generate IRN
+      const irnResponse = await fetch("https://gsthero.com/einvoice/generate-irn", { // Replace with actual GSTHero endpoint
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          gstin: gstin,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invoiceData[0]),
+      });
+      const Response = await irnResponse.json();
+      if (!irnResponse.ok) {
+        return res.status(irnResponse.status).json({
+          success: false,
+          message: Response.error.map((err) => err.errorMsg).join(", "),
+        });
+      }
+      const { ackDate, ackNo, irn, signedQrCode, signedInvoice } = Response;
+      let updateQuery = `UPDATE tblInvoice set ackDate='${ackDate}', ackNo='${ackNo}', irn='${irn}', signedQrCode='${signedQrCode}', signedInvoice='${signedInvoice}'  where id=${invoiceId}`;
+      await executeQuery(updateQuery, {});
+
+      // Step 6: Return response
+      return res.send({
+        success: true,
+        message: "IRN generation completed",
+        isEinvoicing,
+        irnResponse: irnResponse.data,
+      });
+
+    } catch (error) {
+      console.error("Error in isEInvoicing:", error);
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        error: error.message,
+      });
+    }
+  },
+
+
+  // Optional: Keep this route for independent IRN generation
+  generateIRN: async (req, res) => {
+    try {
+      const { invoiceId } = req.body;
+
+      if (!invoiceId) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameter: invoiceId",
+          data: [],
+        });
+      }
+
+      const data = await generateIRNFunction(invoiceId);
+
+      if (!data || data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "IRN data fetched successfully!",
+        data,
+        count: data.length,
+      });
+    } catch (error) {
+      console.error("Error in generateIRN:", error);
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  Pre_AuthenticationResponse: async (req, res) => {
+    try {
+      const accInvId = req.body.invoiceId;
+      const { loginBranch } = req.body
+
+      if (!accInvId) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameter: accInvId",
+          data: [],
+        });
+      }
+
+      // await sql.connect(config); // Make sure you have this connection config ready
+
+      // Step 1: Fetch username, password, client_id, scope, gstin
+      const credentialsResult = await executeQuery(`
+       
+select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroClientId as client_id,c.scope as scope,c.gstNo as gstin  from tblinvoice a inner join tblCompanyBranchParameter c on a.companyBranchId= c.companyBranchId where a.id= ${accInvId}
+      `, {})
+
+      if (!credentialsResult.recordset.length) {
+        return res.status(404).send({
+          success: false,
+          message: "No credentials found for the given account invoice ID",
+          data: [],
+        });
+      }
+
+      const { username, password, client_id, scope, gstin } = credentialsResult.recordset[0];
+      if (!username || !password || !client_id || !scope || !gstin) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameters: username, password, client_id, scope, gstin",
+          data: [],
+        });
+
+      }
+      // Step 2: Fetch server link & basic authorization key
+      const [serverLinkResult, authKeyResult] = await Promise.all([
+        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(basicAuthKey, '') AS keys FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`, {}),
+      ]);
+
+
+      const serverLink = "https://gsthero.com";
+      const basicAuthKey = authKeyResult.recordset[0]?.keys;
+
+      // Step 3: Construct request URL
+      const requestUrl = `${serverLink}/auth-server/oauth/token?username=${encodeURIComponent(username)}&grant_type=password&password=${encodeURIComponent(password)}&scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(client_id)}`;
+      console.log(requestUrl);
+
+      console.log(username, password, client_id, scope, gstin, basicAuthKey);
+
+      // Step 4: Make POST request to GSTHero OAuth token endpoint
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json",
+          "gstin": gstin,
+          "Authorization": basicAuthKey,
+        },
+      });
+      const responseData = await response.json();
+      console.log("Pre_AuthenticationResponse:", responseData);
+
+      if (!response.ok) {
+        // console.log("Pre_AuthenticationResponse:", response);
+        return res.send({
+          success: true,
+          message: "Pre-authentication response fetched successfully",
+          data: responseData.error_description,
+        });
+
+      }
+      let updateQuery = `update tblCompanyBranchParameter set preAuthToken='${responseData.access_token}' where companyBranchId=${loginBranch}`
+      await executeQuery(updateQuery, {})
+
+      return { ...responseData, success: true, message: "Pre-authentication response fetched successfully", data: [] };
+
+    } catch (error) {
+      console.error("Error in Pre_AuthenticationResponse:", error);
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong during pre-authentication",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+
+  getAuthenticationResponse_GSTHero: async (req, res) => {
+    try {
+      const accInvId = req.body.invoiceId;
+      const { loginBranch } = req.body
+
+      if (!accInvId) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameter: accInvId",
+          data: [],
+        });
+      }
+
+      // Connect to SQL Server
+      // await sql.connect(config); // config should be defined elsewhere securely
+
+      // Get JSON payload from stored procedure
+      const result = await executeQuery(`EXEC einvoicing_gsthero_auth @invoiceId = ${accInvId}, @branchid = ${loginBranch}`, {});
+      console.log("AuthenticationResponse:", result.recordset);
+
+      const jsonOutput = result.recordset.map(row => row[Object.keys(row)[0]]).join('');
+
+      if (!jsonOutput) {
+        return res.send({
+          success: true,
+          message: "No authentication data found.",
+          data: [],
+        });
+      }
+
+      // Fetch supporting data
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
+        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(preAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+      ]);
+
+      const requestUrl = `${serverLinkResult.recordset[0].link}/authentication`;
+      const gstin = gstinResult.recordset[0].gstin;
+      const preauthToken = `Bearer ${tokenResult.recordset[0].token}`;
+      const xConnectorToken = xConnectorResult.recordset[0].token;
+
+      // Make authentication request
+      const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'X-Connector-Auth-Token': xConnectorToken,
+          'Authorization': preauthToken,
+          'gstin': gstin,
+          'action': 'ACCESSTOKEN',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonOutput,
+      });
+      const responseData = await response.json();
+      console.log("AuthenticationResponse:", responseData);
+      if (!response.ok) {
+        return res.send({
+          success: true,
+          message: "Authentication response fetched successfully!",
+          data: responseData.error_description,
+        });
+      }
+      let updateQuery = `update tblCompanyBranchParameter set authToken='${responseData.access_token}' where companyBranchId=${loginBranch}`
+      await executeQuery(updateQuery, {})
+      return { ...responseData, gstin, success: true, message: "Authentication response fetched successfully!", data: [] };
+
+
+      // return res.send({
+      //   success: true,
+      //   message: "Authentication response fetched successfully!",
+      //   data: response.data,
+      // });
+
+    } catch (error) {
+      console.error("Error in getAuthenticationResponse_GSTHero:", error);
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong during authentication",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+  POSTGenerateIRN_GSTHero: async (req, res) => {
+    try {
+      const { accInvId, accessToken } = req.body;
+
+      if (!accInvId || !accessToken) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameter: accInvId or accessToken",
+          data: [],
+        });
+      }
+
+      await sql.connect(config); // Make sure `config` is defined properly
+
+      // Get the JSON payload from stored procedure
+      const result = await sql.query`EXEC einvoicing_GSTHero @account_invoice_id = ${accInvId}`;
+      const jsonOutput = result.recordset.map(row => row[Object.keys(row)[0]]).join('');
+
+      if (!jsonOutput) {
+        return res.send({
+          success: true,
+          message: "No invoice data found for IRN generation.",
+          data: [],
+        });
+      }
+
+      // // Fetch additional header data
+      // const [serverLinkResult, gstinResult, authTokenResult, xConnectorResult] = await Promise.all([
+      //   sql.query`SELECT ISNULL(einvoice_server_link, '') AS link FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
+      //   sql.query`SELECT ISNULL(gstin, '') AS gstin FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
+      //   sql.query`SELECT ISNULL(AuthToken, '') AS token FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
+      //   sql.query`SELECT ISNULL(XConnectorAuthToken, '') AS token FROM tbl_company_branch_parameter_mst WHERE branch_id = ${process.env.BRANCH_ID}`,
+      // ]);
+
+      // Fetch supporting data
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
+        sql.query`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= = ${process.env.BRANCH_ID}`,
+        sql.query`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= = ${process.env.BRANCH_ID}`,
+        sql.query`SELECT ISNULL(AuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId== ${process.env.BRANCH_ID}`,
+        sql.query`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${process.env.BRANCH_ID}`,
+      ]);
+
+      const generateIRNLink = `${serverLinkResult.recordset[0].link}/invoice`;
+      const gstin = gstinResult.recordset[0].gstin;
+      const authToken = `Bearer ${authTokenResult.recordset[0].token}`;
+      const xConnectorToken = xConnectorResult.recordset[0].token;
+
+      // Send POST request to GSTHero IRN API
+      const response = await axios.post(generateIRNLink, jsonOutput, {
+        headers: {
+          'X-Connector-Auth-Token': xConnectorToken,
+          'Authorization': authToken,
+          'gstin': gstin,
+          'action': 'GENERATEIRN',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      return res.send({
+        success: true,
+        message: "IRN generated successfully!",
+        data: response.data,
+      });
+
+    } catch (error) {
+      console.error("Error in POSTGenerateIRN_GSTHero:", error);
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong during IRN generation",
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  CancelanIRN_GSTHero: async (req, res) => {
+    try {
+      const accInvId = req.body.invoiceId;
+      const { billingPartyId, companyId } = req.body;
+
+
+      if (!accInvId) {
+        return res.status(400).send({
+          success: false,
+          message: "Missing required parameter: accInvId",
+          data: [],
+        });
+      }
+      // check IRN is generated or not
+      const irnResult = await executeQuery(`
+        EXEC CheckIRNStatus @InvoiceId = ${accInvId};
+      `, {});
+
+      if (!irnResult.recordset[0].isIRN == 'true') {
+        return res.send({
+          success: false,
+          message: "IRN is not generated yet",
+          data: [],
+        });
+      }
+      // 1. Call the stored procedure to get the JSON string
+      const jsonResult = await executeQuery(`
+        EXEC irn_cancellation_gsthero @account_invoice_id = ${accInvId}
+      `, {});
+
+      const jsonOutput = jsonResult.recordset.map(row => Object.values(row)[0]).join('');
+
+      if (!jsonOutput) {
+        return res.send({
+          success: false,
+          message: "No JSON data found from stored procedure",
+          data: [],
+        });
+      }
+      //  Fetch auth credentials
+      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(req, res);
+      //  Authenticate with GSTHero
+      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(req, res);
+
+      // 2. Fetch configuration values from DB
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
+        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(authToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`, {}),
+        executeQuery(`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
+      ]);
+
+      const serverLink = serverLinkResult.recordset[0].link;
+      const gstin = gstinResult.recordset[0].gstin;
+      const authToken = `Bearer ${tokenResult.recordset[0].token}`;
+      const xConnectorAuthToken = xConnectorResult.recordset[0].token;
+
+      const cancelIRNUrl = `${serverLink}/invoice/cancel`;
+
+      // 3. Make POST request to cancel IRN
+      const response = await fetch(cancelIRNUrl, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: authToken,
+          "X-Connector-Auth-Token": xConnectorAuthToken,
+          gstin: gstin,
+          action: "CANCELIRN",
+        },
+        body: jsonOutput,
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          success: false,
+          message: Response.error.map((err) => err.errorMsg).join(", "),
+        });
+      }
+      let result = await response.json();
+      // update invoice Table ( fields are not Proper need to work on it )
+      await executeQuery(`UPDATE tblInvoice set cancelIrnNo=${result.cancelIrnNo} where id=${accInvId}`, {})
+
+      return res.send({
+        success: true,
+        message: "IRN cancellation successful",
+        data: response.data,
+      });
+    } catch (error) {
+      console.error("Error in CancelanIRN_GSTHero:", error);
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong during IRN cancellation",
+        data: [],
+        error: error.message,
+      });
+    }
+  }
+
+
+
+};
+
+
+
+
