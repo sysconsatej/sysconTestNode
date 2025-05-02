@@ -1,6 +1,7 @@
 const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
 const sql = require("mssql");
 const { connectToSql } = require("../config/sqlConfig");
+const { concat } = require("lodash");
 
 module.exports = {
   getReportsData: async (req, res) => {

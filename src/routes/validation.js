@@ -47,5 +47,13 @@ router.post(
   "/formControlValidation/fetchDynamicReportSpData",
   formControlController.fetchDynamicReportSpData
 );
+router.post(
+  "/excelValidation/insertExcelData",
+  excelController.insertExcelData
+);
+router.post(
+  "/excelValidation/insertExcelDataInDatabase",
+  excelController.insertExcelDataInDatabase
+);
 
 module.exports = router;
