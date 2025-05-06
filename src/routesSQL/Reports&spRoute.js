@@ -11,5 +11,6 @@ router.post("/getDynamicReportDetails", controller.getDynamicReportDetails);
 router.post("/voucher", controller.spVocher);
 router.post("/reportTheme", controller.reportTheme);
 router.post("/bl", controller.spBl);
+router.post("/saveEditedReport", controller.saveReportData);
 
 module.exports = router;

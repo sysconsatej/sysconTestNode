@@ -249,4 +249,36 @@ module.exports = {
       });
     }
   },
+  saveReportData: async (req, res) => {
+    try {
+      const { data, spName } = req.body;
+      let query = spName;
+      const parameters = {
+        data,
+      };
+      let data1 = await executeStoredProcedure(query, parameters);
+      if (data1) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data1.length,
+          data: data1,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Something went wrong",
+        data: error.message,
+      });
+
+    }
+  }
 };
