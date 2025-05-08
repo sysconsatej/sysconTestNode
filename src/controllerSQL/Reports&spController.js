@@ -254,13 +254,14 @@ module.exports = {
       const { data, spName } = req.body;
       let query = spName;
       const parameters = {
-        data,
+        data: JSON.stringify(data),
+        clientId: req.clientId,
       };
       let data1 = await executeStoredProcedure(query, parameters);
       if (data1) {
         res.send({
           success: true,
-          message: "Data Fetched Successfully",
+          message: "Data saved successfully",
           count: data1.length,
           data: data1,
         });
