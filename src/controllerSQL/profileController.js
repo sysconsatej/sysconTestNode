@@ -67,7 +67,7 @@ module.exports = {
       );
 
       await executeStoredProcedure("profileSubmitApi", formattedObj);
-      res.json({ success: true, message: "Profile updated successfully!" });
+      res.json({ success: true, message: "Profile updated successfully!", data:formattedObj});
     } catch (error) {
       console.log("Error:", error.message);
       res.status(500).send({
