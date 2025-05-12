@@ -476,7 +476,7 @@ module.exports = {
                 iat: Date.now(),
                 numberFormat: data[0].numberFormat,
                 clientCode: data[0].clientCode || "NCLP",
-                clientId: data[0].clientId
+                clientId: data[0].clientId,
               },
               config.secret,
               { expiresIn: 7200000 }
@@ -1025,6 +1025,36 @@ module.exports = {
       return res.send({
         success: true,
         message: "User Change Device Successfully.",
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "something went wrong",
+        data: error.message,
+      });
+    }
+  },
+  clearPassByRedis: async (req, res) => {
+    const { id } = req.body;
+    try {
+      const userFindByEmailLogin = async (emailId) => {
+        let userKey = "userWrongPassword";
+        let serializedList = await client.lrange(userKey, 0, -1);
+        for(const item of serializedList){
+          let user = JSON.parse(item);
+          if (user.id === emailId) {
+            await client.lrem(userKey, 1, item);
+            console.log(`User with id ${emailId} removed from Redis`);
+            return;
+          }
+        };
+      };
+
+      userFindByEmailLogin(id)
+
+      return res.send({
+        success: true,
+        message: "User wrong password count clear!",
       });
     } catch (error) {
       res.status(500).send({
