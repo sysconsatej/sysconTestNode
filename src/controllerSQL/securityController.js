@@ -1,7 +1,7 @@
 const { AES } = require("crypto-js");
 
 module.exports = {
-  decryptAndEncrypt: async (req, res) => {
+  encrypt: async (req, res) => {
     const { data } = req.body;
     try {
       return res.status(200).json({
