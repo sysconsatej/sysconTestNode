@@ -2,12 +2,18 @@ const { AES } = require("crypto-js");
 
 module.exports = {
   encrypt: async (req, res) => {
-    const { data } = req.body;
+    const { encryptedStr } = req.body;
+    if (!encryptedStr) {
+      return res.status(400).json({
+        success: false,
+        message: "encryptedStr variable is undefine!",
+      });
+    }
     try {
       return res.status(200).json({
         success: true,
         message: "data encrypt successfully!",
-        data: AES.encrypt(data, process.env.AES_TOKEN || "").toString(),
+        data: AES.encrypt(encryptedStr, process.env.AES_TOKEN || "").toString(),
       });
     } catch (error) {
       console.log("Error:", error.message);
