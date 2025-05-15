@@ -1,21 +1,13 @@
-const { AES, enc } = require("crypto-js");
+const { AES } = require("crypto-js");
 
 module.exports = {
   decryptAndEncrypt: async (req, res) => {
-    const { data, type } = req.body;
+    const { data } = req.body;
     try {
-      if ((type === "encrypt")) {
-        return res.status(200).json({
-          success: true,
-          message: "data encrypt successfully!",
-          data: AES.encrypt(data, process.env.AES_TOKEN || "").toString(),
-        });
-      }
-
       return res.status(200).json({
         success: true,
-        message: "data decrypt successfully!",
-        data: AES.decrypt(data, process.env.AES_TOKEN || "").toString(enc.Utf8),
+        message: "data encrypt successfully!",
+        data: AES.encrypt(data, process.env.AES_TOKEN || "").toString(),
       });
     } catch (error) {
       console.log("Error:", error.message);
