@@ -18,7 +18,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -62,17 +62,21 @@ module.exports = {
       const formattedObj = Object.fromEntries(
         Object.entries(setProfile).map(([key, value]) => [
           key,
-          value === 'null' ? null : isNaN(value) ? value : Number(value)
+          value === "null" ? null : isNaN(value) ? value : Number(value),
         ])
       );
 
       await executeStoredProcedure("profileSubmitApi", formattedObj);
-      res.json({ success: true, message: "Profile updated successfully!", data:formattedObj});
+      res.json({
+        success: true,
+        message: "Profile updated successfully!",
+        data: formattedObj,
+      });
     } catch (error) {
       console.log("Error:", error.message);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -98,7 +102,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }

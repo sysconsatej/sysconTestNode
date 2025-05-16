@@ -55,22 +55,27 @@ module.exports = {
         };
       }
 
-     const data =  await executeStoredProcedure("CompanyLogoChangeApi", setProfile);
+      const data = await executeStoredProcedure(
+        "CompanyLogoChangeApi",
+        setProfile
+      );
 
-     if(data[0].success){
-       res
-         .status(200)
-         .json({ success: true, message: "Company Logo updated successfully!", data: setProfile.logoPath});
-     }else{
-      res
-      .status(400)
-      .json({ success: false, message: data[0].message});
-     }
+      if (data[0].success) {
+        res
+          .status(200)
+          .json({
+            success: true,
+            message: "Company Logo updated successfully!",
+            data: setProfile.logoPath,
+          });
+      } else {
+        res.status(400).json({ success: false, message: data[0].message });
+      }
     } catch (error) {
       console.log("Error:", error.message);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -153,22 +158,30 @@ module.exports = {
         setProfile = { ...setProfile, footerPath: oldFooter };
       }
 
-    const resData = await executeStoredProcedure("companyHeaderFooterLogoChangeApi", setProfile);
+      const resData = await executeStoredProcedure(
+        "companyHeaderFooterLogoChangeApi",
+        setProfile
+      );
 
-     if(resData[0].success){
-       res
-         .status(200)
-         .json({ success: true, message: "Company Logo updated successfully!", data:{footer:setProfile.footerPath, header: setProfile.headerPath} });
-     }else{
-      res
-      .status(400)
-      .json({ success: false, message: resData[0].message});
-     }
+      if (resData[0].success) {
+        res
+          .status(200)
+          .json({
+            success: true,
+            message: "Company Logo updated successfully!",
+            data: {
+              footer: setProfile.footerPath,
+              header: setProfile.headerPath,
+            },
+          });
+      } else {
+        res.status(400).json({ success: false, message: resData[0].message });
+      }
     } catch (error) {
       console.log("Error:", error.message);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }

@@ -6,7 +6,12 @@ module.exports = {
     try {
       const { companyId, companyBranchId, userId, clientId } = req.body;
       const query = `menuRetrievalApi`;
-      const parameters = { companyId, companyBranchId, userId: req.userId, clientId: req.clientId };
+      const parameters = {
+        companyId,
+        companyBranchId,
+        userId: req.userId,
+        clientId: req.clientId,
+      };
       let data = await executeStoredProcedure(query, parameters);
 
       if (data) {
@@ -25,7 +30,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }

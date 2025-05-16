@@ -32,7 +32,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -78,7 +78,7 @@ module.exports = {
       console.error("Error executing stored procedure:", error);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         error: error.message,
       });
     }
@@ -109,7 +109,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -140,7 +140,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -171,7 +171,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
