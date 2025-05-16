@@ -9,7 +9,7 @@ const Mailtemplate = require("../helper/Mailtemplate");
 // const { errorLogger } = require("../helper/loggerService");
 // const mongoose = require("../config/MongoConnection");
 const client = require("../redis/redis_client");
-const { executeStoredProcedure } = require("../modelSQL/model")
+const { executeStoredProcedure } = require("../modelSQL/model");
 // const { config } = require('dotenv')
 const Redis_expire_time = process.env.REDIS_EXPIRE_TIME;
 
@@ -585,7 +585,7 @@ module.exports = {
           //errorLogger(error, req);
           res.status(500).send({
             success: false,
-            message: "something went wrong",
+            message: "Error - " + error.message,
             data: error.message,
           });
         }
@@ -708,7 +708,7 @@ module.exports = {
           //errorLogger(error, req);
           res.status(500).send({
             success: false,
-            message: "something went wrong",
+            message: "Error - " + error.message,
             data: error.message,
           });
         }
@@ -780,7 +780,7 @@ module.exports = {
           //errorLogger(error, req);
           res.status(500).send({
             success: false,
-            message: "something went wrong",
+            message: "Error - " + error.message,
             data: error.message,
           });
         }
@@ -840,7 +840,7 @@ module.exports = {
           //errorLogger(error, req);
           res.status(500).send({
             success: false,
-            message: "something went wrong",
+            message: "Error - " + error.message,
             data: error.message,
           });
         }
@@ -876,7 +876,7 @@ module.exports = {
       //errorLogger(error, req);
       res.status(500).send({
         success: false,
-        message: "something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -980,7 +980,7 @@ module.exports = {
       //errorLogger(error, req);
       res.status(500).send({
         success: false,
-        message: "something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -1029,7 +1029,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -1040,17 +1040,17 @@ module.exports = {
       const userFindByEmailLogin = async (emailId) => {
         let userKey = "userWrongPassword";
         let serializedList = await client.lrange(userKey, 0, -1);
-        for(const item of serializedList){
+        for (const item of serializedList) {
           let user = JSON.parse(item);
           if (user.id === emailId) {
             await client.lrem(userKey, 1, item);
             console.log(`User with id ${emailId} removed from Redis`);
             return;
           }
-        };
+        }
       };
 
-      userFindByEmailLogin(id)
+      userFindByEmailLogin(id);
 
       return res.send({
         success: true,
@@ -1059,7 +1059,7 @@ module.exports = {
     } catch (error) {
       res.status(500).send({
         success: false,
-        message: "something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }

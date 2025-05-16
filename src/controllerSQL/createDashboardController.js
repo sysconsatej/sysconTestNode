@@ -21,7 +21,7 @@ module.exports = {
       console.log("Error:", error.message);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -52,7 +52,7 @@ module.exports = {
       console.log("Error:", error.message);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }
@@ -75,7 +75,7 @@ module.exports = {
       console.log("Error:", error.message);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: error.message,
       });
     }

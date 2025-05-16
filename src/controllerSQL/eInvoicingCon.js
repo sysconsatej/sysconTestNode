@@ -62,7 +62,6 @@ const generateIRNFunction = async (invoiceId) => {
 };
 
 module.exports = {
-
   isEInvoicing: async (req, res) => {
     try {
       const { invoiceId, billingPartyId, companyId } = req.body;
@@ -70,18 +69,21 @@ module.exports = {
       if (!invoiceId || !billingPartyId || !companyId) {
         return res.status(400).send({
           success: false,
-          message: "Missing required parameter: invoiceId , billingPartyId, companyId",
+          message:
+            "Missing required parameter: invoiceId , billingPartyId, companyId",
           data: [],
         });
       }
 
       // Step 1: Check if invoice is eligible
-      const result = await executeNonJSONStoredProcedure("isEinvoicing", { invoiceId });
-      const isEinvoicing = result?.recordset[0]?.isenvoicing || 'n';
+      const result = await executeNonJSONStoredProcedure("isEinvoicing", {
+        invoiceId,
+      });
+      const isEinvoicing = result?.recordset[0]?.isenvoicing || "n";
 
       console.log("E-invoicing result:", result);
 
-      if (isEinvoicing !== 'y') {
+      if (isEinvoicing !== "y") {
         return res.send({
           success: true,
           message: "Invoice is not eligible for e-invoicing",
@@ -89,22 +91,23 @@ module.exports = {
         });
       }
 
-
-
       // Step 2: Fetch auth credentials
-      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(req, res);
+      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(
+        req,
+        res
+      );
       // Step 3: Authenticate with GSTHero
-      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(req, res);
+      const authRespons =
+        await module.exports.getAuthenticationResponse_GSTHero(req, res);
       const accessToken = authRespons.access_token;
       const gstin = authRespons.gstin;
-
 
       // Step 4: Fetch invoice data
       const invoiceData = await executeStoredProcedure("getInvoiceForVoucher", {
         // invoiceId,
         clientId: req.clientId,
         billingPartyId: req.body.billingPartyId,
-        companyId: req.body.companyId
+        companyId: req.body.companyId,
       });
 
       if (!invoiceData || invoiceData.length === 0) {
@@ -116,15 +119,19 @@ module.exports = {
       }
 
       // Step 5: Send data to generate IRN
-      const irnResponse = await fetch("https://gsthero.com/einvoice/generate-irn", { // Replace with actual GSTHero endpoint
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          gstin: gstin,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(invoiceData[0]),
-      });
+      const irnResponse = await fetch(
+        "https://gsthero.com/einvoice/generate-irn",
+        {
+          // Replace with actual GSTHero endpoint
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            gstin: gstin,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(invoiceData[0]),
+        }
+      );
       const Response = await irnResponse.json();
       if (!irnResponse.ok) {
         return res.status(irnResponse.status).json({
@@ -143,17 +150,15 @@ module.exports = {
         isEinvoicing,
         irnResponse: irnResponse.data,
       });
-
     } catch (error) {
       console.error("Error in isEInvoicing:", error);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         error: error.message,
       });
     }
   },
-
 
   // Optional: Keep this route for independent IRN generation
   generateIRN: async (req, res) => {
@@ -188,7 +193,7 @@ module.exports = {
       console.error("Error in generateIRN:", error);
       res.status(500).send({
         success: false,
-        message: "Something went wrong",
+        message: "Error - " + error.message,
         data: [],
         error: error.message,
       });
@@ -198,7 +203,7 @@ module.exports = {
   Pre_AuthenticationResponse: async (req, res) => {
     try {
       const accInvId = req.body.invoiceId;
-      const { loginBranch } = req.body
+      const { loginBranch } = req.body;
 
       if (!accInvId) {
         return res.status(400).send({
@@ -211,10 +216,13 @@ module.exports = {
       // await sql.connect(config); // Make sure you have this connection config ready
 
       // Step 1: Fetch username, password, client_id, scope, gstin
-      const credentialsResult = await executeQuery(`
+      const credentialsResult = await executeQuery(
+        `
        
 select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroClientId as client_id,c.scope as scope,c.gstNo as gstin  from tblinvoice a inner join tblCompanyBranchParameter c on a.companyBranchId= c.companyBranchId where a.id= ${accInvId}
-      `, {})
+      `,
+        {}
+      );
 
       if (!credentialsResult.recordset.length) {
         return res.status(404).send({
@@ -224,27 +232,39 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         });
       }
 
-      const { username, password, client_id, scope, gstin } = credentialsResult.recordset[0];
+      const { username, password, client_id, scope, gstin } =
+        credentialsResult.recordset[0];
       if (!username || !password || !client_id || !scope || !gstin) {
         return res.status(400).send({
           success: false,
-          message: "Missing required parameters: username, password, client_id, scope, gstin",
+          message:
+            "Missing required parameters: username, password, client_id, scope, gstin",
           data: [],
         });
-
       }
       // Step 2: Fetch server link & basic authorization key
       const [serverLinkResult, authKeyResult] = await Promise.all([
-        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(basicAuthKey, '') AS keys FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`, {}),
+        executeQuery(
+          `SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+          {}
+        ),
+        executeQuery(
+          `SELECT ISNULL(basicAuthKey, '') AS keys FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`,
+          {}
+        ),
       ]);
-
 
       const serverLink = "https://gsthero.com";
       const basicAuthKey = authKeyResult.recordset[0]?.keys;
 
       // Step 3: Construct request URL
-      const requestUrl = `${serverLink}/auth-server/oauth/token?username=${encodeURIComponent(username)}&grant_type=password&password=${encodeURIComponent(password)}&scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(client_id)}`;
+      const requestUrl = `${serverLink}/auth-server/oauth/token?username=${encodeURIComponent(
+        username
+      )}&grant_type=password&password=${encodeURIComponent(
+        password
+      )}&scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(
+        client_id
+      )}`;
       console.log(requestUrl);
 
       console.log(username, password, client_id, scope, gstin, basicAuthKey);
@@ -254,9 +274,9 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "Accept": "application/json",
-          "gstin": gstin,
-          "Authorization": basicAuthKey,
+          Accept: "application/json",
+          gstin: gstin,
+          Authorization: basicAuthKey,
         },
       });
       const responseData = await response.json();
@@ -269,13 +289,16 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           message: "Pre-authentication response fetched successfully",
           data: responseData.error_description,
         });
-
       }
-      let updateQuery = `update tblCompanyBranchParameter set preAuthToken='${responseData.access_token}' where companyBranchId=${loginBranch}`
-      await executeQuery(updateQuery, {})
+      let updateQuery = `update tblCompanyBranchParameter set preAuthToken='${responseData.access_token}' where companyBranchId=${loginBranch}`;
+      await executeQuery(updateQuery, {});
 
-      return { ...responseData, success: true, message: "Pre-authentication response fetched successfully", data: [] };
-
+      return {
+        ...responseData,
+        success: true,
+        message: "Pre-authentication response fetched successfully",
+        data: [],
+      };
     } catch (error) {
       console.error("Error in Pre_AuthenticationResponse:", error);
       return res.status(500).send({
@@ -287,11 +310,10 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
     }
   },
 
-
   getAuthenticationResponse_GSTHero: async (req, res) => {
     try {
       const accInvId = req.body.invoiceId;
-      const { loginBranch } = req.body
+      const { loginBranch } = req.body;
 
       if (!accInvId) {
         return res.status(400).send({
@@ -305,10 +327,15 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       // await sql.connect(config); // config should be defined elsewhere securely
 
       // Get JSON payload from stored procedure
-      const result = await executeQuery(`EXEC einvoicing_gsthero_auth @invoiceId = ${accInvId}, @branchid = ${loginBranch}`, {});
+      const result = await executeQuery(
+        `EXEC einvoicing_gsthero_auth @invoiceId = ${accInvId}, @branchid = ${loginBranch}`,
+        {}
+      );
       console.log("AuthenticationResponse:", result.recordset);
 
-      const jsonOutput = result.recordset.map(row => row[Object.keys(row)[0]]).join('');
+      const jsonOutput = result.recordset
+        .map((row) => row[Object.keys(row)[0]])
+        .join("");
 
       if (!jsonOutput) {
         return res.send({
@@ -319,12 +346,25 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       }
 
       // Fetch supporting data
-      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
-        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(preAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-      ]);
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] =
+        await Promise.all([
+          executeQuery(
+            `SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+            {}
+          ),
+          executeQuery(
+            `SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+            {}
+          ),
+          executeQuery(
+            `SELECT ISNULL(preAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`,
+            {}
+          ),
+          executeQuery(
+            `SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+            {}
+          ),
+        ]);
 
       const requestUrl = `${serverLinkResult.recordset[0].link}/authentication`;
       const gstin = gstinResult.recordset[0].gstin;
@@ -333,14 +373,14 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
       // Make authentication request
       const response = await fetch(requestUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'X-Connector-Auth-Token': xConnectorToken,
-          'Authorization': preauthToken,
-          'gstin': gstin,
-          'action': 'ACCESSTOKEN',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          "X-Connector-Auth-Token": xConnectorToken,
+          Authorization: preauthToken,
+          gstin: gstin,
+          action: "ACCESSTOKEN",
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: jsonOutput,
       });
@@ -353,17 +393,21 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           data: responseData.error_description,
         });
       }
-      let updateQuery = `update tblCompanyBranchParameter set authToken='${responseData.access_token}' where companyBranchId=${loginBranch}`
-      await executeQuery(updateQuery, {})
-      return { ...responseData, gstin, success: true, message: "Authentication response fetched successfully!", data: [] };
-
+      let updateQuery = `update tblCompanyBranchParameter set authToken='${responseData.access_token}' where companyBranchId=${loginBranch}`;
+      await executeQuery(updateQuery, {});
+      return {
+        ...responseData,
+        gstin,
+        success: true,
+        message: "Authentication response fetched successfully!",
+        data: [],
+      };
 
       // return res.send({
       //   success: true,
       //   message: "Authentication response fetched successfully!",
       //   data: response.data,
       // });
-
     } catch (error) {
       console.error("Error in getAuthenticationResponse_GSTHero:", error);
       res.status(500).send({
@@ -389,8 +433,11 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       await sql.connect(config); // Make sure `config` is defined properly
 
       // Get the JSON payload from stored procedure
-      const result = await sql.query`EXEC einvoicing_GSTHero @account_invoice_id = ${accInvId}`;
-      const jsonOutput = result.recordset.map(row => row[Object.keys(row)[0]]).join('');
+      const result =
+        await sql.query`EXEC einvoicing_GSTHero @account_invoice_id = ${accInvId}`;
+      const jsonOutput = result.recordset
+        .map((row) => row[Object.keys(row)[0]])
+        .join("");
 
       if (!jsonOutput) {
         return res.send({
@@ -409,12 +456,13 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       // ]);
 
       // Fetch supporting data
-      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
-        sql.query`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= = ${process.env.BRANCH_ID}`,
-        sql.query`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= = ${process.env.BRANCH_ID}`,
-        sql.query`SELECT ISNULL(AuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId== ${process.env.BRANCH_ID}`,
-        sql.query`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${process.env.BRANCH_ID}`,
-      ]);
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] =
+        await Promise.all([
+          sql.query`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= = ${process.env.BRANCH_ID}`,
+          sql.query`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= = ${process.env.BRANCH_ID}`,
+          sql.query`SELECT ISNULL(AuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId== ${process.env.BRANCH_ID}`,
+          sql.query`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${process.env.BRANCH_ID}`,
+        ]);
 
       const generateIRNLink = `${serverLinkResult.recordset[0].link}/invoice`;
       const gstin = gstinResult.recordset[0].gstin;
@@ -424,12 +472,12 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       // Send POST request to GSTHero IRN API
       const response = await axios.post(generateIRNLink, jsonOutput, {
         headers: {
-          'X-Connector-Auth-Token': xConnectorToken,
-          'Authorization': authToken,
-          'gstin': gstin,
-          'action': 'GENERATEIRN',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          "X-Connector-Auth-Token": xConnectorToken,
+          Authorization: authToken,
+          gstin: gstin,
+          action: "GENERATEIRN",
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
       });
 
@@ -438,7 +486,6 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         message: "IRN generated successfully!",
         data: response.data,
       });
-
     } catch (error) {
       console.error("Error in POSTGenerateIRN_GSTHero:", error);
       return res.status(500).send({
@@ -455,7 +502,6 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       const accInvId = req.body.invoiceId;
       const { billingPartyId, companyId } = req.body;
 
-
       if (!accInvId) {
         return res.status(400).send({
           success: false,
@@ -464,11 +510,14 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         });
       }
       // check IRN is generated or not
-      const irnResult = await executeQuery(`
+      const irnResult = await executeQuery(
+        `
         EXEC CheckIRNStatus @InvoiceId = ${accInvId};
-      `, {});
+      `,
+        {}
+      );
 
-      if (!irnResult.recordset[0].isIRN == 'true') {
+      if (!irnResult.recordset[0].isIRN == "true") {
         return res.send({
           success: false,
           message: "IRN is not generated yet",
@@ -476,11 +525,16 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         });
       }
       // 1. Call the stored procedure to get the JSON string
-      const jsonResult = await executeQuery(`
+      const jsonResult = await executeQuery(
+        `
         EXEC irn_cancellation_gsthero @account_invoice_id = ${accInvId}
-      `, {});
+      `,
+        {}
+      );
 
-      const jsonOutput = jsonResult.recordset.map(row => Object.values(row)[0]).join('');
+      const jsonOutput = jsonResult.recordset
+        .map((row) => Object.values(row)[0])
+        .join("");
 
       if (!jsonOutput) {
         return res.send({
@@ -490,17 +544,34 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         });
       }
       //  Fetch auth credentials
-      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(req, res);
+      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(
+        req,
+        res
+      );
       //  Authenticate with GSTHero
-      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(req, res);
+      const authRespons =
+        await module.exports.getAuthenticationResponse_GSTHero(req, res);
 
       // 2. Fetch configuration values from DB
-      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] = await Promise.all([
-        executeQuery(`SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(authToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`, {}),
-        executeQuery(`SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`, {}),
-      ]);
+      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] =
+        await Promise.all([
+          executeQuery(
+            `SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+            {}
+          ),
+          executeQuery(
+            `SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+            {}
+          ),
+          executeQuery(
+            `SELECT ISNULL(authToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`,
+            {}
+          ),
+          executeQuery(
+            `SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
+            {}
+          ),
+        ]);
 
       const serverLink = serverLinkResult.recordset[0].link;
       const gstin = gstinResult.recordset[0].gstin;
@@ -511,7 +582,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
       // 3. Make POST request to cancel IRN
       const response = await fetch(cancelIRNUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
@@ -531,7 +602,10 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       }
       let result = await response.json();
       // update invoice Table ( fields are not Proper need to work on it )
-      await executeQuery(`UPDATE tblInvoice set cancelIrnNo=${result.cancelIrnNo} where id=${accInvId}`, {})
+      await executeQuery(
+        `UPDATE tblInvoice set cancelIrnNo=${result.cancelIrnNo} where id=${accInvId}`,
+        {}
+      );
 
       return res.send({
         success: true,
@@ -547,12 +621,5 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         error: error.message,
       });
     }
-  }
-
-
-
+  },
 };
-
-
-
-
