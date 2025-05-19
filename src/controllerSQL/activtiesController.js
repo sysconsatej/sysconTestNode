@@ -13,7 +13,6 @@ module.exports = {
       const query = `activitiesApi`;
       const parameters = { clientId: clientId };
       let data = await executeStoredProcedure(query, parameters);
-      console.log(data);
 
       if (data) {
         res.status(200).json({
@@ -42,7 +41,6 @@ module.exports = {
       const query = `activitiesStatus`;
       const parameters = { clientId: clientId };
       let data = await executeStoredProcedure(query, parameters);
-      console.log(data);
 
       if (data) {
         res.status(200).json({
