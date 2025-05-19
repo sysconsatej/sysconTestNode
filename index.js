@@ -102,13 +102,13 @@ app.use("/api/year", yearEnding);
 app.use("/api/sp", sp);
 app.use("/api/balanceSheet", balanceSheetRoute);
 app.use("/api", BalanceSheet);
-process.on("uncaughtException", (error) => {
-  console.log(error);
-  // logger.error('Uncaught Exception:', error);
-  // errorLogger(error);
-  // Optionally, perform a graceful shutdown:
-  // process.exit(1); // Exiting the process after logging an uncaught exception is a common practice
-});
+// process.on("uncaughtException", (error) => {
+//   console.log(error);
+//   // logger.error('Uncaught Exception:', error);
+//   // errorLogger(error);
+//   // Optionally, perform a graceful shutdown:
+//   // process.exit(1); // Exiting the process after logging an uncaught exception is a common practice
+// });
 app.use("/api/validations", validations);
 app.use("/api/News", loginNew);
 app.use("/api/reports", ReportsHtml);
@@ -137,7 +137,7 @@ const SQLeInvoicing = require("./src/routesSQL/eInvoicingRoute");
 const SQLAccountData = require("./src/routesSQL/accountingReports");
 const SQLValidation = require("./src/routesSQL/validation");
 const SQLSecurity = require("./src/routesSQL/securityRoute");
-
+const activites = require("./src/routesSQL/activitesRoutes");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -156,7 +156,7 @@ app.use("/Sql/api/eInvoicing", SQLeInvoicing);
 app.use("/Sql/api/", SQLAccountData);
 app.use("/Sql/api/", SQLValidation);
 app.use("/Sql/api/security", SQLSecurity);
-
+app.use("/Sql/api/activites", activites);
 
 app.use(function (req, res, next) {
   next(createError(404));
