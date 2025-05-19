@@ -9,4 +9,10 @@ router.post(
   activitiesService.getActivitiesList
 );
 
+router.post(
+  "/getActivitiesStatus",
+  auth.verifyToken,
+  activitiesService.getActivitiesStatusesList
+);
+
 module.exports = router;
