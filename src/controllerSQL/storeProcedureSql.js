@@ -301,12 +301,12 @@ module.exports = {
         clientId,
         voucherType,
         DepartmentId,
-        blIds,
+        blId: blIds,
         billingPartyId,
         companyId,
         companyBranchId,
       });
-
+    
       if (data?.length === 0) {
         return res.send({
           success: true,
