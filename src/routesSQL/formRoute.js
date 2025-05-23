@@ -10,5 +10,5 @@ router.post("/dynamicFetch", auth.verifyToken, controller.dynamicFetch);
 router.post("/FormList", auth.verifyToken, controller.formList);
 router.post("/add", auth.verifyToken, controller.CreateFormControl);
 router.post("/getCopyData", auth.verifyToken, controller.getCopyData);
-
+router.post("/disableEdit", auth.verifyToken, controller.disableEdit);
 module.exports = router;
