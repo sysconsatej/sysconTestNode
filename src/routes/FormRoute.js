@@ -11,6 +11,7 @@ router.post("/DropDownList", auth.verifyToken, controller.filterdDropDown);
 router.post("/CopyTableMaping", auth.verifyToken, controller.copyTableMaping);
 router.post("/getCopyData", auth.verifyToken, controller.getCopyData);
 router.post("/CopyFormControl", auth.verifyToken, controller.copyFormControl);
+router.post("/disableEdit", auth.verifyToken, controller.disableEdit);
 router.post(
   "/toFormControlList",
   auth.verifyToken,

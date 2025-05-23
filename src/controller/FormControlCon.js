@@ -1587,4 +1587,45 @@ module.exports = {
       });
     }
   },
+  disableEdit: async (req, res) => {
+    try{
+      const {tableName, reportId} = req.body;
+
+      // Validate required fields
+      if (!tableName || !reportId) {
+        return res.status(400).send({
+          success: false,
+          message: "Table Name and Report Id are required.",
+        });
+      }
+
+      // Construct the stored procedure call dynamically
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      request.input("tableName", sql.VarChar, tableName);
+      request.input("recordId", sql.Int, recordId || null); 
+
+      // Execute the stored procedure
+      const result = await request.execute("disableEdit"); 
+
+      // Parse the JSON result if the structure matches the provided example
+      let parsedData = [];
+      if (
+        result.recordset &&
+        result.recordset[0] &&
+        result.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+      ) {
+        parsedData = JSON.parse(
+          result.recordset[0]["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+        );
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  }
 };
