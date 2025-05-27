@@ -11,4 +11,6 @@ router.post("/FormList", auth.verifyToken, controller.formList);
 router.post("/add", auth.verifyToken, controller.CreateFormControl);
 router.post("/getCopyData", auth.verifyToken, controller.getCopyData);
 router.post("/disableEdit", auth.verifyToken, controller.disableEdit);
+router.post("/disableAdd", auth.verifyToken, controller.disableAdd);
+router.post("/validateSubmit", auth.verifyToken, controller.validateSubmit);
 module.exports = router;

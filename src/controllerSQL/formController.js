@@ -448,5 +448,78 @@ module.exports = {
         data: error.message,
       });
     }
+  },
+  disableAdd: async (req, res) => {
+    try{
+      const {tableName} = req.body;
+
+      // Validate required fields
+      if (!tableName) {
+        return res.status(400).send({
+          success: false,
+          message: "Table Name are required.",
+        });
+      }
+      const query = `disableAdd`;
+      const parameters = {
+        tableName
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: data[0].success,
+          message: data[0].message
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        }); 
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+  validateSubmit: async (req, res) => {
+    try{
+      const {tableName, recordId} = req.body;
+
+      // Validate required fields
+      if (!tableName || !recordId) {
+        return res.status(400).send({
+          success: false,
+          message: "Table Name and Report Id are required.",
+        });
+      }
+      const query = `validateSubmit`;
+      const parameters = {
+        tableName,
+        recordId
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: data[0].success,
+          message: data[0].message
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        }); 
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
   }
 };
