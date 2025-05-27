@@ -471,7 +471,7 @@ module.exports = {
           <p>Dear Customer,</p>
           <p>Please find your report below:</p>
           <img src="cid:reportImage" style="max-width: 100%; border: 1px solid #ccc;" />
-          <p style="margin-top: 20px;">Regards,<br/>Expressway Group</p>
+          <p style="margin-top: 20px;">Regards,<br/></p>
         </div>
       `,
         attachments: [
