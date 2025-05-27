@@ -69,7 +69,7 @@ module.exports = {
         headless: true,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
         timeout: 60000, // Increase timeout to 60 seconds
-        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+        //executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
       });
       const page = await browser.newPage();
       await page.setViewport({
@@ -296,7 +296,7 @@ module.exports = {
       // Launch a new browser instance
       const browser = await puppeteer.launch({
         args: ["--no-sandbox", "--disable-setuid-sandbox"], // For environments like cloud servers
-        //executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
       });
       const page = await browser.newPage();
 
@@ -338,6 +338,155 @@ module.exports = {
     } catch (error) {
       console.error("Error generating PDF:", error);
       res.status(500).send("An error occurred while generating the PDF");
+    }
+  },
+  emailPdfReports: async (req, res) => {
+    try {
+      const {
+        htmlContent,
+        orientation,
+        pdfFilename,
+        to,
+        cc,
+        bcc,
+        subject,
+        body,
+      } = req.body;
+
+      // 1. Launch Puppeteer and generate PDF
+      const browser = await puppeteer.launch({
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        executablePath: "/usr/bin/chromium-browser",
+      });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.addStyleTag({
+        url: "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css",
+      });
+
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        landscape: orientation === "landscape",
+        margin: {
+          top: "20px",
+          bottom: "20px",
+          left: "20px",
+          right: "20px",
+        },
+      });
+
+      await browser.close();
+
+      // 2. Setup Nodemailer
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: "rohitanabhavane26@gmail.com",
+          pass: "eghq byjb ggbk wgbm", // Use App Password (not normal Gmail password)
+        },
+      });
+
+      // 3. Send Email with PDF Attachment
+      const info = await transporter.sendMail({
+        from: "rohitanabhavane26@gmail.com",
+        to: "nilay@sysconinfotech.com , satej@sysconinfotech.com, akash@sysconinfotech.com , rohitanabhavane26@gmail.com",
+        cc,
+        bcc,
+        subject: "Report",
+        text: "Please find the attached PDF.",
+        attachments: [
+          {
+            filename: `${pdfFilename}.pdf`,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+
+      res.status(200).json({ message: "Email sent successfully", info });
+    } catch (error) {
+      console.error("Error generating or sending PDF:", error);
+      res.status(500).send("Failed to generate and send PDF via email.");
+    }
+  },
+  emailReportsInBody: async (req, res) => {
+    try {
+      const {
+        htmlContent,
+        to,
+        cc,
+        bcc,
+        subject,
+        body, // fallback plain text message
+      } = req.body;
+
+      // 1. Render HTML with Puppeteer and capture screenshot
+      const browser = await puppeteer.launch({
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        executablePath: "/usr/bin/chromium-browser",
+      });
+
+      const page = await browser.newPage();
+
+      await page.setContent(htmlContent, {
+        waitUntil: "domcontentloaded",
+      });
+
+      await page.addStyleTag({
+        url: "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const screenshotBuffer = await page.screenshot({ fullPage: true });
+
+      await browser.close();
+
+      // 2. Setup Nodemailer
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: "rohitanabhavane26@gmail.com",
+          pass: "eghq byjb ggbk wgbm",
+        },
+      });
+
+      // 3. Send Email with Screenshot in Body
+      const info = await transporter.sendMail({
+        from: "rohitanabhavane26@gmail.com",
+        to: "nilay@sysconinfotech.com , satej@sysconinfotech.com, akash@sysconinfotech.com , rohitanabhavane26@gmail.com",
+        cc,
+        bcc,
+        subject,
+        text: body || "This is a fallback plain text message.",
+        html: `
+        <div style="font-family: Arial, sans-serif;">
+          <p>Dear Customer,</p>
+          <p>Please find your report below:</p>
+          <img src="cid:reportImage" style="max-width: 100%; border: 1px solid #ccc;" />
+          <p style="margin-top: 20px;">Regards,<br/></p>
+        </div>
+      `,
+        attachments: [
+          {
+            filename: "report.png",
+            content: screenshotBuffer,
+            cid: "reportImage",
+          },
+        ],
+      });
+
+      res.status(200).json({ message: "Email sent successfully", info });
+    } catch (error) {
+      console.error("Error sending styled report email:", error);
+      res.status(500).send("Failed to send styled report email.");
     }
   },
   EmailLogin: async (req, res) => {
