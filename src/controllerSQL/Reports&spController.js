@@ -250,10 +250,10 @@ module.exports = {
       });
     }
   },
-  spBl: async (req, res) => {
+  spAirwayBill: async (req, res) => {
     try {
       const { filterCondition } = req.body;
-      const query = `blData`;
+      const query = `airwaybilldata`;
       const parameters = {
         filterCondition,
       };
