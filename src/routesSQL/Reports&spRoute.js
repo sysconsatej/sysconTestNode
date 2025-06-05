@@ -13,5 +13,6 @@ router.post("/voucher", controller.spVocher);
 router.post("/reportTheme", controller.reportTheme);
 router.post("/airwaybill", controller.spAirwayBill);
 router.post("/saveEditedReport", controller.saveReportData);
+router.post("/blconsole", controller.spblconsole);
 
 module.exports = router;
