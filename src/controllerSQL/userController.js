@@ -457,7 +457,7 @@ module.exports = {
             clientCode:req.body.clientCode
           };
           let { data, success } = await executeStoredProcedure(
-            "loginDummyApi",
+            "loginApi",
             parameters
           );
 
@@ -543,7 +543,7 @@ module.exports = {
               clientCode:req.body.clientCode
             };
             let { error, data } = await executeStoredProcedure(
-              "loginDummyApi",
+              "loginApi",
               parameters
             );
 
