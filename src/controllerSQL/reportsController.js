@@ -83,6 +83,55 @@ module.exports = {
       });
     }
   },
+  insertUpdateRecordData: async (req, res) => {
+    try {
+      const { TableName, Record, WhereCondition } = req.body;
+
+      // Convert the Record object to a JSON string
+      const formattedRecord = JSON.stringify(Record);
+
+      // Connect to the database
+      const pool = await connectToSql();
+
+      // Prepare the stored procedure request
+      const request = pool.request();
+      request.input("TableName", sql.NVarChar, TableName);
+      request.input("Record", sql.NVarChar(sql.MAX), formattedRecord);
+      request.input("WhereCondition", sql.NVarChar, WhereCondition || null);
+      request.output("RowsAffected", sql.Int); // Add output parameter
+
+      // Execute the stored procedure
+      const result = await request.execute("spDynamicInsertUpdateRecord");
+
+      const rowsAffected = result.output.RowsAffected;
+      // Respond to the client
+      if (rowsAffected > 0) {
+        res.send({
+          success: true,
+          message: "Data Inserted/Updated Successfully",
+          rowsAffected,
+        });
+      } else {
+        res.send({
+          success: false,
+          message:
+            "No rows affected. Record might be identical or condition didn’t match.",
+          rowsAffected,
+          debug: {
+            executedSQL: result?.recordsets,
+            inputData: Record,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error executing stored procedure:", error);
+      res.status(500).send({
+        success: false,
+        message: "Server Error - " + error.message,
+        error: error.message,
+      });
+    }
+  },
   reportSearchCriteriaApi: async (req, res) => {
     try {
       const { menuId, clientId } = req.body;
