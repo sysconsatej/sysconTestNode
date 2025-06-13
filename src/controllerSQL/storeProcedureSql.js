@@ -113,29 +113,30 @@ module.exports = {
         totalAmtInvoiceCurr,
         billingPartyBranch,
         billingPartyState,
+        totalAmountHc
       } = req.body;
       let parameters = {
         chargeId: chargeId,
-        invoiceDate: invoiceDate,
-        SelectedParentInvId: SelectedParentInvId,
-        glId: glId,
-        taxType: taxType,
-        sacCodeId: sacCodeId,
-        totalAmount: totalAmount,
+        totalAmountHc: totalAmountHc,
         totalAmountFc: totalAmountFc,
-        departmentId: departmentId,
-        placeOfSupply_state: placeOfSupply_state,
-        sez: sez,
+        invoiceDate: invoiceDate,
+        totalAmtInvoiceCurr: totalAmtInvoiceCurr,
         customerId: customerId,
-        ownStateId: ownStateId,
+        glId: glId,
         companyId: companyId,
         branchId: branchId,
         finYearId: finYearId,
         userId: userId,
         clientId: clientId,
-        totalAmtInvoiceCurr: totalAmtInvoiceCurr,
         billingPartyBranch: billingPartyBranch,
         billingPartyState: billingPartyState,
+        taxType: taxType,
+        sacCodeId: sacCodeId,
+        ownStateId: ownStateId,
+        sez: sez,
+        SelectedParentInvId: SelectedParentInvId,
+        departmentId: departmentId,
+        placeOfSupply_state: placeOfSupply_state
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
@@ -146,6 +147,7 @@ module.exports = {
           tblTax: [],
         });
       }
+      console.debug("data", data);
       return res.send({
         success: true,
         message: "Data fetched successfully!",
@@ -189,6 +191,8 @@ module.exports = {
           tblTDS: [],
         });
       }
+      
+      
       return res.send({
         success: true,
         message: "Data fetched successfully!",
