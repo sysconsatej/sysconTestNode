@@ -35,4 +35,42 @@ module.exports = {
       });
     }
   },
+  menuAccessSubmit: async (req, res) => {
+    try {
+      const { userId, menu_json } = req.body;
+
+      if (!userId || !menu_json) {
+        return res.status(400).json({
+          success: false,
+          message: "userId or menu_json is messing!",
+        });
+      }
+
+      const query = `menuAccessApi`;
+      const parameters = {
+        userId,
+        menu_json,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.status(200).json({
+          message: "Menu updated successfully!",
+          data: data,
+          success: true,
+        });
+      } else {
+        res.status(500).json({
+          message: "Data not found!",
+          data: data,
+          success: false,
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
 };
