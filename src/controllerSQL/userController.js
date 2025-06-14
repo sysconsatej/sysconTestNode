@@ -454,6 +454,7 @@ module.exports = {
           const parameters = {
             emailId: req.body.userName,
             password: md5(req.body.password),
+            clientCode:req.body.clientCode
           };
           let { data, success } = await executeStoredProcedure(
             "loginApi",
@@ -539,6 +540,7 @@ module.exports = {
             const parameters = {
               emailId: req.body.userName,
               password: md5(req.body.password),
+              clientCode:req.body.clientCode
             };
             let { error, data } = await executeStoredProcedure(
               "loginApi",
