@@ -37,12 +37,12 @@ module.exports = {
   },
   menuAccessSubmit: async (req, res) => {
     try {
-      const { userId, menu_json } = req.body;
+      const { userId, menu_json, updatedBy } = req.body;
 
-      if (!userId || !menu_json) {
+      if (!userId || !menu_json || !updatedBy) {
         return res.status(400).json({
           success: false,
-          message: "userId or menu_json is messing!",
+          message: "userId, updatedBy or menu_json is messing!",
         });
       }
 
@@ -50,6 +50,7 @@ module.exports = {
       const parameters = {
         userId,
         menu_json,
+        updatedBy,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
