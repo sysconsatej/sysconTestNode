@@ -1,4 +1,5 @@
 const { connectToSql } = require("../config/sqlConfig");
+const sql = require("mssql");
 
 module.exports = {
   executeQuery: async (query, data) => {
@@ -90,6 +91,32 @@ module.exports = {
       return allData; // Return the array of all parsed JSON objects
     } catch (error) {
       console.error("Error executing stored procedure:", error);
+      throw error;
+    }
+  },
+  executeNonQueryStoredProcedure: async (spName, params = {}) => {
+    try {
+      // 1) get a live pool
+      const pool = await connectToSql();
+
+      // 2) build the request & bundle all params into @json
+      const req = pool.request();
+      req.input("json", sql.NVarChar(sql.MAX), JSON.stringify(params));
+
+      // 3) execute
+      const result = await req.execute(spName);
+
+      // 4) no rows? return empty array
+      if (result.recordsets.length === 0) {
+        return [];
+      }
+
+      // 5) parse the single JSON column from the first row
+      const jsonCol = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
+      const raw = result.recordset[0]?.[jsonCol];
+      return JSON.parse(raw) || [];
+    } catch (error) {
+      console.error(`Error executing ${spName}:`, error);
       throw error;
     }
   },

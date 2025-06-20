@@ -6,6 +6,7 @@ const {
   executeQuery,
   executeStoredProcedure,
   executeMultipleStoredProcedure,
+  executeNonQueryStoredProcedure,
 } = require("../../modelSQL/model");
 
 const userFindByEmail = async (email) => {
@@ -612,6 +613,34 @@ module.exports = {
         success: false,
         message: "Failed to fetch data!",
         error: error.message,
+      });
+    }
+  },
+  insertReportData: async (req, res) => {
+    const { spName, filterCondition } = req.body;
+    if (!spName) {
+      return res
+        .status(400)
+        .json({ success: false, message: "spName is required" });
+    }
+    try {
+      // This will be an array of row-counts, e.g. [5] if 5 rows inserted
+      const rowsAffected = await executeNonQueryStoredProcedure(
+        spName,
+        filterCondition
+      );
+
+      res.status(200).json({
+        success: true,
+        message: `Stored procedure "${spName}" executed successfully.`,
+        rowsAffected,
+      });
+    } catch (err) {
+      console.error(`Insert SP error:`, err);
+      res.status(500).json({
+        success: false,
+        message: `Failed to execute insert SP "${spName}".`,
+        error: err.message,
       });
     }
   },
