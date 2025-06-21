@@ -48,6 +48,10 @@ router.post(
   formControlController.fetchDynamicReportSpData
 );
 router.post(
+  "/formControlValidation/insertReportData",
+  formControlController.insertReportData
+);
+router.post(
   "/excelValidation/insertExcelData",
   excelController.insertExcelData
 );
