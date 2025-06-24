@@ -8,12 +8,20 @@ const {
 module.exports = {
     BalanceSheetSp: async (req, res) => {
         try {
-            const { fromDate, toDate, branchId } = req.body
+            const { fromDate, toDate, branchId, companyId, finYearId } = req.body
+            if (!fromDate || !toDate || !branchId || !companyId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "fromDate, toDate, branchId, and companyId are required",
+                });
+            }
             // Validate the input parameters
             let parameters = {
                 fromDate: fromDate,
                 toDate: toDate,
                 branchId: branchId,
+                companyId: companyId,
+                finYearId: finYearId || 8,
                 clientId: req.clientId
             }
             let data = await executeNonJSONStoredProcedure("sp_BalanceSheet", parameters);
@@ -22,7 +30,7 @@ module.exports = {
                     success: true,
                     message: "Data Fetched Successfully",
                     count: data.length,
-                    data: data,
+                    data: data.recordset,
                 });
             } else {
                 res.send({
