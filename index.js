@@ -139,7 +139,6 @@ const SQLValidation = require("./src/routesSQL/validation");
 const SQLSecurity = require("./src/routesSQL/securityRoute");
 const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
-const SQLBalanceSheetRoute = require("./src/routesSQL/balanceSheetRoute");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -160,7 +159,6 @@ app.use("/Sql/api/", SQLValidation);
 app.use("/Sql/api/security", SQLSecurity);
 app.use("/Sql/api/activites", activites);
 app.use("/Sql/api/fetch", SQLAllocation);
-app.use("/Sql/api/balanceSheet", SQLBalanceSheetRoute);
 
 app.use(function (req, res, next) {
   next(createError(404));
