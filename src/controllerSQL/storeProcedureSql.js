@@ -333,6 +333,51 @@ module.exports = {
         error: error.message,
       });
     }
+  },
+   
+  getTaxDetailsQuotation: async (req, res) => {
+    try {
+      let {
+       DepartmentId,
+       chargeId,
+       quotationDate,
+       companyId,
+       sellAmount,
+       clientId
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("calculateQuotationTaxAmount", {
+       DepartmentId,
+       chargeId,
+       quotationDate,
+       companyId,
+       sellAmount,
+       clientId
+      });
+    
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
   }
 
 };

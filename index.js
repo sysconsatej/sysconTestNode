@@ -141,6 +141,8 @@ const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 
+
+
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
 app.use("/Sql/api/FormControl", SQlFormRouter);

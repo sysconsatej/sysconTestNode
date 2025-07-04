@@ -13,4 +13,5 @@ router.post("/gettingTdsDetails", auth.verifyToken, controller.getTDSDetails);
 router.post("/getGeneralLedgerData", auth.verifyToken, controller.getGeneralLedgerData);
 router.post("/getVoucherData", auth.verifyToken, controller.getVoucherData);
 router.post("/getBlChargeDetails", auth.verifyToken, controller.getBlChargeDetails);
+router.post("/gettingTaxDetailsQuotation", auth.verifyToken, controller.getTaxDetailsQuotation);
 module.exports = router;
