@@ -130,10 +130,11 @@ module.exports = {
             search,
             pageNo,
             value,
+            pageSize,
           } = req.body;
           console.log(dropdownFilter);
+          const obj = pageSize  ?   {
 
-          let data = await executeStoredProcedure("dynamicDataFetch", {
             clientId: req.clientId || 4,
             filterCondition: dropdownFilter?.trim() || null,
             sortingOrder: sortingOrder || null,
@@ -142,7 +143,19 @@ module.exports = {
             search: search || null,
             pageNumber: pageNo || null,
             value: value || "",
-          });
+            pageSize: pageSize,
+
+          } :  {
+            clientId: req.clientId || 4,
+            filterCondition: dropdownFilter?.trim() || null,
+            sortingOrder: sortingOrder || null,
+            tableName: referenceTable.trim(),
+            columnName: referenceColumn.trim(),
+            search: search || null,
+            pageNumber: pageNo || null,
+            value: value || "",
+          }
+          let data = await executeStoredProcedure("dynamicDataFetch",  obj);
           let nextPage = data.length < 1001 ? null : pageNo + 1;
           // console.log(data);
 
@@ -272,7 +285,7 @@ module.exports = {
       }
       let count = await executeQuery(
         `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
-          query,
+        query,
         {}
       );
       if (count.recordset[0].total === 0) {
@@ -363,7 +376,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });
@@ -411,10 +424,10 @@ module.exports = {
       });
     }
   },
-  
+
   disableEdit: async (req, res) => {
-    try{
-      const {tableName, recordId} = req.body;
+    try {
+      const { tableName, recordId } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -439,7 +452,7 @@ module.exports = {
           success: false,
           message: "No Data Found",
           data: [],
-        }); 
+        });
       }
     } catch (error) {
       res.status(500).send({
@@ -450,8 +463,8 @@ module.exports = {
     }
   },
   disableAdd: async (req, res) => {
-    try{
-      const {tableName} = req.body;
+    try {
+      const { tableName } = req.body;
 
       // Validate required fields
       if (!tableName) {
@@ -475,7 +488,7 @@ module.exports = {
           success: false,
           message: "No Data Found",
           data: [],
-        }); 
+        });
       }
     } catch (error) {
       res.status(500).send({
@@ -486,8 +499,8 @@ module.exports = {
     }
   },
   validateSubmit: async (req, res) => {
-    try{
-      const {tableName, recordId} = req.body;
+    try {
+      const { tableName, recordId } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -512,7 +525,7 @@ module.exports = {
           success: false,
           message: "No Data Found",
           data: [],
-        }); 
+        });
       }
     } catch (error) {
       res.status(500).send({
