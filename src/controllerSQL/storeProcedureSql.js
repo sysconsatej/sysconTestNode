@@ -378,6 +378,45 @@ module.exports = {
         error: error.message,
       });
     }
+  },
+
+    getcontainerActivity: async (req, res) => {
+    try {
+      let {
+      containerNo,
+      bookingNo,
+      blNo
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("containerActivity", {
+      containerNo,
+      bookingNo,
+      blNo
+      });
+    
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
   }
 
 };
