@@ -38,6 +38,45 @@ module.exports = {
       return [];
     }
   },
+  execSpWithJsonParam: async (
+    procedureName,
+    jsonPayload,
+    paramName = "filterCondition"
+  ) => {
+    if (!procedureName || typeof procedureName !== "string") {
+      throw new Error("procedureName must be a non-empty string");
+    }
+
+    // 1) Normalize to a JSON string
+    const payloadString =
+      typeof jsonPayload === "string"
+        ? jsonPayload
+        : JSON.stringify(jsonPayload);
+
+    try {
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      request.input(paramName, sql.NVarChar(sql.MAX), payloadString);
+
+      // 3) Execute
+      const result = await request.execute(procedureName);
+
+      // 4) No rows → empty array
+      if (!result.recordsets?.length) {
+        return [];
+      }
+
+      // 5) The FOR JSON output column has that GUID name
+      const rawJson =
+        result.recordset[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"];
+
+      return rawJson ? JSON.parse(rawJson) : [];
+    } catch (err) {
+      console.error(`Error executing ${procedureName}:`, err);
+      return [];
+    }
+  },
   executeNonJSONStoredProcedure: async (procedureName, data) => {
     try {
       const pool = await connectToSql();

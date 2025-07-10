@@ -7,6 +7,7 @@ const {
   executeStoredProcedure,
   executeMultipleStoredProcedure,
   executeNonQueryStoredProcedure,
+  execSpWithJsonParam,
 } = require("../../modelSQL/model");
 
 const userFindByEmail = async (email) => {
@@ -421,36 +422,53 @@ module.exports = {
     }
   },
   fetchAPIData: async (req, res) => {
-    const { filterCondition, clientId, spName } = req.body;
+    const { spName, filterCondition: rawCondition = "{}", clientId } = req.body;
 
-    if (!spName) {
-      console.log("Stored procedure name not found", spName);
-      return;
+    if (!spName || typeof spName !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Must provide a valid spName" });
     }
 
-    // Add clientCode to the filterCondition
-    //filterCondition.clientId = clientId;
-    console.log("filterCondition", filterCondition);
+    // Build the single JSON param your proc expects
+    let conditionObj;
     try {
-      const response = await executeStoredProcedure(spName, filterCondition);
-      if (!Array.isArray(response)) {
-        return res.status(400).json({
+      conditionObj =
+        typeof rawCondition === "string"
+          ? JSON.parse(rawCondition)
+          : rawCondition;
+    } catch {
+      return res
+        .status(400)
+        .json({ success: false, message: "filterCondition is not valid JSON" });
+    }
+
+    // Include any other params (e.g. clientId) in your one JSON payload
+    const payload = { ...conditionObj, clientId };
+
+    try {
+      const data = await execSpWithJsonParam(spName, payload);
+
+      if (!Array.isArray(data)) {
+        return res.status(500).json({
           success: false,
-          message: "Fetched data is not an array",
-          data: response,
+          message: "Stored procedure did not return an array",
+          data,
         });
       }
-      res.status(200).json({
+
+      return res.status(200).json({
         success: true,
-        message: "Data fetched and filtered successfully!",
-        length: response.length,
-        data: response,
+        message: "Data fetched successfully",
+        length: data.length,
+        data,
       });
-    } catch (error) {
-      res.status(500).json({
+    } catch (err) {
+      console.error(`Error fetching [${spName}]:`, err);
+      return res.status(500).json({
         success: false,
-        message: "Failed to fetch data!",
-        error: error.message,
+        message: `Failed to execute ${spName}`,
+        error: err.message,
       });
     }
   },
