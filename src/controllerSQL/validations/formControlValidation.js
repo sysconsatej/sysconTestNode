@@ -427,8 +427,6 @@ module.exports = {
       return;
     }
 
-    // Add clientCode to the filterCondition
-    //filterCondition.clientId = clientId;
     console.log("filterCondition", filterCondition);
     try {
       const response = await executeStoredProcedure(spName, filterCondition);

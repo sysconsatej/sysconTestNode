@@ -316,10 +316,10 @@ module.exports = {
         printBackground: true, // Ensure background colors and images are included
         landscape: orientation === "landscape", // Set orientation based on input
         margin: {
-          top: "20px",
-          bottom: "20px",
-          left: "20px",
-          right: "20px",
+          top: "10px",
+          bottom: "10px",
+          left: "10px",
+          right: "10px",
         },
       });
 
