@@ -152,7 +152,7 @@ module.exports = {
 
       // 5) parse the single JSON column from the first row
       const jsonCol = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
-      const raw = result.recordset[0]?.[jsonCol];
+      const raw = result.recordset[0]?.[jsonCol] || result.recordset?.length;
       return JSON.parse(raw) || [];
     } catch (error) {
       console.error(`Error executing ${spName}:`, error);
