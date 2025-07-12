@@ -642,23 +642,23 @@ module.exports = {
         .json({ success: false, message: "spName is required" });
     }
     try {
-      // This will be an array of row-counts, e.g. [5] if 5 rows inserted
+      // now returns something like [5]
       const rowsAffected = await executeNonQueryStoredProcedure(
         spName,
         filterCondition
       );
-
+      console.log("rowsAffected", rowsAffected);
       res.status(200).json({
         success: true,
-        message: `Stored procedure "${spName}" executed successfully.`,
+        message: `${rowsAffected} inserted successfully.`,
         rowsAffected,
       });
     } catch (err) {
-      console.error(`Insert SP error:`, err);
+      console.error(`Insert SP error:`, err.message);
       res.status(500).json({
         success: false,
-        message: `Failed to execute insert SP "${spName}".`,
-        error: err.message,
+        message: `Failed to execute insert SP "${spName}". and the error is - ${err.message}`,
+        error: err.message, // ← this will include your T-SQL ERROR_MESSAGE()
       });
     }
   },
