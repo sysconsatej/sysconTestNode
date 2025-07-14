@@ -1,5 +1,5 @@
+const { deleteImageHandler } = require("../helper/uploadsHelper");
 const { executeStoredProcedure } = require("../modelSQL/model");
-const fs = require("fs");
 
 module.exports = {
   logoChange: async (req, res) => {
@@ -13,10 +13,17 @@ module.exports = {
         });
       }
 
+      const MAX_FILE_SIZE = 1 * 1024 * 1024;
       let uploadedFile = req?.files?.avatar;
       let setProfile;
 
       if (uploadedFile) {
+        if (uploadedFile.size > MAX_FILE_SIZE) {
+          return res.status(400).json({
+            success: false,
+            message: "Image size exceeds the maximum limit of 1MB.",
+          });
+        }
         const fileName = "/uploads/" + Date.now() + "-" + uploadedFile.name;
 
         setProfile = {
@@ -32,20 +39,7 @@ module.exports = {
           }
           console.log("Image save in directory!");
         });
-
-        const oldAvatarPath = "." + oldAvatar;
-        if (fs.existsSync(oldAvatarPath)) {
-          console.log("Old file exists, deleting...");
-          fs.unlink(oldAvatarPath, (err) => {
-            if (err) console.log("Error deleting old file:", err.message);
-            else
-              console.log("Old file deleted successfully"),
-                console.log("oldAvatarPath", oldAvatarPath);
-          });
-        } else {
-          console.log("oldAvatarPath", oldAvatarPath);
-          console.log("Old file does not exist!");
-        }
+        deleteImageHandler(oldAvatar);
       } else {
         setProfile = {
           logoPath: oldAvatar,
@@ -61,14 +55,13 @@ module.exports = {
       );
 
       if (data[0].success) {
-        res
-          .status(200)
-          .json({
-            success: true,
-            message: "Company Logo updated successfully!",
-            data: setProfile.logoPath,
-          });
+        res.status(200).json({
+          success: true,
+          message: "Company Logo updated successfully!",
+          data: setProfile.logoPath,
+        });
       } else {
+        deleteImageHandler(setProfile.logoPath);
         res.status(400).json({ success: false, message: data[0].message });
       }
     } catch (error) {
@@ -95,10 +88,18 @@ module.exports = {
       let uploadedHeader = req?.files?.headerLogo;
       let uploadedFooter = req?.files?.footerLogo;
       let setProfile;
+      const MAX_FILE_SIZE = 1 * 1024 * 1024;
 
       setProfile = { clientId, branchId, userId };
 
       if (uploadedHeader) {
+        if (uploadedHeader.size > MAX_FILE_SIZE) {
+          return res.status(400).json({
+            success: false,
+            message: "Image size exceeds the maximum limit of 1MB.",
+          });
+        }
+
         const fileNameHeader =
           "/uploads/" + Date.now() + "-" + uploadedHeader.name;
 
@@ -111,24 +112,19 @@ module.exports = {
           console.log("Image save in directory!");
         });
 
-        const oldAvatarPath = "." + oldHeader;
-        if (fs.existsSync(oldAvatarPath)) {
-          console.log("Old file exists, deleting...");
-          fs.unlink(oldAvatarPath, (err) => {
-            if (err) console.log("Error deleting old file:", err.message);
-            else
-              console.log("Old file deleted successfully"),
-                console.log("oldAvatarPath", oldAvatarPath);
-          });
-        } else {
-          console.log("oldAvatarPath", oldAvatarPath);
-          console.log("Old file does not exist!");
-        }
+        deleteImageHandler(oldHeader);
       } else {
         setProfile = { ...setProfile, headerPath: oldHeader };
       }
 
       if (uploadedFooter) {
+        if (uploadedFooter.size > MAX_FILE_SIZE) {
+          return res.status(400).json({
+            success: false,
+            message: "Image size exceeds the maximum limit of 1MB.",
+          });
+        }
+
         const fileNameFooter =
           "/uploads/" + Date.now() + "-" + uploadedFooter.name;
 
@@ -140,20 +136,7 @@ module.exports = {
           }
           console.log("Image save in directory!");
         });
-
-        const oldAvatarPath = "." + oldFooter;
-        if (fs.existsSync(oldAvatarPath)) {
-          console.log("Old file exists, deleting...");
-          fs.unlink(oldAvatarPath, (err) => {
-            if (err) console.log("Error deleting old file:", err.message);
-            else
-              console.log("Old file deleted successfully"),
-                console.log("oldAvatarPath", oldAvatarPath);
-          });
-        } else {
-          console.log("oldAvatarPath", oldAvatarPath);
-          console.log("Old file does not exist!");
-        }
+        deleteImageHandler(oldFooter);
       } else {
         setProfile = { ...setProfile, footerPath: oldFooter };
       }
@@ -164,17 +147,18 @@ module.exports = {
       );
 
       if (resData[0].success) {
-        res
-          .status(200)
-          .json({
-            success: true,
-            message: "Company Logo updated successfully!",
-            data: {
-              footer: setProfile.footerPath,
-              header: setProfile.headerPath,
-            },
-          });
+        res.status(200).json({
+          success: true,
+          message: "Company Logo updated successfully!",
+          data: {
+            footer: setProfile.footerPath,
+            header: setProfile.headerPath,
+          },
+        });
       } else {
+        deleteImageHandler(setProfile.footerPath);
+        deleteImageHandler(setProfile.headerPath);
+
         res.status(400).json({ success: false, message: resData[0].message });
       }
     } catch (error) {
