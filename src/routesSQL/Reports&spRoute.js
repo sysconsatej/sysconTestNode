@@ -4,6 +4,7 @@ const controller = require("../controllerSQL/Reports&spController");
 const auth = require("../config/auth");
 
 router.post("/rateRequest", controller.spRateRequest);
+router.post("/blDataForDO", controller.spBlDataForDO);
 router.post("/invoice", controller.spInvoice);
 router.post("/vehicleRoute", controller.spVehicleRoute);
 router.post("/job", controller.spJob);
