@@ -312,11 +312,10 @@ module.exports = {
   },
   saveReportData: async (req, res) => {
     try {
-      const { data, spName } = req.body;
+      const { json, spName } = req.body;
       let query = spName;
       const parameters = {
-        data: JSON.stringify(data),
-        clientId: req.clientId,
+        json: JSON.stringify(json),
       };
       let data1 = await executeStoredProcedure(query, parameters);
       if (data1) {
