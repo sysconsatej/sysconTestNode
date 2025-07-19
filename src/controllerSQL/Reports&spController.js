@@ -285,7 +285,7 @@ module.exports = {
       const { json, spName } = req.body;
       let query = spName;
       const parameters = {
-        json: JSON.stringify(json)
+        json: JSON.stringify(json),
       };
       let data1 = await executeStoredProcedure(query, parameters);
       if (data1) {
@@ -401,12 +401,12 @@ module.exports = {
     }
   },
 
-    spIgmReport: async (req, res) => {
+  spIgmReport: async (req, res) => {
     try {
-      const { clientId  } = req.body;
+      const { clientId } = req.body;
       const query = `igmBlData`;
       const parameters = {
-        clientId ,
+        clientId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
@@ -431,6 +431,4 @@ module.exports = {
       });
     }
   },
-
-
 };
