@@ -33,6 +33,36 @@ module.exports = {
       });
     }
   },
+  spBlDataForDO: async (req, res) => {
+    try {
+      const { id } = req.body;
+      const query = `blDataForDO`;
+      const parameters = {
+        id,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
   spInvoice: async (req, res) => {
     try {
       const { invoiceId } = req.body;
