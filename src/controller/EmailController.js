@@ -289,57 +289,57 @@ module.exports = {
       }
     }
   },
-  localPDFReports: async (req, res) => {
-    try {
-      const { htmlContent, orientation, pdfFilename } = req.body;
+  // localPDFReports: async (req, res) => {
+  //   try {
+  //     const { htmlContent, orientation, pdfFilename, printType } = req.body;
 
-      // Launch a new browser instance
-      const browser = await puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox"], // For environments like cloud servers
-        executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
-      });
-      const page = await browser.newPage();
+  //     // Launch a new browser instance
+  //     const browser = await puppeteer.launch({
+  //       args: ["--no-sandbox", "--disable-setuid-sandbox"], // For environments like cloud servers
+  //       //executablePath: "/usr/bin/chromium-browser", // The path to the executable on the server linux (ubuntu) for windows remove this parameter
+  //     });
+  //     const page = await browser.newPage();
 
-      // Set the HTML content
-      await page.setContent(htmlContent, {
-        waitUntil: "domcontentloaded", // Wait until all DOM content is loaded
-      });
+  //     // Set the HTML content
+  //     await page.setContent(htmlContent, {
+  //       waitUntil: "domcontentloaded", // Wait until all DOM content is loaded
+  //     });
 
-      // Inject Tailwind CSS or any other styles if needed
-      await page.addStyleTag({
-        url: "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css",
-      });
+  //     // Inject Tailwind CSS or any other styles if needed
+  //     await page.addStyleTag({
+  //       url: "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css",
+  //     });
 
-      // Generate the PDF with the provided orientation
-      const pdfBuffer = await page.pdf({
-        format: "A4", // Use A4 size
-        printBackground: true, // Ensure background colors and images are included
-        landscape: orientation === "landscape", // Set orientation based on input
-        margin: {
-          top: "10px",
-          bottom: "10px",
-          left: "10px",
-          right: "10px",
-        },
-      });
+  //     // Generate the PDF with the provided orientation
+  //     const pdfBuffer = await page.pdf({
+  //       format: "A4", // Use A4 size
+  //       printBackground: true, // Ensure background colors and images are included
+  //       landscape: orientation === "landscape", // Set orientation based on input
+  //       margin: {
+  //         top: "10px",
+  //         bottom: "10px",
+  //         left: "10px",
+  //         right: "10px",
+  //       },
+  //     });
 
-      // Close the browser after generating the PDF
-      await browser.close();
+  //     // Close the browser after generating the PDF
+  //     await browser.close();
 
-      // Set response headers to handle the PDF download
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${pdfFilename}.pdf"`
-      );
+  //     // Set response headers to handle the PDF download
+  //     res.setHeader("Content-Type", "application/pdf");
+  //     res.setHeader(
+  //       "Content-Disposition",
+  //       `attachment; filename="${pdfFilename}.pdf"`
+  //     );
 
-      // Send the PDF buffer as binary data
-      res.end(pdfBuffer, "binary");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      res.status(500).send("An error occurred while generating the PDF");
-    }
-  },
+  //     // Send the PDF buffer as binary data
+  //     res.end(pdfBuffer, "binary");
+  //   } catch (error) {
+  //     console.error("Error generating PDF:", error);
+  //     res.status(500).send("An error occurred while generating the PDF");
+  //   }
+  // },
   emailPdfReports: async (req, res) => {
     try {
       const {
@@ -532,6 +532,75 @@ module.exports = {
         message: "Failed to send email",
         error: error.message,
       });
+    }
+  },
+  localPDFReports: async (req, res) => {
+    try {
+      const { htmlContent, orientation, pdfFilename } = req.body;
+
+      // Fetch Tailwind CSS
+      const tailwindCSS = await fetch(
+        "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      ).then((res) => res.text());
+
+      // Wrap HTML
+      const fullStyledHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+          <style>
+            ${tailwindCSS}
+            body { font-family: 'Inter', sans-serif; }
+            @page { margin: 10px; }
+          </style>
+        </head>
+        <body>${htmlContent}</body>
+      </html>
+    `;
+
+      const browser = await puppeteer.launch({
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        executablePath: "/usr/bin/chromium-browser",
+      });
+
+      const page = await browser.newPage();
+
+      await page.setContent(fullStyledHtml, {
+        waitUntil: "networkidle0",
+      });
+
+      // ✅ Wait for all images to load
+      await page.evaluate(async () => {
+        const selectors = Array.from(document.images).map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = img.onerror = resolve;
+          });
+        });
+        await Promise.all(selectors);
+      });
+
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        landscape: orientation === "landscape",
+        margin: { top: "10px", bottom: "10px", left: "10px", right: "10px" },
+      });
+
+      await browser.close();
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${pdfFilename}.pdf"`
+      );
+      res.end(pdfBuffer, "binary");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).send("An error occurred while generating the PDF");
     }
   },
 };
