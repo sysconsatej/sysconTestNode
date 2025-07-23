@@ -52,7 +52,7 @@ module.exports = {
       }
       return (
         JSON.parse(
-          result.recordsets[1]?.[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+          result.recordsets[0]?.[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
         ) || []
       ); // Return the result set
     } catch (error) {
