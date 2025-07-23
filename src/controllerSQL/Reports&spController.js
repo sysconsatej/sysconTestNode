@@ -1,4 +1,8 @@
-const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
+const {
+  executeQuery,
+  executeStoredProcedure,
+  executeStoredProcedureToSendEmail,
+} = require("../modelSQL/model");
 const sql = require("mssql");
 const { connectToSql } = require("../config/sqlConfig");
 
@@ -312,12 +316,19 @@ module.exports = {
   },
   saveReportData: async (req, res) => {
     try {
-      const { json, spName } = req.body;
+      const { json, spName, type } = req.body;
       let query = spName;
       const parameters = {
         json: JSON.stringify(json),
       };
-      let data1 = await executeStoredProcedure(query, parameters);
+      let data1 = null;
+
+      if (type === "Email") {
+        data1 = await executeStoredProcedureToSendEmail(query, parameters);
+      } else if (type === undefined || type === null) {
+        data1 = await executeStoredProcedure(query, parameters);
+      }
+
       if (data1) {
         res.send({
           success: true,
