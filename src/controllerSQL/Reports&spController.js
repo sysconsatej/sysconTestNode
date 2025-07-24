@@ -441,10 +441,10 @@ module.exports = {
       });
     }
   },
-
   spIgmReport: async (req, res) => {
     try {
       const { clientId } = req.body;
+      // const query = `igmBlData`;
       const query = `igmBlData`;
       const parameters = {
         clientId,
