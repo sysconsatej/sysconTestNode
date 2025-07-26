@@ -13,7 +13,7 @@ const sqllConnection = require("./src/config/sqlConfig");
 
 var flash = require("connect-flash");
 // const connection=require('./src/config/MongoConnection');
-var cors = require("cors");
+const cors = require("cors");
 var app = express();
 app.use(
   fileUpload({
@@ -86,22 +86,22 @@ const SQLSp = require("./src/routesSQL/storeProcedureSql");
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
-app.post("/api/insertdata", dynamicRouterMiddleware);
-app.use("/form", FormRouter);
-app.use("/api/balancereport", BalanceRouter);
-app.use("/api/reportSearchCriteria", reportSearchCriteria);
-app.use("/api/master", MasterRouter);
-app.use("/api/FormControl", FormRouter);
-app.use("/api/menuControl", menuRouter);
-app.use("/api/roleControl", roleRouter);
-app.use("/api/userControl", userRouter);
-app.use("/api/NoGeneration", NoGenerationRoutes);
-app.use("/api/image", ImageForLoing);
-app.use("/api/Reports", Reports);
-app.use("/api/year", yearEnding);
-app.use("/api/sp", sp);
-app.use("/api/balanceSheet", balanceSheetRoute);
-app.use("/api", BalanceSheet);
+// app.post("/api/insertdata", dynamicRouterMiddleware);
+// app.use("/form", FormRouter);
+// app.use("/api/balancereport", BalanceRouter);
+// app.use("/api/reportSearchCriteria", reportSearchCriteria);
+// app.use("/api/master", MasterRouter);
+// app.use("/api/FormControl", FormRouter);
+// app.use("/api/menuControl", menuRouter);
+// app.use("/api/roleControl", roleRouter);
+// app.use("/api/userControl", userRouter);
+// app.use("/api/NoGeneration", NoGenerationRoutes);
+// app.use("/api/image", ImageForLoing);
+// app.use("/api/Reports", Reports);
+// app.use("/api/year", yearEnding);
+// app.use("/api/sp", sp);
+// app.use("/api/balanceSheet", balanceSheetRoute);
+// app.use("/api", BalanceSheet);
 // process.on("uncaughtException", (error) => {
 //   console.log(error);
 //   // logger.error('Uncaught Exception:', error);
@@ -109,14 +109,14 @@ app.use("/api", BalanceSheet);
 //   // Optionally, perform a graceful shutdown:
 //   // process.exit(1); // Exiting the process after logging an uncaught exception is a common practice
 // });
-app.use("/api/validations", validations);
-app.use("/api/News", loginNew);
-app.use("/api/reports", ReportsHtml);
-app.use("/api/send", SendEmail);
-app.use("/api/Reports", Reports);
-app.use("/api/chart", chartRoutes);
-app.use("/api/eInvoicing", eInvoicing);
-app.use("/api/DRpt", DynamicReports);
+// app.use("/api/validations", validations);
+// app.use("/api/News", loginNew);
+// app.use("/api/reports", ReportsHtml);
+// app.use("/api/send", SendEmail);
+// app.use("/api/Reports", Reports);
+// app.use("/api/chart", chartRoutes);
+// app.use("/api/eInvoicing", eInvoicing);
+// app.use("/api/DRpt", DynamicReports);
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // SQL Code Started
