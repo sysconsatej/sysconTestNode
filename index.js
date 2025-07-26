@@ -46,28 +46,28 @@ app.use(bodyParser.json({ limit: "100mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const BalanceRouter = require("./src/routes/Balancereport");
-const BalanceSheet = require("./src/routes/BalanceSheet");
-const reportSearchCriteria = require("./src/routes/reportSearchCriteria");
-const MasterRouter = require("./src/routes/master");
-const FormRouter = require("./src/routes/FormRoute");
-const menuRouter = require("./src/routes/menuRoute");
-const roleRouter = require("./src/routes/roleRouter");
-const userRouter = require("./src/routes/userRoute");
-const NoGenerationRoutes = require("./src/routes/NoGenerationRoutes");
-const ImageForLoing = require("./src/routes/ImageForLoing");
-const Reports = require("./src/routes/Reports&sp");
-const yearEnding = require("./src/routes/yearEnding");
-const sp = require("./src/routes/storeProcedure ");
-const dynamicRouterMiddleware = require("./src/routes/SingleinsertRoute"); // Adjust path as needed
-const validations = require("./src/routes/validation");
-const ReportsHtml = require("./src/routes/ReportsHtml"); //AKASH------
-const SendEmail = require("./src/routes/Email"); //AKASH------
-const loginNew = require("./src/routes/NewsRoutes");
-const chartRoutes = require("./src/routes/chartRoutes");
-const eInvoicing = require("./src/routes/eInvoicingRoute");
-const DynamicReports = require("./src/routes/DynamicReports");
-const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
+// const BalanceRouter = require("./src/routes/Balancereport");
+// const BalanceSheet = require("./src/routes/BalanceSheet");
+// const reportSearchCriteria = require("./src/routes/reportSearchCriteria");
+// const MasterRouter = require("./src/routes/master");
+// const FormRouter = require("./src/routes/FormRoute");
+// const menuRouter = require("./src/routes/menuRoute");
+// const roleRouter = require("./src/routes/roleRouter");
+// const userRouter = require("./src/routes/userRoute");
+// const NoGenerationRoutes = require("./src/routes/NoGenerationRoutes");
+// const ImageForLoing = require("./src/routes/ImageForLoing");
+// const Reports = require("./src/routes/Reports&sp");
+// const yearEnding = require("./src/routes/yearEnding");
+// const sp = require("./src/routes/storeProcedure ");
+// const dynamicRouterMiddleware = require("./src/routes/SingleinsertRoute"); // Adjust path as needed
+// const validations = require("./src/routes/validation");
+// const ReportsHtml = require("./src/routes/ReportsHtml"); //AKASH------
+// const SendEmail = require("./src/routes/Email"); //AKASH------
+// const loginNew = require("./src/routes/NewsRoutes");
+// const chartRoutes = require("./src/routes/chartRoutes");
+// const eInvoicing = require("./src/routes/eInvoicingRoute");
+// const DynamicReports = require("./src/routes/DynamicReports");
+// const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
 const SQLSp = require("./src/routesSQL/storeProcedureSql");
 
 // const redashQuery = require('./src/routes/redashRoutes');
