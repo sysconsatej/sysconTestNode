@@ -447,7 +447,7 @@ module.exports = {
       // const query = `igmBlData`;
       const query = `igmBlData`;
       const parameters = {
-        clientId,
+        filterCondition: "123",
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
