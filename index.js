@@ -60,14 +60,15 @@ const Reports = require("./src/routes/Reports&sp");
 const yearEnding = require("./src/routes/yearEnding");
 const sp = require("./src/routes/storeProcedure ");
 const dynamicRouterMiddleware = require("./src/routes/SingleinsertRoute"); // Adjust path as needed
-const validations = require("./src/routes/validation");
 const ReportsHtml = require("./src/routes/ReportsHtml"); //AKASH------
-const SendEmail = require("./src/routes/Email"); //AKASH------
 const loginNew = require("./src/routes/NewsRoutes");
 const chartRoutes = require("./src/routes/chartRoutes");
 const eInvoicing = require("./src/routes/eInvoicingRoute");
 const DynamicReports = require("./src/routes/DynamicReports");
 const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
+
+const SendEmail = require("./src/routes/Email"); //AKASH------
+const validations = require("./src/routes/validation");
 const SQLSp = require("./src/routesSQL/storeProcedureSql");
 
 // const redashQuery = require('./src/routes/redashRoutes');
@@ -109,15 +110,15 @@ app.use(bodyParser.json());
 //   // Optionally, perform a graceful shutdown:
 //   // process.exit(1); // Exiting the process after logging an uncaught exception is a common practice
 // });
-app.use("/api/validations", validations);  // api validations
 // app.use("/api/News", loginNew);
 // app.use("/api/reports", ReportsHtml);
-// app.use("/api/send", SendEmail);
 // app.use("/api/Reports", Reports);
 // app.use("/api/chart", chartRoutes);
 // app.use("/api/eInvoicing", eInvoicing);
 // app.use("/api/DRpt", DynamicReports);
 
+app.use("/api/validations", validations);  // api validations
+app.use("/api/send", SendEmail);
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // SQL Code Started
 
