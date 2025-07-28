@@ -21,8 +21,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Next.js app
-        run: npm run build
 
       - name: SSH Deploy
         uses: appleboy/ssh-action@v0.1.0
@@ -37,8 +35,6 @@ jobs:
              git pull origin main
             echo "Installing dependencies..."
              npm install  # Make sure dependencies are installed
-            echo "Building app..."
-              npm run build
             
             # Check if app is running with PM2
             if pm2 list | grep -q "syscon-node-sql"; then
