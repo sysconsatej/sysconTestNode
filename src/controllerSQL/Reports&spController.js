@@ -443,11 +443,11 @@ module.exports = {
   },
   spIgmReport: async (req, res) => {
     try {
-      const { clientId } = req.body;
+      const { id } = req.body;
       // const query = `igmBlData`;
       const query = `igmBlData`;
       const parameters = {
-        filterCondition: "123",
+        filterCondition: id,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
