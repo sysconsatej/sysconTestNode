@@ -38,7 +38,7 @@ module.exports = {
       return [];
     }
   },
-    executeStoredProcedureToSendEmail: async (procedureName, data) => {
+  executeStoredProcedureToSendEmail: async (procedureName, data) => {
     try {
       const pool = await connectToSql();
       const request = pool.request();
@@ -181,4 +181,39 @@ module.exports = {
       throw error;
     }
   },
+
+  executeSpTransaction: async (sps) => {
+    let pool, transaction;
+    try {
+      pool = await connectToSql();
+      transaction = new sql.Transaction(pool);
+      await transaction.begin();
+
+      let prevOutput = {};
+      for (const sp of sps) {
+        const request = new sql.Request(transaction);
+
+        // Prepare inputs: either direct params or mapped from previous output
+        let params = sp.params || {};
+        if (sp.mapParams && typeof sp.mapParams === 'function') {
+          params = sp.mapParams(prevOutput) || {};
+        }
+        for (const [key, value] of Object.entries(params)) {
+          request.input(key, value);
+        }
+
+        // Execute the SP
+        prevOutput = await request.execute(sp.name);
+        // prevOutput: has recordset, output, returnValue, etc.
+      }
+
+      await transaction.commit();
+      return prevOutput; // output of the last SP
+    } catch (err) {
+      if (transaction) await transaction.rollback();
+      throw err;
+    } finally {
+      if (pool) await pool.close();
+    }
+  }
 };
