@@ -16,9 +16,9 @@ var flash = require("connect-flash");
 const cors = require("cors");
 var app = express();
 app.use(
-  fileUpload({
-    createParentPath: true,
-  })
+    fileUpload({
+        createParentPath: true,
+    })
 );
 app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser());
@@ -26,10 +26,10 @@ app.use(session({ secret: "123", resave: false, saveUninitialized: false }));
 
 app.use(flash());
 var sessionFlash = function (req, res, next) {
-  res.locals.currentUser = req.user;
-  res.locals.error = req.flash("error");
-  res.locals.success = req.flash("success");
-  next();
+    res.locals.currentUser = req.user;
+    res.locals.error = req.flash("error");
+    res.locals.success = req.flash("success");
+    next();
 };
 app.use(sessionFlash);
 app.use(status());
@@ -141,6 +141,7 @@ const SQLSecurity = require("./src/routesSQL/securityRoute");
 const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
+const { handleCrashes } = require("./handleCrash");
 
 
 
@@ -166,28 +167,30 @@ app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 
 app.use(function (req, res, next) {
-  next(createError(404));
+    next(createError(404));
 });
 // console.log("connection", connect);
 // error handler
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.removeHeader("X-Powered-By");
-  res.set(
-    "Cache-Control",
-    "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0"
-  );
+    // set locals, only providing error in development
+    res.removeHeader("X-Powered-By");
+    res.set(
+        "Cache-Control",
+        "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0"
+    );
 
-  res.locals.message = err.message;
-  console.log(err.message);
-  res.locals.error = req.app.get("env") === "development" ? err : {};
+    res.locals.message = err.message;
+    console.log(err.message);
+    res.locals.error = req.app.get("env") === "development" ? err : {};
 
-  // render the error page
+    // render the error page
 
-  res.status(err.status || 500);
-  res.send({ success: false, message: "Api Not Found", data: [] });
+    res.status(err.status || 500);
+    res.send({ success: false, message: "Api Not Found", data: [] });
 });
 
+
+handleCrashes();
 const PORT = process.env.PORT || 3000;
 console.log(`Server is running on port ${PORT}`.green);
 
