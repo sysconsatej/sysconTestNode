@@ -2,6 +2,7 @@ const {
   executeQuery,
   executeStoredProcedure,
   executeStoredProcedureToSendEmail,
+  executeStoredProcedureXML,
 } = require("../modelSQL/model");
 const sql = require("mssql");
 const { connectToSql } = require("../config/sqlConfig");
@@ -325,8 +326,10 @@ module.exports = {
 
       if (type === "Email") {
         data1 = await executeStoredProcedureToSendEmail(query, parameters);
-      } else if (type === undefined || type === null) {
-        data1 = await executeStoredProcedure(query, parameters);
+      } else if (type == 'xml') {
+        data1 = await executeStoredProcedureXML(query, parameters);
+      } else if (type === undefined || type === null || type === "") {
+        data1 = await executeStoredProcedure(query, parameters, type);
       }
 
       if (data1) {
