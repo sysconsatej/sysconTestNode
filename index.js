@@ -141,7 +141,7 @@ const SQLSecurity = require("./src/routesSQL/securityRoute");
 const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
-const { handleCrashes } = require("./handleCrashe");
+const { handleCrashes } = require("./handleCrash");
 
 
 
