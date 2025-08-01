@@ -4,6 +4,11 @@ const {
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
 } = require("../modelSQL/model");
+const maxAllowedSizeInBytes = 1024 * 1024 * 1024;
+const { errorLogger } = require("../helper/loggerService");
+const getFolderSize = require("../helper/getFolderSize");
+const path = require("path");
+const moment = require("moment"); // Assuming you use moment for the timestamp
 
 module.exports = {
   DisPlaySeacrchApi: async (req, res) => {
@@ -222,5 +227,74 @@ module.exports = {
         });
       }
     });
+  },
+  upLoadFile: async (req, res) => {
+    try {
+      let responce = {};
+      if (getFolderSize(`./public/api/images`) >= maxAllowedSizeInBytes) {
+        responce.success = false; // Update flag since response is being sent
+        responce.message +=
+          "Your storage capacity has surpassed the 1GB limit. Kindly consider upgrading your plan.";
+      } else {
+        //                // console.log(Array.isArray(req.files.documents));
+        //                console.log(req.files);
+        if (req.files && req.files["documents"]) {
+          const file = req.files["documents"]; // Adjust the field name based on your form
+          // const allowedExtensions = /\.(png|jpg|jpeg|pdf|doc|xls|txt)$/i;
+          const allowedExtensions =
+            /\.(png|jpg|jpeg|pdf|doc|docx|xls|xlsx|txt|json|xml|ppt|pptx)$/i;
+          // Check file extension
+          if (!allowedExtensions.test(file.name)) {
+            responce.success = false; // Update flag since response is being sent
+
+            // responce.message = 'Sorry, the file type you provided is invalid. Please upload a file with one of the following extensions: .png, .jpg, ,.jpeg, .pdf, .doc, .xls, .txt.'
+            responce.message =
+              "Sorry, the file type you provided is invalid. Please upload a file with one of the following extensions: .png, .jpg, .jpeg, .pdf, .doc, .docx, .xls, .xlsx, .txt, .json, .xml, .ppt, .pptx.";
+            // break; // Break out of the loop
+          }
+          // Check file size
+          else if (file.size > 1024 * 1024) {
+            // 1MB in bytes
+            responce.success = false; // Update flag since response is being sent
+
+            responce.message =
+              "The file size exceeds the maximum limit of 1MB.";
+
+            // break; // Break out of the loop
+          } else {
+            var element = req.files["documents"];
+
+            // Use path module to get the extension
+            const extension = path.extname(element.name);
+            //console.log(extension);
+            // Use path module to get the file name without extension
+            const fileNameWithoutExt = path.basename(element.name, extension);
+            //console.log(fileNameWithoutExt);
+            // var image_name = moment().format("YYYYMMDDHHmmssSSS") + element.name;
+            var image_name =
+              fileNameWithoutExt +
+              moment().format("YYYYMMDDHHmmssSSS") +
+              extension;
+            element.mv(
+              `./public/api/images/${req.clientCode}/` + image_name.trim()
+            );
+            // insertData["documents"] = image_name; // Store the processed file name
+            responce.success = true; // Update flag since response is being sent
+            responce.message = "File uploaded successfully.";
+            responce.data = {
+              path: `api/images/${req.clientCode}/` + image_name,
+              status: 1,
+            };
+          }
+        }
+      }
+      res.status(responce.success ? 200 : 403).send(responce);
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
   },
 };
