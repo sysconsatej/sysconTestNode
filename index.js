@@ -170,7 +170,7 @@ app.use("/Sql/api/create", mergeBl);
 // test api made for test adter automating code is updating is working or not
 app.get('/run-test', (req, res) => {
     try {
-        res.status(200).json({ message: 'Test run 01', status: 200 });
+        res.status(200).json({ message: 'Test run 02', status: 200 });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
