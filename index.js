@@ -190,8 +190,8 @@ app.use(function (err, req, res, next) {
 });
 
 
-handleCrashes();
 const PORT = process.env.PORT || 3000;
 console.log(`Server is running on port ${PORT}`.green);
+handleCrashes();
 
 module.exports = app;
