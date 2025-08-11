@@ -444,10 +444,10 @@ module.exports = {
     }
 
     // Include any other params (e.g. clientId) in your one JSON payload
-    const payload = { ...conditionObj, clientId };
+    const filterCondition = { ...conditionObj, clientId };
 
     try {
-      const data = await execSpWithJsonParam(spName, payload);
+      const data = await execSpWithJsonParam(spName, filterCondition);
 
       if (!Array.isArray(data)) {
         return res.status(500).json({

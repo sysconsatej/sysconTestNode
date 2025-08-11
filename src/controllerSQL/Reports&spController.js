@@ -326,7 +326,7 @@ module.exports = {
 
       if (type === "Email") {
         data1 = await executeStoredProcedureToSendEmail(query, parameters);
-      } else if (type == 'xml') {
+      } else if (type == "xml") {
         data1 = await executeStoredProcedureXML(query, parameters);
       } else if (type === undefined || type === null || type === "") {
         data1 = await executeStoredProcedure(query, parameters, type);
@@ -475,4 +475,35 @@ module.exports = {
       });
     }
   },
-};
+  spCargoManifestBldata: async (req, res) => {
+    try {
+      const { id } = req.body;
+      // const query = `igmBlData`;
+      const query = `cargoManifestBldata`;
+      const parameters = {
+        filterCondition: id,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+}; //end
