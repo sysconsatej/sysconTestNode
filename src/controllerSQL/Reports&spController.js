@@ -506,4 +506,4 @@ module.exports = {
       });
     }
   },
-};
+}; //end
