@@ -18,5 +18,6 @@ router.post("/blconsole", controller.spblconsole);
 router.post("/bl", controller.spBl);
 router.post("/containerActivity", controller.spContainerActivity);
 router.post("/igmBlData", controller.spIgmReport);
+router.post("/cargoManifestBldata", controller.spCargoManifestBldata);
 
 module.exports = router;
