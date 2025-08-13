@@ -524,11 +524,11 @@ module.exports = {
         "tblContainerMovement.remarks": item.remarks || "",
         "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
         "tblContainerMovement.activityDate": item.activityDate
-          ? new Date(item.activityDate).toISOString()
-          : new Date().toISOString(),
+          ? new Date(item.activityDate).toLocaleDateString("en-CA")
+          : new Date().toLocaleDateString("en-CA"),
         "tblContainerMovement.clientId": clientId,
         "tblContainerMovement.createdBy": userId,
-        "tblContainerMovement.createdDate": new Date().toISOString()
+        "tblContainerMovement.createdDate": new Date().toLocaleDateString("en-CA")
       }))
     };
 
