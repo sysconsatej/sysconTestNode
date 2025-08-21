@@ -14,12 +14,12 @@ function safeParse(val) {
     try {
       return JSON.parse(val);
     } catch (e) {
-      console.error("❌ JSON parse failed:", val, e.message);
+      console.error("JSON parse failed:", val, e.message);
       return [];
     }
   }
   return [];
-}
+} //safeParse
 
 module.exports = {
   fetchDataByStoredProcedure: async (req, res) => {
@@ -60,8 +60,16 @@ module.exports = {
   },
 
   fetchBalanceSheetData: async (req, res) => {
-    const { companyId, fromDate, toDate, branchId, finYearId, pb, sd } =
-      req.body;
+    const {
+      companyId,
+      fromDate,
+      toDate,
+      branchId,
+      finYearId,
+      pb,
+      sd,
+      clientId,
+    } = req.body;
 
     if (!fromDate || !toDate) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -78,6 +86,7 @@ module.exports = {
         .input("sd", sql.Char(1), sd)
         .input("fromDate", sql.Date, fromDate)
         .input("toDate", sql.Date, toDate)
+        .input("clientId", sql.Int, clientId)
         .execute("balanceSheetPnlReport");
 
       // Check if the result contains the expected JSON key
@@ -93,9 +102,6 @@ module.exports = {
       if (result.recordsets[1]?.[0]?.[jsonKey]) {
         jsonString2 = result.recordsets[1][0][jsonKey];
       }
-
-      console.log("jsonString1:", jsonString1);
-      console.log("jsonString2:", jsonString2);
 
       // Parse JSON safely
       // const parsedData1 = jsonString1 ? JSON.parse(jsonString1) : [];
