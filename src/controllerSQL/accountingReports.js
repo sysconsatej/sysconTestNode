@@ -19,7 +19,7 @@ function safeParse(val) {
     }
   }
   return [];
-}
+} //safeParse
 
 module.exports = {
   fetchDataByStoredProcedure: async (req, res) => {
