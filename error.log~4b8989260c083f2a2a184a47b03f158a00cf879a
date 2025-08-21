@@ -1,0 +1,672 @@
+{
+  error: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+      at C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\mssql\lib\tedious\connection-pool.js:85:17
+      at Connection.onConnect (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:849:9)
+      at Object.onceWrapper (node:events:635:26)
+      at Connection.emit (node:events:520:28)
+      at Connection.emit (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:970:18)
+      at Connection.connectTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:10)
+      at Timeout._onTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+      at listOnTimeout (node:internal/timers:573:17)
+      at process.processTimers (node:internal/timers:514:7) {
+    code: 'ETIMEOUT',
+    originalError: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+        at Connection.connectTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:26)
+        at Timeout._onTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+        at listOnTimeout (node:internal/timers:573:17)
+        at process.processTimers (node:internal/timers:514:7) {
+      code: 'ETIMEOUT'
+    }
+  },
+  level: 'error',
+  message: 'unhandledRejection: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:635:26)\n' +
+    '    at Connection.emit (node:events:520:28)\n' +
+    '    at Connection.emit (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:573:17)\n' +
+    '    at process.processTimers (node:internal/timers:514:7)',
+  stack: 'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:635:26)\n' +
+    '    at Connection.emit (node:events:520:28)\n' +
+    '    at Connection.emit (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:573:17)\n' +
+    '    at process.processTimers (node:internal/timers:514:7)',
+  rejection: true,
+  date: 'Wed Aug 06 2025 15:09:36 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 8764,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.1.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 153677824,
+      heapTotal: 98152448,
+      heapUsed: 66929480,
+      external: 22392529,
+      arrayBuffers: 18887738
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 102243.171 },
+  trace: [
+    {
+      column: 17,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js',
+      function: null,
+      line: 85,
+      method: null,
+      native: false
+    },
+    {
+      column: 9,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.onConnect',
+      line: 849,
+      method: 'onConnect',
+      native: false
+    },
+    {
+      column: 26,
+      file: 'node:events',
+      function: 'Object.onceWrapper',
+      line: 635,
+      method: 'onceWrapper',
+      native: false
+    },
+    {
+      column: 28,
+      file: 'node:events',
+      function: 'Connection.emit',
+      line: 520,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.emit',
+      line: 970,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.connectTimeout',
+      line: 1222,
+      method: 'connectTimeout',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Timeout._onTimeout',
+      line: 1167,
+      method: '_onTimeout',
+      native: false
+    },
+    {
+      column: 17,
+      file: 'node:internal/timers',
+      function: 'listOnTimeout',
+      line: 573,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:internal/timers',
+      function: 'process.processTimers',
+      line: 514,
+      method: 'processTimers',
+      native: false
+    }
+  ],
+  timestamp: '2025-08-06T09:39:36.271Z'
+}
+{
+  error: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+      at C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\mssql\lib\tedious\connection-pool.js:85:17
+      at Connection.onConnect (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:849:9)
+      at Object.onceWrapper (node:events:635:26)
+      at Connection.emit (node:events:520:28)
+      at Connection.emit (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:970:18)
+      at Connection.connectTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:10)
+      at Timeout._onTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+      at listOnTimeout (node:internal/timers:573:17)
+      at process.processTimers (node:internal/timers:514:7) {
+    code: 'ETIMEOUT',
+    originalError: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+        at Connection.connectTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:26)
+        at Timeout._onTimeout (C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+        at listOnTimeout (node:internal/timers:573:17)
+        at process.processTimers (node:internal/timers:514:7) {
+      code: 'ETIMEOUT'
+    }
+  },
+  level: 'error',
+  message: 'unhandledRejection: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:635:26)\n' +
+    '    at Connection.emit (node:events:520:28)\n' +
+    '    at Connection.emit (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:573:17)\n' +
+    '    at process.processTimers (node:internal/timers:514:7)',
+  stack: 'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:635:26)\n' +
+    '    at Connection.emit (node:events:520:28)\n' +
+    '    at Connection.emit (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:573:17)\n' +
+    '    at process.processTimers (node:internal/timers:514:7)',
+  rejection: true,
+  date: 'Wed Aug 06 2025 15:21:27 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 4788,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.1.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 152752128,
+      heapTotal: 97890304,
+      heapUsed: 68280024,
+      external: 22344911,
+      arrayBuffers: 18840120
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 102954.421 },
+  trace: [
+    {
+      column: 17,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js',
+      function: null,
+      line: 85,
+      method: null,
+      native: false
+    },
+    {
+      column: 9,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.onConnect',
+      line: 849,
+      method: 'onConnect',
+      native: false
+    },
+    {
+      column: 26,
+      file: 'node:events',
+      function: 'Object.onceWrapper',
+      line: 635,
+      method: 'onceWrapper',
+      native: false
+    },
+    {
+      column: 28,
+      file: 'node:events',
+      function: 'Connection.emit',
+      line: 520,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.emit',
+      line: 970,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.connectTimeout',
+      line: 1222,
+      method: 'connectTimeout',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\06_08_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Timeout._onTimeout',
+      line: 1167,
+      method: '_onTimeout',
+      native: false
+    },
+    {
+      column: 17,
+      file: 'node:internal/timers',
+      function: 'listOnTimeout',
+      line: 573,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:internal/timers',
+      function: 'process.processTimers',
+      line: 514,
+      method: 'processTimers',
+      native: false
+    }
+  ],
+  timestamp: '2025-08-06T09:51:27.526Z'
+}
+{
+  error: ReferenceError: closeConnection is not defined
+      at fetchBalanceSheetData (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\src\controllerSQL\accountingReports.js:102:7)
+      at Layer.handle [as handle_request] (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at Route.dispatch (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:119:3)
+      at Layer.handle [as handle_request] (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:284:15
+      at Function.process_params (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:346:12)
+      at next (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:280:10)
+      at Function.handle (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:175:3)
+      at router (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:47:12),
+  level: 'error',
+  message: 'unhandledRejection: closeConnection is not defined\n' +
+    'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:102:7)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at Route.dispatch (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:284:15\n' +
+    '    at Function.process_params (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:346:12)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:280:10)\n' +
+    '    at Function.handle (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:175:3)\n' +
+    '    at router (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:47:12)',
+  stack: 'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:102:7)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at Route.dispatch (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:284:15\n' +
+    '    at Function.process_params (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:346:12)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:280:10)\n' +
+    '    at Function.handle (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:175:3)\n' +
+    '    at router (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:47:12)',
+  rejection: true,
+  date: 'Mon Aug 18 2025 13:17:13 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 5716,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.1.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 102473728,
+      heapTotal: 68120576,
+      heapUsed: 60503688,
+      external: 22340870,
+      arrayBuffers: 18891869
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 8510.812 },
+  trace: [
+    {
+      column: 7,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js',
+      function: 'fetchBalanceSheetData',
+      line: 102,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'Route.dispatch',
+      line: 119,
+      method: 'dispatch',
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: null,
+      line: 284,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'Function.process_params',
+      line: 346,
+      method: 'process_params',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'next',
+      line: 280,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'Function.handle',
+      line: 175,
+      method: 'handle',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'router',
+      line: 47,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2025-08-18T07:47:13.995Z'
+}
+{
+  error: ReferenceError: closeConnection is not defined
+      at fetchBalanceSheetData (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\src\controllerSQL\accountingReports.js:102:7)
+      at Layer.handle [as handle_request] (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at Route.dispatch (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:119:3)
+      at Layer.handle [as handle_request] (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:284:15
+      at Function.process_params (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:346:12)
+      at next (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:280:10)
+      at Function.handle (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:175:3)
+      at router (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:47:12),
+  level: 'error',
+  message: 'unhandledRejection: closeConnection is not defined\n' +
+    'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:102:7)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at Route.dispatch (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:284:15\n' +
+    '    at Function.process_params (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:346:12)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:280:10)\n' +
+    '    at Function.handle (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:175:3)\n' +
+    '    at router (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:47:12)',
+  stack: 'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:102:7)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at Route.dispatch (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:284:15\n' +
+    '    at Function.process_params (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:346:12)\n' +
+    '    at next (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:280:10)\n' +
+    '    at Function.handle (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:175:3)\n' +
+    '    at router (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:47:12)',
+  rejection: true,
+  date: 'Mon Aug 18 2025 13:19:14 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 3432,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.1.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 135229440,
+      heapTotal: 65642496,
+      heapUsed: 62704840,
+      external: 22402034,
+      arrayBuffers: 18900455
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 8631.125 },
+  trace: [
+    {
+      column: 7,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js',
+      function: 'fetchBalanceSheetData',
+      line: 102,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'Route.dispatch',
+      line: 119,
+      method: 'dispatch',
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: null,
+      line: 284,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'Function.process_params',
+      line: 346,
+      method: 'process_params',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'next',
+      line: 280,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'Function.handle',
+      line: 175,
+      method: 'handle',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'router',
+      line: 47,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2025-08-18T07:49:14.301Z'
+}
+{
+  error: ReferenceError: closeConnection is not defined
+      at fetchBalanceSheetData (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\src\controllerSQL\accountingReports.js:104:7)
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5),
+  level: 'error',
+  message: 'unhandledRejection: closeConnection is not defined\n' +
+    'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:104:7)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)',
+  stack: 'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:104:7)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)',
+  rejection: true,
+  date: 'Mon Aug 18 2025 13:21:54 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 8160,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.1.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 165203968,
+      heapTotal: 100245504,
+      heapUsed: 67682456,
+      external: 22353636,
+      arrayBuffers: 18848845
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 8791.687 },
+  trace: [
+    {
+      column: 7,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js',
+      function: 'fetchBalanceSheetData',
+      line: 104,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'node:internal/process/task_queues',
+      function: 'process.processTicksAndRejections',
+      line: 95,
+      method: 'processTicksAndRejections',
+      native: false
+    }
+  ],
+  timestamp: '2025-08-18T07:51:54.876Z'
+}
+{
+  error: ReferenceError: closeConnection is not defined
+      at fetchBalanceSheetData (C:\Users\user2\Desktop\Codes\SqlCode\08_08_2025\mainCode-NodeJs-SQL\src\controllerSQL\accountingReports.js:108:7)
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5),
+  level: 'error',
+  message: 'unhandledRejection: closeConnection is not defined\n' +
+    'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:108:7)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)',
+  stack: 'ReferenceError: closeConnection is not defined\n' +
+    '    at fetchBalanceSheetData (C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js:108:7)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)',
+  rejection: true,
+  date: 'Mon Aug 18 2025 13:24:58 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 8232,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.1.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 164868096,
+      heapTotal: 99983360,
+      heapUsed: 67918176,
+      external: 22353652,
+      arrayBuffers: 18848861
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 8975.687 },
+  trace: [
+    {
+      column: 7,
+      file: 'C:\\Users\\user2\\Desktop\\Codes\\SqlCode\\08_08_2025\\mainCode-NodeJs-SQL\\src\\controllerSQL\\accountingReports.js',
+      function: 'fetchBalanceSheetData',
+      line: 108,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'node:internal/process/task_queues',
+      function: 'process.processTicksAndRejections',
+      line: 95,
+      method: 'processTicksAndRejections',
+      native: false
+    }
+  ],
+  timestamp: '2025-08-18T07:54:58.865Z'
+}
