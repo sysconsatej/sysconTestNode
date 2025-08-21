@@ -191,8 +191,8 @@ module.exports = {
           tblTDS: [],
         });
       }
-      
-      
+
+
       return res.send({
         success: true,
         message: "Data fetched successfully!",
@@ -310,7 +310,7 @@ module.exports = {
         companyId,
         companyBranchId,
       });
-    
+
       if (data?.length === 0) {
         return res.send({
           success: true,
@@ -334,28 +334,28 @@ module.exports = {
       });
     }
   },
-   
+
   getTaxDetailsQuotation: async (req, res) => {
     try {
       let {
-       DepartmentId,
-       chargeId,
-       quotationDate,
-       companyId,
-       sellAmount,
-       clientId
+        DepartmentId,
+        chargeId,
+        quotationDate,
+        companyId,
+        sellAmount,
+        clientId
       } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("calculateQuotationTaxAmount", {
-       DepartmentId,
-       chargeId,
-       quotationDate,
-       companyId,
-       sellAmount,
-       clientId
+        DepartmentId,
+        chargeId,
+        quotationDate,
+        companyId,
+        sellAmount,
+        clientId
       });
-    
+
       if (data?.length === 0) {
         return res.send({
           success: true,
@@ -380,21 +380,21 @@ module.exports = {
     }
   },
 
-    getcontainerActivity: async (req, res) => {
+  getcontainerActivity: async (req, res) => {
     try {
       let {
-      containerNo,
-      bookingNo,
-      blNo
+        containerNo,
+        bookingNo,
+        blNo
       } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("containerActivity", {
-      containerNo,
-      bookingNo,
-      blNo
+        containerNo,
+        bookingNo,
+        blNo
       });
-    
+
       if (data?.length === 0) {
         return res.send({
           success: true,
@@ -415,6 +415,147 @@ module.exports = {
         message: "Error - " + error.message,
         data: [],
         error: error.message,
+      });
+    }
+  },
+  //  saveContainerMovement: async (req, res) => {
+  //   try {
+  //     let {
+  //     containerNo,
+  //     bookingNo,
+  //     blNo
+  //     } = req.body;
+
+  //     // Call stored procedure with all necessary parameters
+  //     let data = await executeStoredProcedure("staticInsertUpdate", {
+  //     containerNo,
+  //     bookingNo,
+  //     blNo
+  //     });
+
+  //     if (data?.length === 0) {
+  //       return res.send({
+  //         success: true,
+  //         message: "No data found",
+  //         data: [],
+  //       });
+  //     }
+
+  //     return res.send({
+  //       success: true,
+  //       message: "Data fetched successfully!",
+  //       Chargers: data,
+  //       count: data?.length,
+  //     });
+  //   } catch (error) {
+  //     res.status(500).send({
+  //       success: false,
+  //       message: "Error - " + error.message,
+  //       data: [],
+  //       error: error.message,
+  //     });
+  //   }
+  // }
+
+
+  // saveContainerMovement: async (req, res) => {
+  //   try {
+  //     const { tblContainerMovement, clientId,userId} = req.body;
+
+  //     const payload = {
+  //       childJson1: tblContainerMovement?.map((item) => ({
+  //         "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
+  //         "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
+  //         "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
+  //         //"tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
+  //         "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
+  //         "tblContainerMovement.remarks": item.remarks || "",
+  //         "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
+  //         "tblContainerMovement.activityDate": item.activityDate || new Date().toISOString(),
+  //         "tblContainerMovement.clientId": clientId,
+  //         "tblContainerMovement.createdBy": userId, 
+  //         "tblContainerMovement.createdDate": new Date().toISOString()
+  //       })) || [],
+  //       // clientId:clientId
+  //     };
+
+  //     console.log(payload.childJson1);
+
+  //     const data = await executeStoredProcedure("staticInsertUpdate", {
+  //       jsonPayload: JSON.stringify(payload)
+  //     });
+
+  //     return res.send({
+  //       success: true,
+  //       message: "Data saved successfully!",
+  //       Chargers: data,
+  //       count: data?.length || 0
+  //     });
+  //   } catch (error) {
+  //     return res.status(500).send({
+  //       success: false,
+  //       message: "Error - " + error.message,
+  //       data: [],
+  //       error: error.message
+  //     });
+  //   }
+  // }
+
+  saveContainerMovement: async (req, res) => {
+    try {
+      const { tblContainerMovement, clientId, userId } = req.body;
+
+      // Validation: Ensure we have an array with data
+      if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
+        return res.status(400).send({
+          success: false,
+          message: "No container movement data provided.",
+          data: []
+        });
+      }
+
+      // Build payload for SP
+      const payload = {
+        childJson1: tblContainerMovement.map((item) => ({
+          "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
+          "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
+          "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
+          "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
+          "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
+          "tblContainerMovement.remarks": item.remarks || "",
+          "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
+          "tblContainerMovement.activityDate": item.activityDate
+            ? new Date(item.activityDate).toLocaleDateString("en-CA")
+            : new Date().toLocaleDateString("en-CA"),
+          "tblContainerMovement.clientId": clientId,
+          "tblContainerMovement.createdBy": userId,
+          "tblContainerMovement.createdDate": new Date().toLocaleDateString("en-CA")
+        }))
+      };
+
+      // Debug log - verify before sending to SP
+      console.log("Payload to SP:", JSON.stringify(payload, null, 2));
+
+      // Execute stored procedure
+      const data = await executeStoredProcedure("staticInsertUpdate", {
+        jsonPayload: JSON.stringify(payload)
+      });
+
+      // Response
+      return res.send({
+        success: true,
+        message: "Data saved successfully!",
+        Chargers: data,
+        count: data?.length || 0
+      });
+
+    } catch (error) {
+      console.error("Error in saveContainerMovement:", error);
+      return res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message
       });
     }
   }

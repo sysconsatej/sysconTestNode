@@ -107,7 +107,6 @@ module.exports = {
       const parameters = {
         id,
       };
-      console.log("parameters", invoiceId);
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
         res.send({
