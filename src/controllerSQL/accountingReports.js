@@ -79,14 +79,14 @@ module.exports = {
       const pool = await connectToSql();
       const result = await pool
         .request()
-        .input("companyId", sql.Int, companyId)
-        .input("companyBranchId", sql.Int, branchId)
-        .input("finYearId", sql.Int, finYearId)
+        .input("companyId", sql.Int, parseInt(companyId, 10))
+        .input("companybranchId", sql.Int, parseInt(branchId, 10))
+        .input("finYearId", sql.Int, parseInt(finYearId, 10))
         .input("pb", sql.Char(1), pb)
         .input("sd", sql.Char(1), sd)
         .input("fromDate", sql.Date, fromDate)
         .input("toDate", sql.Date, toDate)
-        .input("clientId", sql.Int, clientId)
+        .input("clientId", sql.Int, parseInt(clientId, 10))
         .execute("balanceSheetPnlReport");
 
       // Check if the result contains the expected JSON key
