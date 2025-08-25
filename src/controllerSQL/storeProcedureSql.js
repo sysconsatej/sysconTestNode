@@ -578,7 +578,7 @@ module.exports = {
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
         id,
       });
-      console.log("data", data);
+        console.log("data",data)
 
       if (data?.length === 0) {
         return res.send({
@@ -588,6 +588,88 @@ module.exports = {
         });
       }
 
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+  getContainerChargeDetails: async (req, res) => {
+    try {
+      let {
+        clientId,
+        voucherType,
+        DepartmentId,
+        containerRepairIds,
+        billingPartyId,
+        companyId,
+        companyBranchId,
+      } = req.body;
+ 
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getContainerRepairChargeDetails", {
+        clientId,
+        voucherType,
+        DepartmentId,
+        containerRepairIds,
+        billingPartyId,
+        companyId,
+        companyBranchId,
+      });
+ 
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+ 
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+   getThirdLevelDetails: async (req, res) => {
+    try {
+      let {
+        clientId,
+        jobIds
+      } = req.body;
+ 
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getThirdLevelDetails", {
+        clientId,
+        jobIds
+      });
+ 
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+ 
       return res.send({
         success: true,
         message: "Data fetched successfully!",
