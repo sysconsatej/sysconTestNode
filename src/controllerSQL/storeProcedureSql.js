@@ -113,7 +113,7 @@ module.exports = {
         totalAmtInvoiceCurr,
         billingPartyBranch,
         billingPartyState,
-        totalAmountHc
+        totalAmountHc,
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -136,7 +136,7 @@ module.exports = {
         sez: sez,
         SelectedParentInvId: SelectedParentInvId,
         departmentId: departmentId,
-        placeOfSupply_state: placeOfSupply_state
+        placeOfSupply_state: placeOfSupply_state,
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
@@ -191,7 +191,6 @@ module.exports = {
           tblTDS: [],
         });
       }
-
 
       return res.send({
         success: true,
@@ -343,7 +342,7 @@ module.exports = {
         quotationDate,
         companyId,
         sellAmount,
-        clientId
+        clientId,
       } = req.body;
 
       // Call stored procedure with all necessary parameters
@@ -353,7 +352,7 @@ module.exports = {
         quotationDate,
         companyId,
         sellAmount,
-        clientId
+        clientId,
       });
 
       if (data?.length === 0) {
@@ -382,17 +381,13 @@ module.exports = {
 
   getcontainerActivity: async (req, res) => {
     try {
-      let {
-        containerNo,
-        bookingNo,
-        blNo
-      } = req.body;
+      let { containerNo, bookingNo, blNo } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("containerActivity", {
         containerNo,
         bookingNo,
-        blNo
+        blNo,
       });
 
       if (data?.length === 0) {
@@ -457,7 +452,6 @@ module.exports = {
   //   }
   // }
 
-
   // saveContainerMovement: async (req, res) => {
   //   try {
   //     const { tblContainerMovement, clientId,userId} = req.body;
@@ -473,7 +467,7 @@ module.exports = {
   //         "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
   //         "tblContainerMovement.activityDate": item.activityDate || new Date().toISOString(),
   //         "tblContainerMovement.clientId": clientId,
-  //         "tblContainerMovement.createdBy": userId, 
+  //         "tblContainerMovement.createdBy": userId,
   //         "tblContainerMovement.createdDate": new Date().toISOString()
   //       })) || [],
   //       // clientId:clientId
@@ -506,31 +500,48 @@ module.exports = {
       const { tblContainerMovement, clientId, userId } = req.body;
 
       // Validation: Ensure we have an array with data
-      if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
+      if (
+        !Array.isArray(tblContainerMovement) ||
+        tblContainerMovement.length === 0
+      ) {
         return res.status(400).send({
           success: false,
           message: "No container movement data provided.",
-          data: []
+          data: [],
         });
       }
 
       // Build payload for SP
       const payload = {
         childJson1: tblContainerMovement.map((item) => ({
-          "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
-          "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
-          "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
-          "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
-          "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
+          "tblContainerMovement.containerId": item.containerNo
+            ? Number(item.containerNo)
+            : null,
+          "tblContainerMovement.agentId": item.agentId
+            ? Number(item.agentId)
+            : null,
+          "tblContainerMovement.agentBranchId": item.agentBranchId
+            ? Number(item.agentBranchId)
+            : null,
+          "tblContainerMovement.fromLocationId": item.fromLocationId
+            ? Number(item.fromLocationId)
+            : null,
+          "tblContainerMovement.toLocationId": item.toLocationId
+            ? Number(item.toLocationId)
+            : null,
           "tblContainerMovement.remarks": item.remarks || "",
-          "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
+          "tblContainerMovement.activityId": item.activityId
+            ? Number(item.activityId)
+            : null,
           "tblContainerMovement.activityDate": item.activityDate
             ? new Date(item.activityDate).toLocaleDateString("en-CA")
             : new Date().toLocaleDateString("en-CA"),
           "tblContainerMovement.clientId": clientId,
           "tblContainerMovement.createdBy": userId,
-          "tblContainerMovement.createdDate": new Date().toLocaleDateString("en-CA")
-        }))
+          "tblContainerMovement.createdDate": new Date().toLocaleDateString(
+            "en-CA"
+          ),
+        })),
       };
 
       // Debug log - verify before sending to SP
@@ -538,7 +549,7 @@ module.exports = {
 
       // Execute stored procedure
       const data = await executeStoredProcedure("staticInsertUpdate", {
-        jsonPayload: JSON.stringify(payload)
+        jsonPayload: JSON.stringify(payload),
       });
 
       // Response
@@ -546,31 +557,28 @@ module.exports = {
         success: true,
         message: "Data saved successfully!",
         Chargers: data,
-        count: data?.length || 0
+        count: data?.length || 0,
       });
-
     } catch (error) {
       console.error("Error in saveContainerMovement:", error);
       return res.status(500).send({
         success: false,
         message: "Error - " + error.message,
         data: [],
-        error: error.message
+        error: error.message,
       });
     }
   },
-  
-   generalLegerBillingParty: async (req, res) => {
+
+  generalLegerBillingParty: async (req, res) => {
     try {
-      let {
-        id
-      } = req.body;
+      let { id } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
-        id
+        id,
       });
-        console.log("data",data)
+      console.log("data", data);
 
       if (data?.length === 0) {
         return res.send({
@@ -587,6 +595,50 @@ module.exports = {
         count: data?.length,
       });
     } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  getVoucher: async (req, res) => {
+    try {
+      // Accept either { clientId, glId } or legacy { id } -> throw if missing
+      const { clientId, glId } = req.body || {};
+
+      if (!clientId || !glId) {
+        return res.status(400).send({
+          success: false,
+          message: "clientId and glId are required.",
+          data: [],
+        });
+      }
+
+      const data = await executeStoredProcedure("unadjustedVoucherData", {
+        clientId: Number(clientId),
+        glId: Number(glId),
+      });
+
+      if (!Array.isArray(data) || data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+          count: 0,
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        vouchers: data, // clearer key name
+        count: data.length,
+      });
+    } catch (error) {
+      console.error("getVoucher error:", error);
       res.status(500).send({
         success: false,
         message: "Error - " + error.message,

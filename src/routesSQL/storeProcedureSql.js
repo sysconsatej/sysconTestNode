@@ -17,4 +17,6 @@ router.post("/gettingTaxDetailsQuotation", auth.verifyToken, controller.getTaxDe
 router.post("/gettingcontainerActivity", auth.verifyToken, controller.getcontainerActivity);
 router.post("/saveContainerActivity", auth.verifyToken, controller.saveContainerMovement);
 router.post("/getGeneralLegerBillingParty", auth.verifyToken, controller.generalLegerBillingParty);
+router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
+
 module.exports = router;
