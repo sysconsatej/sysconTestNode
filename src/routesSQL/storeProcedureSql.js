@@ -15,6 +15,8 @@ router.post("/getVoucherData", auth.verifyToken, controller.getVoucherData);
 router.post("/getBlChargeDetails", auth.verifyToken, controller.getBlChargeDetails);
 router.post("/gettingTaxDetailsQuotation", auth.verifyToken, controller.getTaxDetailsQuotation);
 router.post("/gettingcontainerActivity", auth.verifyToken, controller.getcontainerActivity);
+router.post("/getContainerChargeDetails", auth.verifyToken, controller.getContainerChargeDetails);
+router.post("/getThirdLevelDetails", auth.verifyToken, controller.getThirdLevelDetails);
 router.post("/saveContainerActivity", auth.verifyToken, controller.saveContainerMovement);
 router.post("/getGeneralLegerBillingParty", auth.verifyToken, controller.generalLegerBillingParty);
 module.exports = router;
