@@ -476,8 +476,8 @@ module.exports = {
       });
     }
   },
-  
-   generalLegerBillingParty: async (req, res) => {
+
+  generalLegerBillingParty: async (req, res) => {
     try {
       let {
         id
@@ -487,7 +487,7 @@ module.exports = {
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
         id
       });
-        console.log("data",data)
+      console.log("data", data)
 
       if (data?.length === 0) {
         return res.send({
@@ -523,7 +523,7 @@ module.exports = {
         companyId,
         companyBranchId,
       } = req.body;
- 
+
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("getContainerRepairChargeDetails", {
         clientId,
@@ -534,7 +534,7 @@ module.exports = {
         companyId,
         companyBranchId,
       });
- 
+
       if (data?.length === 0) {
         return res.send({
           success: true,
@@ -542,7 +542,7 @@ module.exports = {
           data: [],
         });
       }
- 
+
       return res.send({
         success: true,
         message: "Data fetched successfully!",
@@ -558,19 +558,21 @@ module.exports = {
       });
     }
   },
-   getThirdLevelDetails: async (req, res) => {
+  getThirdLevelDetails: async (req, res) => {
     try {
       let {
         clientId,
-        jobIds
+        jobId,
+        chargeId
       } = req.body;
- 
+
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("getThirdLevelDetails", {
         clientId,
-        jobIds
+        jobId,
+        chargeId
       });
- 
+
       if (data?.length === 0) {
         return res.send({
           success: true,
@@ -578,7 +580,127 @@ module.exports = {
           data: [],
         });
       }
- 
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  getDetentionDetails: async (req, res) => {
+    try {
+      let {
+        blId,
+        chargeId,
+        clientId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+      } = req.body;
+
+      let data = await executeStoredProcedure("getdetentiondetails", {
+        blId,
+        chargeId,
+        clientId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+  getThirdLevelPurchaseContainerWise: async (req, res) => {
+    try {
+      let {
+        billingPartyId,
+        fromDate,
+        toDate,
+        chargeId,
+        clientId
+      } = req.body;
+
+      let data = await executeStoredProcedure("getThirdLevelPurchaseContainerWise", {
+        billingPartyId,
+        fromDate,
+        toDate,
+        chargeId,
+        clientId
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+  calculateDetentionRate: async (req, res) => {
+    try {
+      let {
+        blId,
+       noOfDays
+      } = req.body;
+
+      let data = await executeStoredProcedure("calculateDetentionRate", {
+         blId,
+         noOfDays
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
       return res.send({
         success: true,
         message: "Data fetched successfully!",
