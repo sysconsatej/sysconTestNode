@@ -19,6 +19,10 @@ router.post("/getContainerChargeDetails", auth.verifyToken, controller.getContai
 router.post("/getThirdLevelDetails", auth.verifyToken, controller.getThirdLevelDetails);
 router.post("/saveContainerActivity", auth.verifyToken, controller.saveContainerMovement);
 router.post("/getGeneralLegerBillingParty", auth.verifyToken, controller.generalLegerBillingParty);
+router.post("/getDetentionDetails", auth.verifyToken, controller.getDetentionDetails);
+router.post("/getThirdLevelPurchaseContainerWise", auth.verifyToken, controller.getThirdLevelPurchaseContainerWise);
+router.post("/calculateDetentionRate", auth.verifyToken, controller.calculateDetentionRate);
+
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
 
 module.exports = router;
