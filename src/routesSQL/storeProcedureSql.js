@@ -23,4 +23,6 @@ router.post("/getDetentionDetails", auth.verifyToken, controller.getDetentionDet
 router.post("/getThirdLevelPurchaseContainerWise", auth.verifyToken, controller.getThirdLevelPurchaseContainerWise);
 router.post("/calculateDetentionRate", auth.verifyToken, controller.calculateDetentionRate);
 
+router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
+
 module.exports = router;
