@@ -649,44 +649,115 @@ module.exports = {
       });
     }
   },
-  getThirdLevelDetails: async (req, res) => {
-    try {
-      let {
-        clientId,
-        jobId,
-        chargeId
-      } = req.body;
+getThirdLevelDetails: async (req, res) => {
+  try {
+    let {
+      clientId,
+      jobId,
+      chargeId,
+      companyId,
+      companyBranchId,
+      businessSegmentId,
+      voucherTypeId,
+      blId,
+      vesselId,
+      voyageId,
+      plrId,
+      polId,
+      podId,
+      fpdId,
+      berthId,
+      containerId,
+      fromDate,
+      toDate,
+      billingPartyId,
+      containerStatusId,
+      cargoTypeId,
+      sizeId,
+      typeId,
+      // optional future params if needed:
+      agentId,
+      agentBranchId,
+      expImp,
+      icd,
+      invoiceExchageRate,
+      invoiceChargeExchangeRate,
+      rate,
+      transhipPortId,
+      cfsId,
+      containerRepairid,depotId
+    } = req.body;
 
-      // Call stored procedure with all necessary parameters
-      let data = await executeStoredProcedure("getThirdLevelDetails", {
-        clientId,
-        jobId,
-        chargeId
-      });
+    // ✅ Build params object for stored procedure
+    let params = {
+      clientId,
+      jobId,
+      chargeId,
+      companyId,
+      companyBranchId,
+      businessSegmentId,
+      voucherTypeId,
+      blId,
+      vesselId,
+      voyageId,
+      plrId,
+      polId,
+      podId,
+      fpdId,
+      berthId,
+      containerId,
+      fromDate,
+      toDate,
+      billingPartyId,
+      containerStatusId,
+      cargoTypeId,
+      sizeId,
+      typeId,
+      agentId,
+      agentBranchId,
+      expImp,
+      icd,
+      invoiceExchageRate,
+      invoiceChargeExchangeRate,
+      rate,
+      transhipPortId,
+      cfsId,
+      containerRepairid,depotId
+      
+    };
 
-      if (data?.length === 0) {
-        return res.send({
-          success: true,
-          message: "No data found",
-          data: [],
-        });
-      }
+    // ✅ Replace undefined/empty string with null
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === "") params[key] = null;
+    });
 
+    // Call stored procedure
+    let data = await executeStoredProcedure("getThirdLevelDetails", params);
+
+    if (!data || data.length === 0) {
       return res.send({
         success: true,
-        message: "Data fetched successfully!",
-        Chargers: data,
-        count: data?.length,
-      });
-    } catch (error) {
-      res.status(500).send({
-        success: false,
-        message: "Error - " + error.message,
+        message: "No data found",
         data: [],
-        error: error.message,
       });
     }
-  },
+
+    return res.send({
+      success: true,
+      message: "Data fetched successfully!",
+      Chargers: data,
+      count: data.length,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error - " + error.message,
+      data: [],
+      error: error.message,
+    });
+  }
+},
+
 
   getDetentionDetails: async (req, res) => {
     try {
@@ -776,12 +847,12 @@ module.exports = {
     try {
       let {
         blId,
-       noOfDays
+        noOfDays
       } = req.body;
 
       let data = await executeStoredProcedure("calculateDetentionRate", {
-         blId,
-         noOfDays
+        blId,
+        noOfDays
       });
 
       if (data?.length === 0) {
@@ -843,6 +914,45 @@ module.exports = {
       });
     } catch (error) {
       console.error("getVoucher error:", error);
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  getThirdLevelDetailsPurchase: async (req, res) => {
+    try {
+      let {
+        clientId,
+        jobId,
+        chargeId
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getThirdLevelDetails", {
+        clientId,
+        jobId,
+        chargeId
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
       res.status(500).send({
         success: false,
         message: "Error - " + error.message,

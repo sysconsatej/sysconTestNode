@@ -22,6 +22,8 @@ router.post("/getGeneralLegerBillingParty", auth.verifyToken, controller.general
 router.post("/getDetentionDetails", auth.verifyToken, controller.getDetentionDetails);
 router.post("/getThirdLevelPurchaseContainerWise", auth.verifyToken, controller.getThirdLevelPurchaseContainerWise);
 router.post("/calculateDetentionRate", auth.verifyToken, controller.calculateDetentionRate);
+router.post("/getThirdLevelDetailsPurchase", auth.verifyToken, controller.getThirdLevelDetailsPurchase);
+
 
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
 
