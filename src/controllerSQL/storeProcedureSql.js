@@ -685,7 +685,7 @@ getThirdLevelDetails: async (req, res) => {
       rate,
       transhipPortId,
       cfsId,
-      containerRepairid,depotId
+      containerRepairId,depotId
     } = req.body;
 
     // ✅ Build params object for stored procedure
@@ -722,7 +722,7 @@ getThirdLevelDetails: async (req, res) => {
       rate,
       transhipPortId,
       cfsId,
-      containerRepairid,depotId
+      containerRepairId,depotId
       
     };
 
