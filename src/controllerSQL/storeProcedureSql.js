@@ -847,12 +847,14 @@ getThirdLevelDetails: async (req, res) => {
     try {
       let {
         blId,
-        noOfDays
+        noOfDays,
+        clientId
       } = req.body;
 
       let data = await executeStoredProcedure("calculateDetentionRate", {
         blId,
-        noOfDays
+        noOfDays,
+        clientId
       });
 
       if (data?.length === 0) {
