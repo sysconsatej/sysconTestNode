@@ -685,7 +685,7 @@ getThirdLevelDetails: async (req, res) => {
       rate,
       transhipPortId,
       cfsId,
-      containerRepairId,depotId
+      containerRepairId,depotId,containerTransactionId
     } = req.body;
 
     // ✅ Build params object for stored procedure
@@ -722,7 +722,7 @@ getThirdLevelDetails: async (req, res) => {
       rate,
       transhipPortId,
       cfsId,
-      containerRepairId,depotId
+      containerRepairId,depotId,containerTransactionId
       
     };
 
@@ -938,6 +938,47 @@ getThirdLevelDetails: async (req, res) => {
         clientId,
         jobId,
         chargeId
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  fetchContainerDropdownData: async (req, res) => {
+    try {
+      let {
+        clientId,
+        plrAgentId,
+        plrAgentBranchId,
+        depotId
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getDepotEmptyContainers", {
+        clientId,
+        plrAgentId,
+        plrAgentBranchId,
+        depotId
       });
 
       if (data?.length === 0) {
