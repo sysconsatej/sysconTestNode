@@ -420,3 +420,144 @@
   ],
   timestamp: '2025-08-31T20:37:13.595Z'
 }
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:659:11)
+      at ServerResponse.header (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:794:10)
+      at ServerResponse.send (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:174:12)
+      at ServerResponse.json (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:278:15)
+      at verifyRedisToken (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js:957:10)
+      at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)
+      at next (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)
+      at /var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js:284:15 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:659:11)\n' +
+    '    at ServerResponse.header (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:794:10)\n' +
+    '    at ServerResponse.send (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:174:12)\n' +
+    '    at ServerResponse.json (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:278:15)\n' +
+    '    at verifyRedisToken (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js:957:10)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js:284:15',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:659:11)\n' +
+    '    at ServerResponse.header (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:794:10)\n' +
+    '    at ServerResponse.send (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:174:12)\n' +
+    '    at ServerResponse.json (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:278:15)\n' +
+    '    at verifyRedisToken (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js:957:10)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js:284:15',
+  rejection: true,
+  date: 'Mon Sep 01 2025 11:44:26 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 958171,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/application/mainCode-NodeJs-SQL',
+    execPath: '/usr/bin/node',
+    version: 'v20.17.0',
+    argv: [ '/usr/bin/node', '/var/application/mainCode-NodeJs-SQL/bin/www' ],
+    memoryUsage: {
+      rss: 143888384,
+      heapTotal: 69984256,
+      heapUsed: 63834624,
+      external: 22323190,
+      arrayBuffers: 18954237
+    }
+  },
+  os: { loadavg: [ 0.1, 0.05, 0.02 ], uptime: 3546468.12 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 659,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 10,
+      file: '/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js',
+      function: 'verifyRedisToken',
+      line: 957,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js',
+      function: 'Route.dispatch',
+      line: 119,
+      method: 'dispatch',
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 15,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js',
+      function: null,
+      line: 284,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2025-09-01T06:14:26.528Z'
+}
