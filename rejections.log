@@ -139,3 +139,284 @@
   ],
   timestamp: '2025-08-26T10:52:45.116Z'
 }
+{
+  error: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+      at C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\mssql\lib\tedious\connection-pool.js:85:17
+      at Connection.onConnect (C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:849:9)
+      at Object.onceWrapper (node:events:629:26)
+      at Connection.emit (node:events:514:28)
+      at Connection.emit (C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:970:18)
+      at Connection.connectTimeout (C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:10)
+      at Timeout._onTimeout (C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+      at listOnTimeout (node:internal/timers:573:17)
+      at process.processTimers (node:internal/timers:514:7) {
+    code: 'ETIMEOUT',
+    originalError: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+        at Connection.connectTimeout (C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:26)
+        at Timeout._onTimeout (C:\Users\Admin\Desktop\SQl\august 07\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+        at listOnTimeout (node:internal/timers:573:17)
+        at process.processTimers (node:internal/timers:514:7) {
+      code: 'ETIMEOUT'
+    }
+  },
+  level: 'error',
+  message: 'unhandledRejection: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:629:26)\n' +
+    '    at Connection.emit (node:events:514:28)\n' +
+    '    at Connection.emit (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:573:17)\n' +
+    '    at process.processTimers (node:internal/timers:514:7)',
+  stack: 'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:629:26)\n' +
+    '    at Connection.emit (node:events:514:28)\n' +
+    '    at Connection.emit (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:573:17)\n' +
+    '    at process.processTimers (node:internal/timers:514:7)',
+  rejection: true,
+  date: 'Sun Aug 31 2025 11:36:10 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 8040,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v20.9.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 136540160,
+      heapTotal: 92905472,
+      heapUsed: 61458080,
+      external: 22752451,
+      arrayBuffers: 18714907
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 88884.828 },
+  trace: [
+    {
+      column: 17,
+      file: 'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js',
+      function: null,
+      line: 85,
+      method: null,
+      native: false
+    },
+    {
+      column: 9,
+      file: 'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.onConnect',
+      line: 849,
+      method: 'onConnect',
+      native: false
+    },
+    {
+      column: 26,
+      file: 'node:events',
+      function: 'Object.onceWrapper',
+      line: 629,
+      method: 'onceWrapper',
+      native: false
+    },
+    {
+      column: 28,
+      file: 'node:events',
+      function: 'Connection.emit',
+      line: 514,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.emit',
+      line: 970,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Connection.connectTimeout',
+      line: 1222,
+      method: 'connectTimeout',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\Desktop\\SQl\\august 07\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+      function: 'Timeout._onTimeout',
+      line: 1167,
+      method: '_onTimeout',
+      native: false
+    },
+    {
+      column: 17,
+      file: 'node:internal/timers',
+      function: 'listOnTimeout',
+      line: 573,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:internal/timers',
+      function: 'process.processTimers',
+      line: 514,
+      method: 'processTimers',
+      native: false
+    }
+  ],
+  timestamp: '2025-08-31T06:06:10.375Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:659:11)
+      at ServerResponse.header (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:794:10)
+      at ServerResponse.send (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:174:12)
+      at ServerResponse.json (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:278:15)
+      at verifyRedisToken (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js:957:10)
+      at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)
+      at next (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)
+      at /var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js:284:15 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:659:11)\n' +
+    '    at ServerResponse.header (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:794:10)\n' +
+    '    at ServerResponse.send (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:174:12)\n' +
+    '    at ServerResponse.json (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:278:15)\n' +
+    '    at verifyRedisToken (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js:957:10)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js:284:15',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:659:11)\n' +
+    '    at ServerResponse.header (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:794:10)\n' +
+    '    at ServerResponse.send (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:174:12)\n' +
+    '    at ServerResponse.json (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js:278:15)\n' +
+    '    at verifyRedisToken (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js:957:10)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js:284:15',
+  rejection: true,
+  date: 'Mon Sep 01 2025 02:07:13 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 944324,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/application/mainCode-NodeJs-SQL',
+    execPath: '/usr/bin/node',
+    version: 'v20.17.0',
+    argv: [ '/usr/bin/node', '/var/application/mainCode-NodeJs-SQL/bin/www' ],
+    memoryUsage: {
+      rss: 140288000,
+      heapTotal: 71426048,
+      heapUsed: 64834352,
+      external: 23765834,
+      arrayBuffers: 20389427
+    }
+  },
+  os: { loadavg: [ 0, 0.03, 0 ], uptime: 3511835.19 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 659,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 10,
+      file: '/var/application/mainCode-NodeJs-SQL/src/controllerSQL/userController.js',
+      function: 'verifyRedisToken',
+      line: 957,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/route.js',
+      function: 'Route.dispatch',
+      line: 119,
+      method: 'dispatch',
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 15,
+      file: '/var/application/mainCode-NodeJs-SQL/node_modules/express/lib/router/index.js',
+      function: null,
+      line: 284,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2025-08-31T20:37:13.595Z'
+}
