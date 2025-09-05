@@ -1,0 +1,12 @@
+node_modules/
+src/controller/backups/
+# public/
+.log.txt
+rejections.log
+exceptions.log
+error.log
+package-lock.json
+.env
+yarn.lock
+public/
+.qodo
