@@ -24,7 +24,7 @@ router.post("/getThirdLevelPurchaseContainerWise", auth.verifyToken, controller.
 router.post("/calculateDetentionRate", auth.verifyToken, controller.calculateDetentionRate);
 router.post("/getThirdLevelDetailsPurchase", auth.verifyToken, controller.getThirdLevelDetailsPurchase);
 router.post("/fetchContainerDropdownData", auth.verifyToken, controller.fetchContainerDropdownData);
-
+router.post("/editContainerMovement", auth.verifyToken, controller.editContainerMovement);
 
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
 
