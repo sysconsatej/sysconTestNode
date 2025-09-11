@@ -381,13 +381,26 @@ module.exports = {
 
   getcontainerActivity: async (req, res) => {
     try {
-      let { containerNo, bookingNo, blNo } = req.body;
+      let { 
+        containerNo, 
+        bookingNo, 
+        blNo, 
+        clientId,
+        companyId,
+        companyBranchId,
+        userId,
+        financialyearId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("containerActivity", {
         containerNo,
         bookingNo,
         blNo,
+        clientId,
+        companyId,
+        companyBranchId,
+        userId,
+        financialyearId
       });
 
       if (data?.length === 0) {
@@ -649,114 +662,114 @@ module.exports = {
       });
     }
   },
-getThirdLevelDetails: async (req, res) => {
-  try {
-    let {
-      clientId,
-      jobId,
-      chargeId,
-      companyId,
-      companyBranchId,
-      businessSegmentId,
-      voucherTypeId,
-      blId,
-      vesselId,
-      voyageId,
-      plrId,
-      polId,
-      podId,
-      fpdId,
-      berthId,
-      containerId,
-      fromDate,
-      toDate,
-      billingPartyId,
-      containerStatusId,
-      cargoTypeId,
-      sizeId,
-      typeId,
-      // optional future params if needed:
-      agentId,
-      agentBranchId,
-      expImp,
-      icd,
-      invoiceExchageRate,
-      invoiceChargeExchangeRate,
-      rate,
-      transhipPortId,
-      cfsId,
-      containerRepairId,depotId,containerTransactionId
-    } = req.body;
+  getThirdLevelDetails: async (req, res) => {
+    try {
+      let {
+        clientId,
+        jobId,
+        chargeId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+        voucherTypeId,
+        blId,
+        vesselId,
+        voyageId,
+        plrId,
+        polId,
+        podId,
+        fpdId,
+        berthId,
+        containerId,
+        fromDate,
+        toDate,
+        billingPartyId,
+        containerStatusId,
+        cargoTypeId,
+        sizeId,
+        typeId,
+        // optional future params if needed:
+        agentId,
+        agentBranchId,
+        expImp,
+        icd,
+        invoiceExchageRate,
+        invoiceChargeExchangeRate,
+        rate,
+        transhipPortId,
+        cfsId,
+        containerRepairId, depotId, containerTransactionId
+      } = req.body;
 
-    // ✅ Build params object for stored procedure
-    let params = {
-      clientId,
-      jobId,
-      chargeId,
-      companyId,
-      companyBranchId,
-      businessSegmentId,
-      voucherTypeId,
-      blId,
-      vesselId,
-      voyageId,
-      plrId,
-      polId,
-      podId,
-      fpdId,
-      berthId,
-      containerId,
-      fromDate,
-      toDate,
-      billingPartyId,
-      containerStatusId,
-      cargoTypeId,
-      sizeId,
-      typeId,
-      agentId,
-      agentBranchId,
-      expImp,
-      icd,
-      invoiceExchageRate,
-      invoiceChargeExchangeRate,
-      rate,
-      transhipPortId,
-      cfsId,
-      containerRepairId,depotId,containerTransactionId
-      
-    };
+      // ✅ Build params object for stored procedure
+      let params = {
+        clientId,
+        jobId,
+        chargeId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+        voucherTypeId,
+        blId,
+        vesselId,
+        voyageId,
+        plrId,
+        polId,
+        podId,
+        fpdId,
+        berthId,
+        containerId,
+        fromDate,
+        toDate,
+        billingPartyId,
+        containerStatusId,
+        cargoTypeId,
+        sizeId,
+        typeId,
+        agentId,
+        agentBranchId,
+        expImp,
+        icd,
+        invoiceExchageRate,
+        invoiceChargeExchangeRate,
+        rate,
+        transhipPortId,
+        cfsId,
+        containerRepairId, depotId, containerTransactionId
 
-    // ✅ Replace undefined/empty string with null
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === "") params[key] = null;
-    });
+      };
 
-    // Call stored procedure
-    let data = await executeStoredProcedure("getThirdLevelDetails", params);
+      // ✅ Replace undefined/empty string with null
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === "") params[key] = null;
+      });
 
-    if (!data || data.length === 0) {
+      // Call stored procedure
+      let data = await executeStoredProcedure("getThirdLevelDetails", params);
+
+      if (!data || data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
       return res.send({
         success: true,
-        message: "No data found",
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
         data: [],
+        error: error.message,
       });
     }
-
-    return res.send({
-      success: true,
-      message: "Data fetched successfully!",
-      Chargers: data,
-      count: data.length,
-    });
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      message: "Error - " + error.message,
-      data: [],
-      error: error.message,
-    });
-  }
-},
+  },
 
 
   getDetentionDetails: async (req, res) => {
@@ -979,6 +992,43 @@ getThirdLevelDetails: async (req, res) => {
         plrAgentId,
         plrAgentBranchId,
         depotId
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  editContainerMovement: async (req, res) => {
+    try {
+      let {
+        clientId,
+        containerId
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("GetContainerEditLastMovement", {
+        clientId,
+        containerId
       });
 
       if (data?.length === 0) {
