@@ -9,6 +9,8 @@ const { errorLogger } = require("../helper/loggerService");
 const getFolderSize = require("../helper/getFolderSize");
 const path = require("path");
 const moment = require("moment"); // Assuming you use moment for the timestamp
+const { connectToSql } = require("../config/sqlConfig");
+const sql = require("mssql");
 
 module.exports = {
   DisPlaySeacrchApi: async (req, res) => {
@@ -294,6 +296,81 @@ module.exports = {
         success: false,
         message: "Error - " + error.message,
         data: error.message,
+      });
+    }
+  },
+  // controller.js
+  fetchVoucherSearchPageData: async (req, res) => {
+    try {
+      const {
+        tableName,
+        fieldName,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        pageNo = 1,
+        pageSize = 25,
+      } = req.body;
+
+      if (
+        !tableName ||
+        !fieldName ||
+        !clientId ||
+        !companyId ||
+        !companyBranchId ||
+        !financialYearId
+      ) {
+        return res.status(400).send({
+          success: false,
+          message:
+            "tableName, fieldName, clientId, companyId, and companyBranchId, financialYearId are required.",
+        });
+      }
+
+      const fieldNameJson =
+        typeof fieldName === "string"
+          ? fieldName
+          : JSON.stringify(fieldName || []);
+
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      const result = await request
+        .input("tableName", sql.NVarChar, tableName)
+        .input("fieldName", sql.NVarChar(sql.MAX), fieldNameJson)
+        .input("clientId", sql.Int, Number(clientId))
+        .input("companyId", sql.Int, Number(companyId))
+        .input("companyBranchId", sql.Int, Number(companyBranchId))
+        .input("financialYearId", sql.Int, Number(financialYearId))
+        .input("pageNo", sql.Int, Number(pageNo))
+        .input("pageSize", sql.Int, Number(pageSize))
+        .execute("fetchSearchPageData");
+
+      // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]
+      const row0 = result.recordset?.[0] || {};
+      const firstColName = Object.keys(row0)[0]; // "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+      const jsonText = firstColName ? row0[firstColName] : "[]";
+
+      let rows = [];
+      try {
+        rows = jsonText ? JSON.parse(jsonText) : [];
+      } catch (_) {
+        rows = [];
+      }
+
+      return res.send({
+        success: true,
+        message: "Data Fetched Successfully",
+        Count: rows.length,
+        data: rows, // <-- proper JSON array now
+      });
+    } catch (err) {
+      console.error("fetchVoucherSearchPageData error:", err);
+      return res.status(500).send({
+        success: false,
+        message: "Server error",
+        error: String(err?.message || err),
       });
     }
   },
