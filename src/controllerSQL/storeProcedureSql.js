@@ -551,6 +551,21 @@ module.exports = {
             : new Date().toLocaleDateString("en-CA"),
           "tblContainerMovement.clientId": clientId,
           "tblContainerMovement.createdBy": userId,
+          "tblContainerMovement.jobId": item.jobId
+            ? Number(item.jobId)
+            : null,
+             "tblContainerMovement.vesselId": item.vesselId
+            ? Number(item.vesselId)
+            : null,
+             "tblContainerMovement.voyageId": item.voyageId
+            ? Number(item.voyageId)
+            : null,
+             "tblContainerMovement.importBlId": item.importBlId
+            ? Number(item.importBlId)
+            : null,
+            "tblContainerMovement.importBlId": item.exportBlId
+            ? Number(item.exportBlId)
+            : null,
           "tblContainerMovement.createdDate": new Date().toLocaleDateString(
             "en-CA"
           ),
