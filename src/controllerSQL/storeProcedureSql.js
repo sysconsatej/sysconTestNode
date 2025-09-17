@@ -876,13 +876,15 @@ module.exports = {
       let {
         blId,
         noOfDays,
-        clientId
+        clientId,
+        businessSegmentId
       } = req.body;
 
       let data = await executeStoredProcedure("calculateDetentionRate", {
         blId,
         noOfDays,
-        clientId
+        clientId,
+        businessSegmentId
       });
 
       if (data?.length === 0) {
