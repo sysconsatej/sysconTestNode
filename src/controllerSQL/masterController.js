@@ -309,8 +309,9 @@ module.exports = {
         companyId,
         companyBranchId,
         financialYearId,
+        filterCondition,
         pageNo = 1,
-        pageSize = 25,
+        pageSize = 17,
       } = req.body;
 
       if (
@@ -343,6 +344,7 @@ module.exports = {
         .input("companyId", sql.Int, Number(companyId))
         .input("companyBranchId", sql.Int, Number(companyBranchId))
         .input("financialYearId", sql.Int, Number(financialYearId))
+        .input("filterCondition", sql.NVarChar(sql.MAX), filterCondition)
         .input("pageNo", sql.Int, Number(pageNo))
         .input("pageSize", sql.Int, Number(pageSize))
         .execute("fetchSearchPageData");
