@@ -427,7 +427,7 @@ module.exports = {
 
   disableEdit: async (req, res) => {
     try {
-      const { tableName, recordId } = req.body;
+      const { tableName, recordId,clientId } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -439,7 +439,8 @@ module.exports = {
       const query = `disableEdit`;
       const parameters = {
         tableName,
-        recordId
+        recordId,
+        clientId
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
@@ -476,6 +477,44 @@ module.exports = {
       const query = `disableAdd`;
       const parameters = {
         tableName
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: data[0].success,
+          message: data[0].message
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+  validatePrint: async (req, res) => {
+    try {
+      const { tableName, recordId,clientId } = req.body;
+
+      // Validate required fields
+      if (!tableName || !recordId) {
+        return res.status(400).send({
+          success: false,
+          message: "Table Name and Report Id are required.",
+        });
+      }
+      const query = `validatePrint`;
+      const parameters = {
+        tableName,
+        recordId,
+        clientId
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
