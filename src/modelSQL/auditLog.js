@@ -1,4 +1,4 @@
-import { executeStoredProcedure } from "./model";
+const { executeStoredProcedure } = require("./model");
 
 const detectChanges = (original, updated) => {
     let changes = {};
@@ -26,15 +26,19 @@ const detectChanges = (original, updated) => {
     return changes;
 };
 
-export default async function auditLog({ data, formId, id, clientID }) {
+exports.auditLog = async function auditLog({ data, formId, id, clientID }) {
     let query = {
         clientID: clientID || 4,
         menuID: formId,
         recordID: id,
     };
-    let data = await executeStoredProcedure("dynamicFetchApi", query);
-    data.length > 0
-    let updated = data[0];
-    const changes = detectChanges(data, updated);
-    return changes;
+    let res = await executeStoredProcedure("dynamicFetchApi", query);
+    res.length > 0
+    let updated = res[0] || {};
+    const changes = detectChanges(updated, data);
+    return {
+        prevFields: updated,
+        changes
+    };
+
 }

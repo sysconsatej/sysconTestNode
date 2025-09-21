@@ -11,6 +11,7 @@ const path = require("path");
 const moment = require("moment"); // Assuming you use moment for the timestamp
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
+const { auditLog } = require("../modelSQL/auditLog");
 
 module.exports = {
   DisPlaySeacrchApi: async (req, res) => {
@@ -91,7 +92,7 @@ module.exports = {
 
         let count = await executeQuery(
           `select count(*) as total from ${tableName} where status = 1 and clientId in ( ${req.clientId}, (select id from tblClient where clientCode = 'SYSCON') )` +
-            query,
+          query,
           {}
         );
         console.log(count.recordset[0].total === 0);
@@ -141,6 +142,30 @@ module.exports = {
       req.body.companyId = req.body.loginCompany;
       req.body.companyBranchId = req.body.loginBranch;
       req.body.financialYearId = req.body.loginfinYear;
+      let { changes, prevFields } = await auditLog({ data: req.body, formId: req.body.menuID, clientID: req.clientId, id: req.body.id });
+      let logData={
+        tableName: req.body.tableName,
+        action: req.body.id ? 'UPDATE' : 'INSERT',
+        prevField: JSON.stringify(prevFields),
+        changes: JSON.stringify(changes),
+        ipAddress: req.ip,
+        clientId: req.clientId,
+        documentId: req.body.id,
+        createdBy: req.userId,
+        updatedBy: req.userId,
+      }
+      console.log(req.id);
+      
+      let query=`INSERT INTO AuditLogs
+          (tableName, action, prevField, changes, ipAddress, clientId, documentId, createdBy, updatedBy)
+        VALUES
+          (@tableName, @action, @prevField, @changes, @ipAddress, @clientId, @documentId, @createdBy, @updatedBy)`
+
+      
+
+      // return res.send({ success: true, message: "Data Inserted Successfully", data: logData });
+
+      
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
         formId: req.body.menuID,
@@ -150,6 +175,7 @@ module.exports = {
         loginCompanyBranchId: req.body.loginBranch,
         finYearId: req.body.loginfinYear,
       });
+      await executeQuery(query, logData);
       res.send({
         success: true,
         message: "Data Inserted Successfully",
@@ -175,8 +201,8 @@ module.exports = {
       data.length > 0
         ? res.send({ success: true, message: "list fetched", data: data })
         : res
-            .status(403)
-            .send({ success: false, message: "No Data Found", data: [] });
+          .status(403)
+          .send({ success: false, message: "No Data Found", data: [] });
     } catch (error) {
       res.status(500).send({
         success: false,
