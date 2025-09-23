@@ -133,29 +133,29 @@ module.exports = {
             pageSize,
           } = req.body;
           console.log(dropdownFilter);
-          const obj = pageSize  ?   {
-
-            clientId: req.clientId || 4,
-            filterCondition: dropdownFilter?.trim() || null,
-            sortingOrder: sortingOrder || null,
-            tableName: referenceTable.trim(),
-            columnName: referenceColumn.trim(),
-            search: search || null,
-            pageNumber: pageNo || null,
-            value: value || "",
-            pageSize: pageSize,
-
-          } :  {
-            clientId: req.clientId || 4,
-            filterCondition: dropdownFilter?.trim() || null,
-            sortingOrder: sortingOrder || null,
-            tableName: referenceTable.trim(),
-            columnName: referenceColumn.trim(),
-            search: search || null,
-            pageNumber: pageNo || null,
-            value: value || "",
-          }
-          let data = await executeStoredProcedure("dynamicDataFetch",  obj);
+          const obj = pageSize
+            ? {
+                clientId: req.clientId || 4,
+                filterCondition: dropdownFilter?.trim() || null,
+                sortingOrder: sortingOrder || null,
+                tableName: referenceTable.trim(),
+                columnName: referenceColumn.trim(),
+                search: search || null,
+                pageNumber: pageNo || null,
+                value: value || "",
+                pageSize: pageSize,
+              }
+            : {
+                clientId: req.clientId || 4,
+                filterCondition: dropdownFilter?.trim() || null,
+                sortingOrder: sortingOrder || null,
+                tableName: referenceTable.trim(),
+                columnName: referenceColumn.trim(),
+                search: search || null,
+                pageNumber: pageNo || null,
+                value: value || "",
+              };
+          let data = await executeStoredProcedure("dynamicDataFetch", obj);
           let nextPage = data.length < 1001 ? null : pageNo + 1;
           // console.log(data);
 
@@ -285,7 +285,7 @@ module.exports = {
       }
       let count = await executeQuery(
         `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
-        query,
+          query,
         {}
       );
       if (count.recordset[0].total === 0) {
@@ -376,7 +376,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });
@@ -427,7 +427,7 @@ module.exports = {
 
   disableEdit: async (req, res) => {
     try {
-      const { tableName, recordId,clientId } = req.body;
+      const { tableName, recordId, clientId } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -440,13 +440,13 @@ module.exports = {
       const parameters = {
         tableName,
         recordId,
-        clientId
+        clientId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
         res.send({
           success: data[0].success,
-          message: data[0].message
+          message: data[0].message,
         });
       } else {
         res.send({
@@ -476,13 +476,13 @@ module.exports = {
       }
       const query = `disableAdd`;
       const parameters = {
-        tableName
+        tableName,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
         res.send({
           success: data[0].success,
-          message: data[0].message
+          message: data[0].message,
         });
       } else {
         res.send({
@@ -501,7 +501,16 @@ module.exports = {
   },
   validatePrint: async (req, res) => {
     try {
-      const { tableName, recordId,clientId } = req.body;
+      const {
+        tableName,
+        recordId,
+        clientId,
+        reportsName,
+        loginCompanyId,
+        loginBranchId,
+        loginFinYearId,
+        formOrReport,
+      } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -510,17 +519,22 @@ module.exports = {
           message: "Table Name and Report Id are required.",
         });
       }
-      const query = `validatePrint`;
+      const query = `valiDatePrint`;
       const parameters = {
         tableName,
         recordId,
-        clientId
+        clientId,
+        reportsName,
+        loginCompanyId,
+        loginBranchId,
+        loginFinYearId,
+        formOrReport,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
         res.send({
           success: data[0].success,
-          message: data[0].message
+          message: data[0].message,
         });
       } else {
         res.send({
@@ -551,13 +565,13 @@ module.exports = {
       const query = `validateSubmit`;
       const parameters = {
         tableName,
-        recordId
+        recordId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
         res.send({
           success: data[0].success,
-          message: data[0].message
+          message: data[0].message,
         });
       } else {
         res.send({
@@ -573,5 +587,5 @@ module.exports = {
         data: error.message,
       });
     }
-  }
+  },
 };
