@@ -1589,7 +1589,7 @@ module.exports = {
   },
   disableEdit: async (req, res) => {
     try{
-      const {tableName, reportId} = req.body;
+      const {tableName, reportId,clientId} = req.body;
 
       // Validate required fields
       if (!tableName || !reportId) {

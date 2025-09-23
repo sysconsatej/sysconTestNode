@@ -9,6 +9,9 @@ const { errorLogger } = require("../helper/loggerService");
 const getFolderSize = require("../helper/getFolderSize");
 const path = require("path");
 const moment = require("moment"); // Assuming you use moment for the timestamp
+const { connectToSql } = require("../config/sqlConfig");
+const sql = require("mssql");
+const { auditLog } = require("../modelSQL/auditLog");
 
 module.exports = {
   DisPlaySeacrchApi: async (req, res) => {
@@ -89,7 +92,7 @@ module.exports = {
 
         let count = await executeQuery(
           `select count(*) as total from ${tableName} where status = 1 and clientId in ( ${req.clientId}, (select id from tblClient where clientCode = 'SYSCON') )` +
-            query,
+          query,
           {}
         );
         console.log(count.recordset[0].total === 0);
@@ -139,6 +142,30 @@ module.exports = {
       req.body.companyId = req.body.loginCompany;
       req.body.companyBranchId = req.body.loginBranch;
       req.body.financialYearId = req.body.loginfinYear;
+      let { changes, prevFields } = await auditLog({ data: req.body, formId: req.body.menuID, clientID: req.clientId, id: req.body.id });
+      let logData={
+        tableName: req.body.tableName,
+        action: req.body.id ? 'UPDATE' : 'INSERT',
+        prevField: JSON.stringify(prevFields),
+        changes: JSON.stringify(changes),
+        ipAddress: req.ip,
+        clientId: req.clientId,
+        documentId: req.body.id,
+        createdBy: req.userId,
+        updatedBy: req.userId,
+      }
+      console.log(req.id);
+      
+      let query=`INSERT INTO AuditLogs
+          (tableName, action, prevField, changes, ipAddress, clientId, documentId, createdBy, updatedBy)
+        VALUES
+          (@tableName, @action, @prevField, @changes, @ipAddress, @clientId, @documentId, @createdBy, @updatedBy)`
+
+      
+
+      // return res.send({ success: true, message: "Data Inserted Successfully", data: logData });
+
+      
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
         formId: req.body.menuID,
@@ -148,6 +175,7 @@ module.exports = {
         loginCompanyBranchId: req.body.loginBranch,
         finYearId: req.body.loginfinYear,
       });
+      await executeQuery(query, logData);
       res.send({
         success: true,
         message: "Data Inserted Successfully",
@@ -173,8 +201,8 @@ module.exports = {
       data.length > 0
         ? res.send({ success: true, message: "list fetched", data: data })
         : res
-            .status(403)
-            .send({ success: false, message: "No Data Found", data: [] });
+          .status(403)
+          .send({ success: false, message: "No Data Found", data: [] });
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -294,6 +322,148 @@ module.exports = {
         success: false,
         message: "Error - " + error.message,
         data: error.message,
+      });
+    }
+  },
+  // controller.js
+  fetchVoucherSearchPageData: async (req, res) => {
+    try {
+      const {
+        tableName,
+        fieldName,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        filterCondition,
+        pageNo = 1,
+        pageSize = 17,
+      } = req.body;
+
+      if (
+        !tableName ||
+        !fieldName ||
+        !clientId ||
+        !companyId ||
+        !companyBranchId ||
+        !financialYearId
+      ) {
+        return res.status(400).send({
+          success: false,
+          message:
+            "tableName, fieldName, clientId, companyId, and companyBranchId, financialYearId are required.",
+        });
+      }
+
+      const fieldNameJson =
+        typeof fieldName === "string"
+          ? fieldName
+          : JSON.stringify(fieldName || []);
+
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      const result = await request
+        .input("tableName", sql.NVarChar, tableName)
+        .input("fieldName", sql.NVarChar(sql.MAX), fieldNameJson)
+        .input("clientId", sql.Int, Number(clientId))
+        .input("companyId", sql.Int, Number(companyId))
+        .input("companyBranchId", sql.Int, Number(companyBranchId))
+        .input("financialYearId", sql.Int, Number(financialYearId))
+        .input("filterCondition", sql.NVarChar(sql.MAX), filterCondition)
+        .input("pageNo", sql.Int, Number(pageNo))
+        .input("pageSize", sql.Int, Number(pageSize))
+        .execute("fetchSearchPageData");
+
+      // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]
+      const row0 = result.recordset?.[0] || {};
+      const firstColName = Object.keys(row0)[0]; // "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+      const jsonText = firstColName ? row0[firstColName] : "[]";
+
+      let rows = [];
+      try {
+        rows = jsonText ? JSON.parse(jsonText) : [];
+      } catch (_) {
+        rows = [];
+      }
+
+      return res.send({
+        success: true,
+        message: "Data Fetched Successfully",
+        Count: rows.length,
+        data: rows, // <-- proper JSON array now
+      });
+    } catch (err) {
+      console.error("fetchVoucherSearchPageData error:", err);
+      return res.status(500).send({
+        success: false,
+        message: "Server error",
+        error: String(err?.message || err),
+      });
+    }
+  },
+  fetchVoucherData: async (req, res) => {
+    try {
+      const {
+        recordId,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        userId
+      } = req.body;
+
+      if (
+        !recordId ||
+        !userId ||
+        !clientId ||
+        !companyId ||
+        !companyBranchId ||
+        !financialYearId
+      ) {
+        return res.status(400).send({
+          success: false,
+          message:
+            "recordId, userId, clientId, companyId, and companyBranchId, financialYearId are required.",
+        });
+      }
+
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      const result = await request
+        .input("recordId", sql.Int, Number(recordId))
+        .input("clientId", sql.Int, Number(clientId))
+        .input("companyId", sql.Int, Number(companyId))
+        .input("companyBranchId", sql.Int, Number(companyBranchId))
+        .input("financialYearId", sql.Int, Number(financialYearId))
+        .input("userId", sql.Int, Number(userId))
+        .execute("fetchVoucherData");
+
+      // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]
+      const row0 = result.recordset?.[0] || {};
+      const firstColName = Object.keys(row0)[0]; // "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+      const jsonText = firstColName ? row0[firstColName] : "[]";
+
+      let rows = [];
+      try {
+        rows = jsonText ? JSON.parse(jsonText) : [];
+      } catch (_) {
+        rows = [];
+      }
+
+      return res.send({
+        success: true,
+        message: "Data Fetched Successfully",
+        Count: rows.length,
+        data: rows, // <-- proper JSON array now
+      });
+    } catch (err) {
+      console.error("fetchVoucherSearchPageData error:", err);
+      return res.status(500).send({
+        success: false,
+        message: "Server error",
+        error: String(err?.message || err),
       });
     }
   },

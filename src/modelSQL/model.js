@@ -1,6 +1,8 @@
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
 
+ 
+
 module.exports = {
   executeQuery: async (query, data) => {
     try {
@@ -50,7 +52,7 @@ module.exports = {
       if (result.recordsets.length == 0) {
         return [];
       }
-      return result.recordset[0] || []; 
+      return result.recordset[0] || [];
     } catch (error) {
       console.error("Error inserting data:", error);
       return [];
@@ -70,7 +72,7 @@ module.exports = {
       }
       return (
         JSON.parse(
-          result.recordsets[0]?.[0]?.[
+          result.recordsets[1]?.[0]?.[
             "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
           ]
         ) || []
