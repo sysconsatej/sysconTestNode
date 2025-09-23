@@ -509,6 +509,7 @@ module.exports = {
         loginCompanyId,
         loginBranchId,
         loginFinYearId,
+        formOrReport,
       } = req.body;
 
       // Validate required fields
@@ -527,6 +528,7 @@ module.exports = {
         loginCompanyId,
         loginBranchId,
         loginFinYearId,
+        formOrReport,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
