@@ -1070,4 +1070,50 @@ module.exports = {
       });
     }
   },
+  insertVoucherData: async (req, res) => {
+    try {
+      let {
+        recordId,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        userId,
+        json
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("insertVoucherData", {
+        recordId,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        userId,
+        json
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
 };
