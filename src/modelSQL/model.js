@@ -1,6 +1,8 @@
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
 
+ 
+
 module.exports = {
   executeQuery: async (query, data) => {
     try {
