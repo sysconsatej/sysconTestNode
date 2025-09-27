@@ -4,6 +4,8 @@ const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
 const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
 const mongoose = require("mongoose");
 const moment = require("moment");
+const { connectToSql } = require("../config/sqlConfig");
+const sql = require("mssql");
 // const { errorLogger } = require("../helper/loggerService");
 const { log } = require("winston");
 function createObjectId(companyId) {
@@ -381,15 +383,16 @@ module.exports = {
 
   getcontainerActivity: async (req, res) => {
     try {
-      let { 
-        containerNo, 
-        bookingNo, 
-        blNo, 
+      let {
+        containerNo,
+        bookingNo,
+        blNo,
         clientId,
         companyId,
         companyBranchId,
         userId,
-        financialyearId } = req.body;
+        financialyearId,
+      } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("containerActivity", {
@@ -400,7 +403,7 @@ module.exports = {
         companyId,
         companyBranchId,
         userId,
-        financialyearId
+        financialyearId,
       });
 
       if (data?.length === 0) {
@@ -551,19 +554,17 @@ module.exports = {
             : new Date().toLocaleDateString("en-CA"),
           "tblContainerMovement.clientId": clientId,
           "tblContainerMovement.createdBy": userId,
-          "tblContainerMovement.jobId": item.jobId
-            ? Number(item.jobId)
-            : null,
-             "tblContainerMovement.vesselId": item.vesselId
+          "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
+          "tblContainerMovement.vesselId": item.vesselId
             ? Number(item.vesselId)
             : null,
-             "tblContainerMovement.voyageId": item.voyageId
+          "tblContainerMovement.voyageId": item.voyageId
             ? Number(item.voyageId)
             : null,
-             "tblContainerMovement.importBlId": item.importBlId
+          "tblContainerMovement.importBlId": item.importBlId
             ? Number(item.importBlId)
             : null,
-            "tblContainerMovement.importBlId": item.exportBlId
+          "tblContainerMovement.importBlId": item.exportBlId
             ? Number(item.exportBlId)
             : null,
           "tblContainerMovement.createdDate": new Date().toLocaleDateString(
@@ -606,7 +607,7 @@ module.exports = {
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
         id,
       });
-      console.log("data", data)
+      console.log("data", data);
 
       if (data?.length === 0) {
         return res.send({
@@ -644,15 +645,18 @@ module.exports = {
       } = req.body;
 
       // Call stored procedure with all necessary parameters
-      let data = await executeStoredProcedure("getContainerRepairChargeDetails", {
-        clientId,
-        voucherType,
-        DepartmentId,
-        containerRepairIds,
-        billingPartyId,
-        companyId,
-        companyBranchId,
-      });
+      let data = await executeStoredProcedure(
+        "getContainerRepairChargeDetails",
+        {
+          clientId,
+          voucherType,
+          DepartmentId,
+          containerRepairIds,
+          billingPartyId,
+          companyId,
+          companyBranchId,
+        }
+      );
 
       if (data?.length === 0) {
         return res.send({
@@ -713,7 +717,9 @@ module.exports = {
         rate,
         transhipPortId,
         cfsId,
-        containerRepairId, depotId, containerTransactionId
+        containerRepairId,
+        depotId,
+        containerTransactionId,
       } = req.body;
 
       // ✅ Build params object for stored procedure
@@ -750,8 +756,9 @@ module.exports = {
         rate,
         transhipPortId,
         cfsId,
-        containerRepairId, depotId, containerTransactionId
-
+        containerRepairId,
+        depotId,
+        containerTransactionId,
       };
 
       // ✅ Replace undefined/empty string with null
@@ -785,7 +792,6 @@ module.exports = {
       });
     }
   },
-
 
   getDetentionDetails: async (req, res) => {
     try {
@@ -832,21 +838,18 @@ module.exports = {
   },
   getThirdLevelPurchaseContainerWise: async (req, res) => {
     try {
-      let {
-        billingPartyId,
-        fromDate,
-        toDate,
-        chargeId,
-        clientId
-      } = req.body;
+      let { billingPartyId, fromDate, toDate, chargeId, clientId } = req.body;
 
-      let data = await executeStoredProcedure("getThirdLevelPurchaseContainerWise", {
-        billingPartyId,
-        fromDate,
-        toDate,
-        chargeId,
-        clientId
-      });
+      let data = await executeStoredProcedure(
+        "getThirdLevelPurchaseContainerWise",
+        {
+          billingPartyId,
+          fromDate,
+          toDate,
+          chargeId,
+          clientId,
+        }
+      );
 
       if (data?.length === 0) {
         return res.send({
@@ -873,17 +876,12 @@ module.exports = {
   },
   calculateDetentionRate: async (req, res) => {
     try {
-      let {
-        blId,
-        noOfDays,
-        clientId,
-        businessSegmentId
-      } = req.body;
+      let { blId, noOfDays, clientId, businessSegmentId } = req.body;
       let data = await executeStoredProcedure("calculateDetentionRate", {
         blId,
         noOfDays,
         clientId,
-        businessSegmentId
+        businessSegmentId,
       });
 
       if (data?.length === 0) {
@@ -956,17 +954,13 @@ module.exports = {
 
   getThirdLevelDetailsPurchase: async (req, res) => {
     try {
-      let {
-        clientId,
-        jobId,
-        chargeId
-      } = req.body;
+      let { clientId, jobId, chargeId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("getThirdLevelDetails", {
         clientId,
         jobId,
-        chargeId
+        chargeId,
       });
 
       if (data?.length === 0) {
@@ -995,19 +989,14 @@ module.exports = {
 
   fetchContainerDropdownData: async (req, res) => {
     try {
-      let {
-        clientId,
-        plrAgentId,
-        plrAgentBranchId,
-        depotId
-      } = req.body;
+      let { clientId, plrAgentId, plrAgentBranchId, depotId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("getDepotEmptyContainers", {
         clientId,
         plrAgentId,
         plrAgentBranchId,
-        depotId
+        depotId,
       });
 
       if (data?.length === 0) {
@@ -1036,15 +1025,12 @@ module.exports = {
 
   editContainerMovement: async (req, res) => {
     try {
-      let {
-        clientId,
-        containerId
-      } = req.body;
+      let { clientId, containerId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GetContainerEditLastMovement", {
         clientId,
-        containerId
+        containerId,
       });
 
       if (data?.length === 0) {
@@ -1067,6 +1053,82 @@ module.exports = {
         message: "Error - " + error.message,
         data: [],
         error: error.message,
+      });
+    }
+  },
+  insertVoucherData: async (req, res) => {
+    try {
+      let {
+        recordId,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        userId,
+        json,
+      } = req.body;
+
+      // ---- Basic validation (INT params) ----
+      const toInt = (v, name) => {
+        const n = Number(v);
+        if (!Number.isInteger(n)) {
+          throw new Error(`Invalid integer for "${name}"`);
+        }
+        return n;
+      };
+
+      const pRecordId = toInt(recordId, "recordId");
+      const pClientId = toInt(clientId, "clientId");
+      const pCompanyId = toInt(companyId, "companyId");
+      const pCompanyBranchId = toInt(companyBranchId, "companyBranchId");
+      const pFinancialYearId = toInt(financialYearId, "financialYearId");
+      const pUserId = toInt(userId, "userId");
+      let jsonParam = json;
+      if (typeof jsonParam !== "string") {
+        jsonParam = JSON.stringify(jsonParam ?? {});
+      }
+      // Optional sanity check: make sure it parses
+      try {
+        JSON.parse(jsonParam);
+      } catch {
+        throw new Error("The 'json' payload is not valid JSON text");
+      }
+
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      const result = await request
+        .input("recordId", sql.Int, pRecordId)
+        .input("clientId", sql.Int, pClientId)
+        .input("companyId", sql.Int, pCompanyId)
+        .input("companyBranchId", sql.Int, pCompanyBranchId)
+        .input("financialYearId", sql.Int, pFinancialYearId)
+        .input("userId", sql.Int, pUserId)
+        .input("json", sql.NVarChar(sql.MAX), jsonParam)
+        .execute("insertVoucherData");
+
+      const rows = result?.recordset ?? [];
+
+      if (!rows.length) {
+        return res.send({
+          success: true,
+          message: "No data returned.",
+          data: [],
+          rowsAffected: result?.rowsAffected || [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data Inserted successfully.",
+        data: rows,
+        rowsAffected: result?.rowsAffected || [],
+      });
+    } catch (error) {
+      return res.status(400).send({
+        success: false,
+        message: error.message || "Request failed.",
+        data: [],
       });
     }
   },
