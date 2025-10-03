@@ -567,6 +567,7 @@ module.exports = {
           "tblContainerMovement.importBlId": item.exportBlId
             ? Number(item.exportBlId)
             : null,
+             "tblContainerMovement.status": 1,
           "tblContainerMovement.createdDate": new Date().toLocaleDateString(
             "en-CA"
           ),
