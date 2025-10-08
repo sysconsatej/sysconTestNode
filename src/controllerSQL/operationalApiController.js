@@ -27,7 +27,7 @@ const unwrapMssqlJson = (recordset) => {
     return row;
   });
 };
-
+// Optional: parse MSSQL JSON column into plain objects
 module.exports = {
   insertUpdateBlData: async (req, res) => {
     try {
