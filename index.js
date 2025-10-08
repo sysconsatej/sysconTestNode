@@ -60,14 +60,14 @@ const Reports = require("./src/routes/Reports&sp");
 const yearEnding = require("./src/routes/yearEnding");
 const sp = require("./src/routes/storeProcedure ");
 const dynamicRouterMiddleware = require("./src/routes/SingleinsertRoute"); // Adjust path as needed
-const ReportsHtml = require("./src/routes/ReportsHtml"); //AKASH------
+const ReportsHtml = require("./src/routes/ReportsHtml");
 const loginNew = require("./src/routes/NewsRoutes");
 const chartRoutes = require("./src/routes/chartRoutes");
 const eInvoicing = require("./src/routes/eInvoicingRoute");
 const DynamicReports = require("./src/routes/DynamicReports");
 const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
 
-const SendEmail = require("./src/routes/Email"); //AKASH------
+const SendEmail = require("./src/routes/Email");
 const validations = require("./src/routes/validation");
 const SQLSp = require("./src/routesSQL/storeProcedureSql");
 
@@ -141,6 +141,7 @@ const SQLSecurity = require("./src/routesSQL/securityRoute");
 const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
+const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const { handleCrashes } = require("./handleCrash");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
@@ -163,6 +164,7 @@ app.use("/Sql/api/security", SQLSecurity);
 app.use("/Sql/api/activites", activites);
 app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
+app.use("/Sql/api/v1", operationalApi);
 
 // test api made for test adter automating code is updating is working or not
 app.get("/run-test", (req, res) => {
