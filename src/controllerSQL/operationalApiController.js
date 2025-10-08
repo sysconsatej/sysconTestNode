@@ -41,7 +41,8 @@ module.exports = {
       ) {
         return res.status(400).json({
           success: false,
-          message: "clientId is required and must be a number",
+          message:
+            "clientId is required and must be a number and jsonData is required",
         });
       }
 
