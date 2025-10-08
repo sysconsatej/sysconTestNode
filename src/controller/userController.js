@@ -892,7 +892,7 @@ module.exports = {
         });
       }
       const emailData = {
-        from: "aakashvishwakarmarm4001@gmail.com",
+        from: "rohitanabhavane26@gmail.com",
         to: data.emailId,
         subject: "Verification Otp",
         name: data.name,
