@@ -22,8 +22,8 @@ function safeParse(val) {
 } //safeParse
 
 module.exports = {
-  fetchDataByStoredProcedure: async (req, res) => {
-    const { fromDate, toDate, branchId } = req.body;
+  trialBalanceReportData: async (req, res) => {
+    const { fromDate, toDate, branchId, finYearId, clientId } = req.body;
 
     if (!fromDate || !toDate) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -38,7 +38,9 @@ module.exports = {
         .input("fromDate", sql.VarChar(10), fromDate)
         .input("toDate", sql.VarChar(10), toDate)
         .input("branchId", sql.Int, branchId)
-        .execute("tb_api");
+        .input("finYearId", sql.Int, finYearId)
+        .input("clientId", sql.Int, clientId)
+        .execute("trialBalanceApi");
 
       // Check if the result contains the expected JSON key
       const jsonKey = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
