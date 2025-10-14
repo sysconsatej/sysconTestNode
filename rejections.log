@@ -1,0 +1,51 @@
+{
+  error: ReferenceError: closeConnection is not defined
+      at trialBalanceReportData (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/accountingReports.js:60:7)
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5),
+  level: 'error',
+  message: 'unhandledRejection: closeConnection is not defined\n' +
+    'ReferenceError: closeConnection is not defined\n' +
+    '    at trialBalanceReportData (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/accountingReports.js:60:7)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)',
+  stack: 'ReferenceError: closeConnection is not defined\n' +
+    '    at trialBalanceReportData (/var/application/mainCode-NodeJs-SQL/src/controllerSQL/accountingReports.js:60:7)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)',
+  rejection: true,
+  date: 'Fri Oct 10 2025 14:54:44 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 2089547,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/application/mainCode-NodeJs-SQL',
+    execPath: '/usr/bin/node',
+    version: 'v20.17.0',
+    argv: [ '/usr/bin/node', '/var/application/mainCode-NodeJs-SQL/bin/www' ],
+    memoryUsage: {
+      rss: 214671360,
+      heapTotal: 102703104,
+      heapUsed: 96561152,
+      external: 22504057,
+      arrayBuffers: 19127650
+    }
+  },
+  os: { loadavg: [ 0.25, 0.16, 0.11 ], uptime: 6927485.71 },
+  trace: [
+    {
+      column: 7,
+      file: '/var/application/mainCode-NodeJs-SQL/src/controllerSQL/accountingReports.js',
+      function: 'trialBalanceReportData',
+      line: 60,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'node:internal/process/task_queues',
+      function: 'process.processTicksAndRejections',
+      line: 95,
+      method: 'processTicksAndRejections',
+      native: false
+    }
+  ],
+  timestamp: '2025-10-10T09:24:44.122Z'
+}

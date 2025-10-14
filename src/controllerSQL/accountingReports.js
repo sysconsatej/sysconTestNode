@@ -57,7 +57,7 @@ module.exports = {
       console.error("Failed to execute stored procedure:", error.message);
       res.status(500).send("Failed to fetch data from MS SQL");
     } finally {
-      await closeConnection();
+      //await closeConnection();
     }
   },
 
