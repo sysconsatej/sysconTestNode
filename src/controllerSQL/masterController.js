@@ -313,6 +313,8 @@ module.exports = {
               path: `api/images/${req.clientCode}/` + image_name,
               status: 1,
             };
+            let query = `INSERT INTO tblAttachmentTrack (path) VALUES ('${responce.data.path}');`;
+            await executeQuery(query, {});
           }
         }
       }
