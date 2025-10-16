@@ -9,6 +9,7 @@ var logger = require("morgan");
 var bodyParser = require("body-parser");
 var session = require("express-session");
 var status = require("express-status-monitor");
+const cron = require("node-cron");
 const sqllConnection = require("./src/config/sqlConfig");
 
 var flash = require("connect-flash");
@@ -143,6 +144,7 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const { handleCrashes } = require("./handleCrash");
+const { deleteDeletedAttachments, deleteUnsavedAttachments } = require("./src/modelSQL/fileDelete");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -174,6 +176,17 @@ app.get("/run-test", (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+/*********************************************
+ * Uncomment the following lines to enable the cron job for cleaning up attachments every 4 hours
+ ********************************************/
+
+// cron.schedule('0 */4 * * *', async () => {
+//   console.log('🕒 Running bulk attachment cleanup job...');
+//   await deleteUnsavedAttachments();
+//   await deleteDeletedAttachments();
+// });
 
 app.use(function (req, res, next) {
   next(createError(404));
