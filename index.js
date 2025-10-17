@@ -182,11 +182,11 @@ app.get("/run-test", (req, res) => {
  * Uncomment the following lines to enable the cron job for cleaning up attachments every 4 hours
  ********************************************/
 
-// cron.schedule('0 */4 * * *', async () => {
-//   console.log('🕒 Running bulk attachment cleanup job...');
-//   await deleteUnsavedAttachments();
-//   await deleteDeletedAttachments();
-// });
+ cron.schedule('0 */4 * * *', async () => {
+   console.log('🕒 Running bulk attachment cleanup job...');
+   await deleteUnsavedAttachments();
+   await deleteDeletedAttachments();
+ });
 
 app.use(function (req, res, next) {
   next(createError(404));
