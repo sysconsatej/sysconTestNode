@@ -26,7 +26,7 @@ module.exports = {
     const { fromDate, toDate, branchId, finYearId, clientId, tbGroupId } =
       req.body;
 
-    if (!fromDate || !toDate) {
+    if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
