@@ -23,7 +23,8 @@ function safeParse(val) {
 
 module.exports = {
   trialBalanceReportData: async (req, res) => {
-    const { fromDate, toDate, branchId, finYearId, clientId } = req.body;
+    const { fromDate, toDate, branchId, finYearId, clientId, tbGroupId } =
+      req.body;
 
     if (!fromDate || !toDate) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -40,6 +41,7 @@ module.exports = {
         .input("branchId", sql.Int, branchId)
         .input("finYearId", sql.Int, finYearId)
         .input("clientId", sql.Int, clientId)
+        .input("tbGroupId", sql.Int, tbGroupId)
         .execute("trialBalanceApi");
 
       // Check if the result contains the expected JSON key
@@ -52,7 +54,21 @@ module.exports = {
       const jsonString = result.recordset[0][jsonKey];
       const parsedData = JSON.parse(jsonString);
 
-      res.status(200).json(parsedData);
+      if (parsedData.length > 0) {
+        res.status(200).json({
+          success: true,
+          message: "Data Fetched Successfully",
+          data: parsedData,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Internal Server Error",
+          data: error?.message,
+        });
+      }
+
+      //res.status(200).json(parsedData);
     } catch (error) {
       console.error("Failed to execute stored procedure:", error.message);
       res.status(500).send("Failed to fetch data from MS SQL");
