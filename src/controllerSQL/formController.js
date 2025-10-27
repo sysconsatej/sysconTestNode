@@ -427,7 +427,7 @@ module.exports = {
 
   disableEdit: async (req, res) => {
     try {
-      const { tableName, recordId, clientId } = req.body;
+      const { tableName, recordId, clientId,menuId } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -441,6 +441,7 @@ module.exports = {
         tableName,
         recordId,
         clientId,
+        menuId
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
