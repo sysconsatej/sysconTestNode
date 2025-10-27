@@ -50,6 +50,43 @@
   timestamp: '2025-10-10T09:24:44.122Z'
 }
 {
+<<<<<<< HEAD
+  errno: -4094,
+  code: 'UNKNOWN',
+  syscall: 'spawn',
+  level: 'error',
+  message: 'Uncaught Exception: spawn UNKNOWN',
+  stack: 'Error: spawn UNKNOWN\n' +
+    '    at ChildProcess.spawn (node:internal/child_process:420:11)\n' +
+    '    at spawn (node:child_process:787:9)\n' +
+    '    at run (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\lib\\bin.js:18:12)\n' +
+    '    at wmic (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\lib\\wmic.js:48:3)\n' +
+    '    at get (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\lib\\stats.js:74:3)\n' +
+    '    at pidusage (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\index.js:25:5)\n' +
+    '    at module.exports (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\express-status-monitor\\src\\helpers\\gather-os-metrics.js:26:3)\n' +
+    '    at Timeout._onTimeout (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\express-status-monitor\\src\\helpers\\socket-io-init.js:42:42)\n' +
+    '    at listOnTimeout (node:internal/timers:588:17)\n' +
+    '    at process.processTimers (node:internal/timers:523:7)',
+  timestamp: '2025-10-25T07:20:55.687Z'
+}
+{
+  error: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+      at C:\new Project\mainCode-NodeJs-SQL\node_modules\mssql\lib\tedious\connection-pool.js:85:17
+      at Connection.onConnect (C:\new Project\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:849:9)
+      at Object.onceWrapper (node:events:634:26)
+      at Connection.emit (node:events:519:28)
+      at Connection.emit (C:\new Project\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:970:18)
+      at Connection.connectTimeout (C:\new Project\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:10)
+      at Timeout._onTimeout (C:\new Project\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+      at listOnTimeout (node:internal/timers:588:17)
+      at process.processTimers (node:internal/timers:523:7) {
+    code: 'ETIMEOUT',
+    originalError: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
+        at Connection.connectTimeout (C:\new Project\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1222:26)
+        at Timeout._onTimeout (C:\new Project\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
+        at listOnTimeout (node:internal/timers:588:17)
+        at process.processTimers (node:internal/timers:523:7) {
+=======
   error: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
       at C:\Users\user2\Desktop\ak\01_10_2025\mainCode-NodeJs-SQL\node_modules\mssql\lib\tedious\connection-pool.js:85:17
       at Connection.onConnect (C:\Users\user2\Desktop\ak\01_10_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:849:9)
@@ -66,12 +103,60 @@
         at Timeout._onTimeout (C:\Users\user2\Desktop\ak\01_10_2025\mainCode-NodeJs-SQL\node_modules\tedious\lib\connection.js:1167:12)
         at listOnTimeout (node:internal/timers:573:17)
         at process.processTimers (node:internal/timers:514:7) {
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       code: 'ETIMEOUT'
     }
   },
   level: 'error',
   message: 'unhandledRejection: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
     'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+<<<<<<< HEAD
+    '    at C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:634:26)\n' +
+    '    at Connection.emit (node:events:519:28)\n' +
+    '    at Connection.emit (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:588:17)\n' +
+    '    at process.processTimers (node:internal/timers:523:7)',
+  stack: 'ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms\n' +
+    '    at C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
+    '    at Connection.onConnect (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
+    '    at Object.onceWrapper (node:events:634:26)\n' +
+    '    at Connection.emit (node:events:519:28)\n' +
+    '    at Connection.emit (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:970:18)\n' +
+    '    at Connection.connectTimeout (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1222:10)\n' +
+    '    at Timeout._onTimeout (C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:1167:12)\n' +
+    '    at listOnTimeout (node:internal/timers:588:17)\n' +
+    '    at process.processTimers (node:internal/timers:523:7)',
+  rejection: true,
+  date: 'Sat Oct 25 2025 16:10:22 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 4564,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\new Project\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\new Project\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 135098368,
+      heapTotal: 95117312,
+      heapUsed: 69057992,
+      external: 22450417,
+      arrayBuffers: 18761281
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 453124.437 },
+  trace: [
+    {
+      column: 17,
+      file: 'C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js',
+=======
     '    at C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js:85:17\n' +
     '    at Connection.onConnect (C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js:849:9)\n' +
     '    at Object.onceWrapper (node:events:635:26)\n' +
@@ -117,6 +202,7 @@
     {
       column: 17,
       file: 'C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\mssql\\lib\\tedious\\connection-pool.js',
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       function: null,
       line: 85,
       method: null,
@@ -124,7 +210,11 @@
     },
     {
       column: 9,
+<<<<<<< HEAD
+      file: 'C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+=======
       file: 'C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       function: 'Connection.onConnect',
       line: 849,
       method: 'onConnect',
@@ -134,7 +224,11 @@
       column: 26,
       file: 'node:events',
       function: 'Object.onceWrapper',
+<<<<<<< HEAD
+      line: 634,
+=======
       line: 635,
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       method: 'onceWrapper',
       native: false
     },
@@ -142,13 +236,21 @@
       column: 28,
       file: 'node:events',
       function: 'Connection.emit',
+<<<<<<< HEAD
+      line: 519,
+=======
       line: 520,
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       method: 'emit',
       native: false
     },
     {
       column: 18,
+<<<<<<< HEAD
+      file: 'C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+=======
       file: 'C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       function: 'Connection.emit',
       line: 970,
       method: 'emit',
@@ -156,7 +258,11 @@
     },
     {
       column: 10,
+<<<<<<< HEAD
+      file: 'C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+=======
       file: 'C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       function: 'Connection.connectTimeout',
       line: 1222,
       method: 'connectTimeout',
@@ -164,7 +270,11 @@
     },
     {
       column: 12,
+<<<<<<< HEAD
+      file: 'C:\\new Project\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+=======
       file: 'C:\\Users\\user2\\Desktop\\ak\\01_10_2025\\mainCode-NodeJs-SQL\\node_modules\\tedious\\lib\\connection.js',
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       function: 'Timeout._onTimeout',
       line: 1167,
       method: '_onTimeout',
@@ -174,7 +284,11 @@
       column: 17,
       file: 'node:internal/timers',
       function: 'listOnTimeout',
+<<<<<<< HEAD
+      line: 588,
+=======
       line: 573,
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       method: null,
       native: false
     },
@@ -182,11 +296,18 @@
       column: 7,
       file: 'node:internal/timers',
       function: 'process.processTimers',
+<<<<<<< HEAD
+      line: 523,
+=======
       line: 514,
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
       method: 'processTimers',
       native: false
     }
   ],
+<<<<<<< HEAD
+  timestamp: '2025-10-25T10:40:22.131Z'
+=======
   timestamp: '2025-10-25T06:18:15.222Z'
 }
 {
@@ -328,4 +449,5 @@
     }
   ],
   timestamp: '2025-10-25T07:16:50.978Z'
+>>>>>>> e93d3c0ef6a4449e48b100a30c8715e468f15313
 }
