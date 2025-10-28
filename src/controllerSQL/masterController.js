@@ -340,6 +340,8 @@ module.exports = {
         filterCondition,
         pageNo = 1,
         pageSize = 17,
+        keyName,
+        keyValue,
       } = req.body;
 
       if (
@@ -375,6 +377,8 @@ module.exports = {
         .input("filterCondition", sql.NVarChar(sql.MAX), filterCondition)
         .input("pageNo", sql.Int, Number(pageNo))
         .input("pageSize", sql.Int, Number(pageSize))
+        .input("keyValue", sql.NVarChar, keyValue)
+        .input("keyName", sql.NVarChar, keyName)
         .execute("fetchSearchPageData");
 
       // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]
