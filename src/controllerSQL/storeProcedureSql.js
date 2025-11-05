@@ -877,12 +877,15 @@ module.exports = {
   },
   calculateDetentionRate: async (req, res) => {
     try {
-      let { blId, noOfDays, clientId, businessSegmentId } = req.body;
+      let { blId, noOfDays, clientId, businessSegmentId,fromDate,toDate,containerId } = req.body;
       let data = await executeStoredProcedure("calculateDetentionRate", {
         blId,
         noOfDays,
         clientId,
         businessSegmentId,
+        fromDate,
+        toDate,
+        containerId
       });
 
       if (data?.length === 0) {
