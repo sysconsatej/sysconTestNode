@@ -5,5 +5,6 @@ const controller = require("../controllerSQL/accountingReports");
 router.post("/trialBalanceReportData", controller.trialBalanceReportData);
 router.post("/accountData", controller.fetchBalanceSheetData);
 router.post("/fetchData", controller.fetchDataByStoredProcedureAPI);
+router.post("/ledgerReportData", controller.ledgerReportData);
 
 module.exports = router;

@@ -2,6 +2,10 @@ const express = require("express");
 const nodemailer = require("nodemailer");
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
+const {
+  executeStoredProcedure,
+  execSpWithJsonParam,
+} = require("../modelSQL/model");
 
 const app = express();
 app.use(express.json());
@@ -76,7 +80,6 @@ module.exports = {
       //await closeConnection();
     }
   },
-
   fetchBalanceSheetData: async (req, res) => {
     const {
       companyId,
@@ -174,6 +177,38 @@ module.exports = {
       if (pool) {
         await closeConnection(); // Close the connection
       }
+    }
+  },
+  ledgerReportData: async (req, res) => {
+    const { filterCondition, spName } = req.body;
+
+    if (!spName) {
+      console.log("Stored procedure name not found", spName);
+      return;
+    }
+    console.log("filterCondition", filterCondition);
+    console.log("spName =>>", spName);
+    try {
+      const response = await execSpWithJsonParam(spName, filterCondition);
+      if (!Array.isArray(response)) {
+        return res.status(400).json({
+          success: false,
+          message: "Fetched data is not an array",
+          data: response,
+        });
+      }
+      res.status(200).json({
+        success: true,
+        message: "Data fetched and filtered successfully!",
+        length: response.length,
+        data: response,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch data!",
+        error: error.message,
+      });
     }
   },
 };
