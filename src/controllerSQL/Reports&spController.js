@@ -134,10 +134,11 @@ module.exports = {
   },
   spJob: async (req, res) => {
     try {
-      const { id } = req.body;
+      const { id, reportId } = req.body;
       const query = `jobData`;
       const parameters = {
         id,
+        reportId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
