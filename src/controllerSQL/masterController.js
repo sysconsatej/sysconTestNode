@@ -281,12 +281,12 @@ module.exports = {
             // break; // Break out of the loop
           }
           // Check file size
-          else if (file.size > 1024 * 1024) {
+          else if (file.size > 5 * 1024 * 1024) {
             // 1MB in bytes
             responce.success = false; // Update flag since response is being sent
 
             responce.message =
-              "The file size exceeds the maximum limit of 1MB.";
+              "The file size exceeds the maximum limit of 5MB.";
 
             // break; // Break out of the loop
           } else {
@@ -313,6 +313,8 @@ module.exports = {
               path: `api/images/${req.clientCode}/` + image_name,
               status: 1,
             };
+            let query = `INSERT INTO tblAttachmentTrack (path) VALUES ('${responce.data.path}');`;
+            await executeQuery(query, {});
           }
         }
       }
@@ -338,6 +340,8 @@ module.exports = {
         filterCondition,
         pageNo = 1,
         pageSize = 17,
+        keyName,
+        keyValue,
       } = req.body;
 
       if (
@@ -373,6 +377,8 @@ module.exports = {
         .input("filterCondition", sql.NVarChar(sql.MAX), filterCondition)
         .input("pageNo", sql.Int, Number(pageNo))
         .input("pageSize", sql.Int, Number(pageSize))
+        .input("keyValue", sql.NVarChar, keyValue)
+        .input("keyName", sql.NVarChar, keyName)
         .execute("fetchSearchPageData");
 
       // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]

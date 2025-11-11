@@ -394,7 +394,7 @@ module.exports = {
       // 3. Send Email with PDF Attachment
       const info = await transporter.sendMail({
         from: "rohitanabhavane26@gmail.com",
-        to: "akash@sysconinfotech.com , rohitanabhavane26@gmail.com",
+        to: "rohitanabhavane26@gmail.com",
         cc,
         bcc,
         subject: "Report",
@@ -461,7 +461,7 @@ module.exports = {
       // 3. Send Email with Screenshot in Body
       const info = await transporter.sendMail({
         from: "rohitanabhavane26@gmail.com",
-        to: "akash@sysconinfotech.com , rohitanabhavane26@gmail.com",
+        to: "rohitanabhavane26@gmail.com",
         cc,
         bcc,
         subject,

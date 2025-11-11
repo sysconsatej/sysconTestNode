@@ -2,6 +2,10 @@ const express = require("express");
 const nodemailer = require("nodemailer");
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
+const {
+  executeStoredProcedure,
+  execSpWithJsonParam,
+} = require("../modelSQL/model");
 
 const app = express();
 app.use(express.json());
@@ -22,10 +26,11 @@ function safeParse(val) {
 } //safeParse
 
 module.exports = {
-  fetchDataByStoredProcedure: async (req, res) => {
-    const { fromDate, toDate, branchId } = req.body;
+  trialBalanceReportData: async (req, res) => {
+    const { fromDate, toDate, branchId, finYearId, clientId, tbGroupId } =
+      req.body;
 
-    if (!fromDate || !toDate) {
+    if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
@@ -38,7 +43,10 @@ module.exports = {
         .input("fromDate", sql.VarChar(10), fromDate)
         .input("toDate", sql.VarChar(10), toDate)
         .input("branchId", sql.Int, branchId)
-        .execute("tb_api");
+        .input("finYearId", sql.Int, finYearId)
+        .input("clientId", sql.Int, clientId)
+        .input("tbGroupId", sql.Int, tbGroupId)
+        .execute("trialBalanceApi");
 
       // Check if the result contains the expected JSON key
       const jsonKey = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
@@ -50,15 +58,28 @@ module.exports = {
       const jsonString = result.recordset[0][jsonKey];
       const parsedData = JSON.parse(jsonString);
 
-      res.status(200).json(parsedData);
+      if (parsedData.length > 0) {
+        res.status(200).json({
+          success: true,
+          message: "Data Fetched Successfully",
+          data: parsedData,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Internal Server Error",
+          data: error?.message,
+        });
+      }
+
+      //res.status(200).json(parsedData);
     } catch (error) {
       console.error("Failed to execute stored procedure:", error.message);
       res.status(500).send("Failed to fetch data from MS SQL");
     } finally {
-      await closeConnection();
+      //await closeConnection();
     }
   },
-
   fetchBalanceSheetData: async (req, res) => {
     const {
       companyId,
@@ -156,6 +177,38 @@ module.exports = {
       if (pool) {
         await closeConnection(); // Close the connection
       }
+    }
+  },
+  ledgerReportData: async (req, res) => {
+    const { filterCondition, spName } = req.body;
+
+    if (!spName) {
+      console.log("Stored procedure name not found", spName);
+      return;
+    }
+    console.log("filterCondition", filterCondition);
+    console.log("spName =>>", spName);
+    try {
+      const response = await execSpWithJsonParam(spName, filterCondition);
+      if (!Array.isArray(response)) {
+        return res.status(400).json({
+          success: false,
+          message: "Fetched data is not an array",
+          data: response,
+        });
+      }
+      res.status(200).json({
+        success: true,
+        message: "Data fetched and filtered successfully!",
+        length: response.length,
+        data: response,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch data!",
+        error: error.message,
+      });
     }
   },
 };

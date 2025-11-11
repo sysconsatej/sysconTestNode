@@ -3000,12 +3000,12 @@ module.exports = {
             // break; // Break out of the loop
           }
           // Check file size
-          else if (file.size > 1024 * 1024) {
+          else if (file.size > 5 * 1024 * 1024) {
             // 1MB in bytes
             responce.success = false; // Update flag since response is being sent
 
             responce.message =
-              "The file size exceeds the maximum limit of 1MB.";
+              "The file size exceeds the maximum limit of 5MB.";
 
             // break; // Break out of the loop
           } else {
