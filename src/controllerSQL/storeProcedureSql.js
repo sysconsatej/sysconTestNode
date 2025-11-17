@@ -567,7 +567,7 @@ module.exports = {
           "tblContainerMovement.importBlId": item.exportBlId
             ? Number(item.exportBlId)
             : null,
-             "tblContainerMovement.status": 1,
+          "tblContainerMovement.status": 1,
           "tblContainerMovement.createdDate": new Date().toLocaleDateString(
             "en-CA"
           ),
@@ -877,12 +877,23 @@ module.exports = {
   },
   calculateDetentionRate: async (req, res) => {
     try {
-      let { blId, noOfDays, clientId, businessSegmentId } = req.body;
+      let {
+        blId,
+        noOfDays,
+        clientId,
+        businessSegmentId,
+        fromDate,
+        toDate,
+        containerId,
+      } = req.body;
       let data = await executeStoredProcedure("calculateDetentionRate", {
         blId,
         noOfDays,
         clientId,
         businessSegmentId,
+        fromDate,
+        toDate,
+        containerId,
       });
 
       if (data?.length === 0) {
@@ -1134,9 +1145,16 @@ module.exports = {
     }
   },
 
-   getContainerNextActivities: async (req, res) => {
+  getContainerNextActivities: async (req, res) => {
     try {
-      const { containerId,companyId,companybranchId,financialyearId,userId,clientId } = req.body || {};
+      const {
+        containerId,
+        companyId,
+        companybranchId,
+        financialyearId,
+        userId,
+        clientId,
+      } = req.body || {};
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("containerNextActivities", {
@@ -1145,7 +1163,7 @@ module.exports = {
         companybranchId,
         financialyearId,
         userId,
-        clientId
+        clientId,
       });
 
       if (data?.length === 0) {
