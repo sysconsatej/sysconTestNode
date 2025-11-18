@@ -6,6 +6,7 @@ const {
   executeQuery,
   executeStoredProcedure,
   executeMultipleStoredProcedure,
+  execSpWithJsonParam,
 } = require("../../modelSQL/model");
 
 const userFindByEmail = async (email) => {
@@ -473,6 +474,29 @@ module.exports = {
           data: response,
         });
       }
+      res.status(200).json({
+        success: true,
+        message: "Data fetched and filtered successfully!",
+        length: response.length,
+        data: response,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch data!",
+        error: error.message,
+      });
+    }
+  },
+  fetchAnalysisReportAPIData: async (req, res) => {
+    const { filterCondition, spName } = req.body;
+
+    if (!spName) {
+      console.log("Stored procedure name not found", spName);
+      return;
+    }
+    try {
+      const response = await execSpWithJsonParam(spName, filterCondition?.json);
       res.status(200).json({
         success: true,
         message: "Data fetched and filtered successfully!",
