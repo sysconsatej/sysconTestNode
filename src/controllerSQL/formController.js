@@ -427,7 +427,7 @@ module.exports = {
 
   disableEdit: async (req, res) => {
     try {
-      const { tableName, recordId, clientId,menuId } = req.body;
+      const { tableName, recordId, clientId, menuId } = req.body;
 
       // Validate required fields
       if (!tableName || !recordId) {
@@ -441,7 +441,7 @@ module.exports = {
         tableName,
         recordId,
         clientId,
-        menuId
+        menuId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
@@ -567,6 +567,49 @@ module.exports = {
       const parameters = {
         tableName,
         recordId,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: data[0].success,
+          message: data[0].message,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+  tallyDebitCredit: async (req, res) => {
+    try {
+      const { debitAmt, creditAmt } = req.body;
+
+      // Validate required fields
+      if (!debitAmt) {
+        return res.status(400).send({
+          success: false,
+          message: "Debit Amount is required.",
+        });
+      }
+      if (!creditAmt) {
+        return res.status(400).send({
+          success: false,
+          message: "Credit Amount is required.",
+        });
+      }
+      const query = `tallyDebitCredit`;
+      const parameters = {
+        debitAmt,
+        creditAmt,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
