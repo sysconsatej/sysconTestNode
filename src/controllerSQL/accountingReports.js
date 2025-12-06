@@ -27,8 +27,15 @@ function safeParse(val) {
 
 module.exports = {
   trialBalanceReportData: async (req, res) => {
-    const { fromDate, toDate, branchId, finYearId, clientId, tbGroupId } =
-      req.body;
+    const {
+      fromDate,
+      toDate,
+      branchId,
+      finYearId,
+      clientId,
+      tbGroupId,
+      suppressZero,
+    } = req.body;
 
     if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -46,6 +53,7 @@ module.exports = {
         .input("finYearId", sql.Int, finYearId)
         .input("clientId", sql.Int, clientId)
         .input("tbGroupId", sql.Int, tbGroupId)
+        .input("suppressZero", sql.Int, suppressZero)
         .execute("trialBalanceApi");
 
       // Check if the result contains the expected JSON key
@@ -81,8 +89,15 @@ module.exports = {
     }
   },
   balanceSheetReportData: async (req, res) => {
-    const { fromDate, toDate, branchId, finYearId, clientId, tbGroupId } =
-      req.body;
+    const {
+      fromDate,
+      toDate,
+      branchId,
+      finYearId,
+      clientId,
+      suppressZero,
+      tbGroupId,
+    } = req.body;
 
     if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -100,6 +115,7 @@ module.exports = {
         .input("finYearId", sql.Int, finYearId)
         .input("clientId", sql.Int, clientId)
         .input("tbGroupId", sql.Int, tbGroupId)
+        .input("suppressZero", sql.Int, suppressZero)
         .execute("balanceSheetApi");
 
       // Check if the result contains the expected JSON key
