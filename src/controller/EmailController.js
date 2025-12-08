@@ -288,8 +288,9 @@ module.exports = {
       // Send the generated PDF back to the client
       res.set({
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${pdfFilename || "GeneratedPDF"
-          }.pdf"`,
+        "Content-Disposition": `attachment; filename="${
+          pdfFilename || "GeneratedPDF"
+        }.pdf"`,
       });
 
       res.send(pdfBuffer);
@@ -623,7 +624,6 @@ module.exports = {
 
   // Put these at the top of your file (module-level)
 
-
   // Your API handler
   localPDFReports: async (req, res) => {
     let browser;
@@ -693,20 +693,24 @@ module.exports = {
       res.end(pdfBuffer, "binary");
     } catch (error) {
       console.error("Error generating PDF:", error);
-      res.status(500).send("An error occurred while generating the PDF");
+      // res.status(500).send("An error occurred while generating the PDF");
+      res.status(500).json({
+        success: false,
+        message: error.message || "An error occurred while generating the PDF",
+      });
     } finally {
       // ✅ Make sure resources are cleaned up even on error
       if (page) {
         try {
           await page.close();
-        } catch { }
+        } catch {}
       }
       if (browser) {
         try {
           await browser.close();
-        } catch { }
+        } catch {}
       }
     }
   },
 };
-// done
+// done code 
