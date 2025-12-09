@@ -4,7 +4,8 @@ const {
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
 } = require("../modelSQL/model");
-const maxAllowedSizeInBytes = 1024 * 1024 * 1024;
+// const maxAllowedSizeInBytes = 1024 * 1024 * 1024;
+const maxAllowedSizeInBytes = 5 * 1024 * 1024 * 1024;
 const { errorLogger } = require("../helper/loggerService");
 const getFolderSize = require("../helper/getFolderSize");
 const path = require("path");

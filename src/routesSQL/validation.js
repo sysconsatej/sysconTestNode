@@ -36,6 +36,10 @@ router.post(
   formControlController.fetchReportAPIData
 );
 router.post(
+  "/formControlValidation/fetchAnalysisReportAPIData",
+  formControlController.fetchAnalysisReportAPIData
+);
+router.post(
   "/formControlValidation/checkDuplicate",
   formControlController.checkDuplicateData
 );

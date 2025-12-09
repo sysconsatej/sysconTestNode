@@ -964,6 +964,50 @@ module.exports = {
     }
   },
 
+  getVoucherThirlLevelData: async (req, res) => {
+    try {
+      // Accept either { clientId, glId } or legacy { id } -> throw if missing
+      const { clientId, glId } = req.body || {};
+
+      if (!clientId || !glId) {
+        return res.status(400).send({
+          success: false,
+          message: "clientId and glId are required.",
+          data: [],
+        });
+      }
+
+      const data = await executeStoredProcedure("unadjustedThirdLevelVoucherData", {
+        clientId: Number(clientId),
+        glId: Number(glId),
+      });
+
+      if (!Array.isArray(data) || data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+          count: 0,
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        vouchers: data, // clearer key name
+        count: data.length,
+      });
+    } catch (error) {
+      console.error("getVoucher error:", error);
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
   getThirdLevelDetailsPurchase: async (req, res) => {
     try {
       let { clientId, jobId, chargeId } = req.body;
