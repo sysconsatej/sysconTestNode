@@ -7,6 +7,24 @@ const fetch = require("node-fetch");
 const app = express();
 app.use(express.json());
 
+let tailwindCSSPromise = null;
+
+async function getTailwindCSS() {
+  if (tailwindCSSPromise) return tailwindCSSPromise;
+
+  tailwindCSSPromise = fetch(
+    "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+  )
+    .then((res) => res.text())
+    .catch((err) => {
+      // if fetch fails, reset so next request can retry
+      tailwindCSSPromise = null;
+      throw err;
+    });
+
+  return tailwindCSSPromise;
+}
+
 module.exports = {
   Email: async (req, res) => {
     const { to, cc, bcc, subject, body } = req.body;
@@ -534,16 +552,89 @@ module.exports = {
       });
     }
   },
+  // localPDFReports: async (req, res) => {
+  //   try {
+  //     const { htmlContent, orientation, pdfFilename } = req.body;
+
+  //     // Fetch Tailwind CSS
+  //     const tailwindCSS = await fetch(
+  //       "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+  //     ).then((res) => res.text());
+
+  //     // Wrap HTML
+  //     const fullStyledHtml = `
+  //     <!DOCTYPE html>
+  //     <html lang="en">
+  //       <head>
+  //         <meta charset="UTF-8" />
+  //         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  //         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+  //         <style>
+  //           ${tailwindCSS}
+  //           body { font-family: 'Inter', sans-serif; }
+  //           @page { margin: 10px; }
+  //         </style>
+  //       </head>
+  //       <body>${htmlContent}</body>
+  //     </html>
+  //   `;
+
+  //     const browser = await puppeteer.launch({
+  //       args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  //       //executablePath: "/usr/bin/chromium-browser",
+  //     });
+
+  //     const page = await browser.newPage();
+
+  //     await page.setContent(fullStyledHtml, {
+  //       waitUntil: "networkidle0",
+  //     });
+
+  //     // ✅ Wait for all images to load
+  //     await page.evaluate(async () => {
+  //       const selectors = Array.from(document.images).map((img) => {
+  //         if (img.complete) return Promise.resolve();
+  //         return new Promise((resolve) => {
+  //           img.onload = img.onerror = resolve;
+  //         });
+  //       });
+  //       await Promise.all(selectors);
+  //     });
+
+  //     const pdfBuffer = await page.pdf({
+  //       format: "A4",
+  //       printBackground: true,
+  //       landscape: orientation === "landscape",
+  //       margin: { top: "10px", bottom: "10px", left: "10px", right: "10px" },
+  //     });
+
+  //     await browser.close();
+
+  //     res.setHeader("Content-Type", "application/pdf");
+  //     res.setHeader(
+  //       "Content-Disposition",
+  //       `attachment; filename="${pdfFilename}.pdf"`
+  //     );
+  //     res.end(pdfBuffer, "binary");
+  //   } catch (error) {
+  //     console.error("Error generating PDF:", error);
+  //     res.status(500).send("An error occurred while generating the PDF");
+  //   }
+  // },
+
+  // Put these at the top of your file (module-level)
+
+  // Your API handler
   localPDFReports: async (req, res) => {
+    let browser;
+    let page;
+
     try {
       const { htmlContent, orientation, pdfFilename } = req.body;
 
-      // Fetch Tailwind CSS
-      const tailwindCSS = await fetch(
-        "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      ).then((res) => res.text());
+      // ✅ Keep behavior same: assume htmlContent is provided by caller
+      const tailwindCSS = await getTailwindCSS();
 
-      // Wrap HTML
       const fullStyledHtml = `
       <!DOCTYPE html>
       <html lang="en">
@@ -561,26 +652,30 @@ module.exports = {
       </html>
     `;
 
-      const browser = await puppeteer.launch({
+      browser = await puppeteer.launch({
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
         executablePath: "/usr/bin/chromium-browser",
       });
 
-      const page = await browser.newPage();
+      page = await browser.newPage();
 
       await page.setContent(fullStyledHtml, {
         waitUntil: "networkidle0",
       });
 
-      // ✅ Wait for all images to load
+      // ✅ Wait for all images to load (same behavior, slightly tighter code)
       await page.evaluate(async () => {
-        const selectors = Array.from(document.images).map((img) => {
-          if (img.complete) return Promise.resolve();
-          return new Promise((resolve) => {
-            img.onload = img.onerror = resolve;
-          });
-        });
-        await Promise.all(selectors);
+        const images = Array.from(document.images);
+        if (!images.length) return;
+
+        await Promise.all(
+          images.map((img) => {
+            if (img.complete) return;
+            return new Promise((resolve) => {
+              img.onload = img.onerror = resolve;
+            });
+          })
+        );
       });
 
       const pdfBuffer = await page.pdf({
@@ -590,8 +685,6 @@ module.exports = {
         margin: { top: "10px", bottom: "10px", left: "10px", right: "10px" },
       });
 
-      await browser.close();
-
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
@@ -600,8 +693,24 @@ module.exports = {
       res.end(pdfBuffer, "binary");
     } catch (error) {
       console.error("Error generating PDF:", error);
-      res.status(500).send("An error occurred while generating the PDF");
+      // res.status(500).send("An error occurred while generating the PDF");
+      res.status(500).json({
+        success: false,
+        message: error.message || "An error occurred while generating the PDF",
+      });
+    } finally {
+      // ✅ Make sure resources are cleaned up even on error
+      if (page) {
+        try {
+          await page.close();
+        } catch {}
+      }
+      if (browser) {
+        try {
+          await browser.close();
+        } catch {}
+      }
     }
   },
 };
-// done
+// done code 

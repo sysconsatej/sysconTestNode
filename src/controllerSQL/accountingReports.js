@@ -27,8 +27,15 @@ function safeParse(val) {
 
 module.exports = {
   trialBalanceReportData: async (req, res) => {
-    const { fromDate, toDate, branchId, finYearId, clientId, tbGroupId } =
-      req.body;
+    const {
+      fromDate,
+      toDate,
+      branchId,
+      finYearId,
+      clientId,
+      tbGroupId,
+      suppressZero,
+    } = req.body;
 
     if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -46,7 +53,70 @@ module.exports = {
         .input("finYearId", sql.Int, finYearId)
         .input("clientId", sql.Int, clientId)
         .input("tbGroupId", sql.Int, tbGroupId)
+        .input("suppressZero", sql.Int, suppressZero)
         .execute("trialBalanceApi");
+
+      // Check if the result contains the expected JSON key
+      const jsonKey = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
+      if (!result.recordset[0] || !result.recordset[0][jsonKey]) {
+        throw new Error("Unexpected response format from stored procedure");
+      }
+
+      // Extract and parse the JSON string into a JavaScript object
+      const jsonString = result.recordset[0][jsonKey];
+      const parsedData = JSON.parse(jsonString);
+
+      if (parsedData.length > 0) {
+        res.status(200).json({
+          success: true,
+          message: "Data Fetched Successfully",
+          data: parsedData,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Internal Server Error",
+          data: error?.message,
+        });
+      }
+
+      //res.status(200).json(parsedData);
+    } catch (error) {
+      console.error("Failed to execute stored procedure:", error.message);
+      res.status(500).send("Failed to fetch data from MS SQL");
+    } finally {
+      //await closeConnection();
+    }
+  },
+  balanceSheetReportData: async (req, res) => {
+    const {
+      fromDate,
+      toDate,
+      branchId,
+      finYearId,
+      clientId,
+      suppressZero,
+      tbGroupId,
+    } = req.body;
+
+    if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    try {
+      const pool = await connectToSql();
+
+      // Pass parameters with the correct SQL data types
+      const result = await pool
+        .request()
+        .input("fromDate", sql.VarChar(10), fromDate)
+        .input("toDate", sql.VarChar(10), toDate)
+        .input("branchId", sql.Int, branchId)
+        .input("finYearId", sql.Int, finYearId)
+        .input("clientId", sql.Int, clientId)
+        .input("tbGroupId", sql.Int, tbGroupId)
+        .input("suppressZero", sql.Int, suppressZero)
+        .execute("balanceSheetApi");
 
       // Check if the result contains the expected JSON key
       const jsonKey = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";

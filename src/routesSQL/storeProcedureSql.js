@@ -28,5 +28,6 @@ router.post("/insertVoucherData", auth.verifyToken, controller.insertVoucherData
 
 router.post("/editContainerMovement", auth.verifyToken, controller.editContainerMovement);
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
+router.post("/getVoucherThirlLevelData",auth.verifyToken,controller.getVoucherThirlLevelData);
 router.post("/getcontainerNextActivities",auth.verifyToken,controller.getContainerNextActivities);
 module.exports = router;
