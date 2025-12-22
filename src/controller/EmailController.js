@@ -654,7 +654,7 @@ module.exports = {
 
       browser = await puppeteer.launch({
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        executablePath: "/usr/bin/chromium-browser",
+        //executablePath: "/usr/bin/chromium-browser",
       });
 
       page = await browser.newPage();
