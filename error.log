@@ -3550,3 +3550,22 @@
   ],
   timestamp: '2025-12-19T08:47:14.495Z'
 }
+{
+  errno: -4094,
+  code: 'UNKNOWN',
+  syscall: 'spawn',
+  level: 'error',
+  message: 'Uncaught Exception: spawn UNKNOWN',
+  stack: 'Error: spawn UNKNOWN\n' +
+    '    at ChildProcess.spawn (node:internal/child_process:420:11)\n' +
+    '    at spawn (node:child_process:787:9)\n' +
+    '    at run (C:\\Users\\omkar\\OneDrive\\Desktop\\New Lss\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\lib\\bin.js:18:12)\n' +
+    '    at wmic (C:\\Users\\omkar\\OneDrive\\Desktop\\New Lss\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\lib\\wmic.js:48:3)\n' +
+    '    at get (C:\\Users\\omkar\\OneDrive\\Desktop\\New Lss\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\lib\\stats.js:74:3)\n' +
+    '    at pidusage (C:\\Users\\omkar\\OneDrive\\Desktop\\New Lss\\mainCode-NodeJs-SQL\\node_modules\\pidusage\\index.js:25:5)\n' +
+    '    at module.exports (C:\\Users\\omkar\\OneDrive\\Desktop\\New Lss\\mainCode-NodeJs-SQL\\node_modules\\express-status-monitor\\src\\helpers\\gather-os-metrics.js:26:3)\n' +
+    '    at Timeout._onTimeout (C:\\Users\\omkar\\OneDrive\\Desktop\\New Lss\\mainCode-NodeJs-SQL\\node_modules\\express-status-monitor\\src\\helpers\\socket-io-init.js:42:42)\n' +
+    '    at listOnTimeout (node:internal/timers:588:17)\n' +
+    '    at process.processTimers (node:internal/timers:523:7)',
+  timestamp: '2025-12-23T05:53:11.173Z'
+}
