@@ -1,6 +1,6 @@
 const validate = require("../helper/validate");
 const model = require("../models/module");
-const { executeQuery, executeStoredProcedure } = require("../modelSQL/model");
+const { executeQuery, executeStoredProcedure,executeStoredProcedureSecond } = require("../modelSQL/model");
 const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
 const mongoose = require("mongoose");
 const moment = require("moment");
@@ -1234,4 +1234,119 @@ module.exports = {
       });
     }
   },
+
+    getSecondThirdLevelData: async (req, res) => {
+    try {
+      let {
+        clientId,
+        jobId,
+        chargeId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+        voucherTypeId,
+        blId,
+        vesselId,
+        voyageId,
+        plrId,
+        polId,
+        podId,
+        fpdId,
+        berthId,
+        containerId,
+        fromDate,
+        toDate,
+        billingPartyId,
+        containerStatusId,
+        cargoTypeId,
+        sizeId,
+        typeId,
+        // optional future params if needed:
+        agentId,
+        agentBranchId,
+        expImp,
+        icd,
+        invoiceExchangeRate,
+        invoiceChargeExchangeRate,
+        rate,
+        transhipPortId,
+        cfsId,
+        containerRepairId,
+        depotId,
+        containerTransactionId,
+        includeMNR
+      } = req.body;
+
+      // ✅ Build params object for stored procedure
+      let params = {
+        clientId,
+        jobId,
+        chargeId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+        voucherTypeId,
+        blId,
+        vesselId,
+        voyageId,
+        plrId,
+        polId,
+        podId,
+        fpdId,
+        berthId,
+        containerId,
+        fromDate,
+        toDate,
+        billingPartyId,
+        containerStatusId,
+        cargoTypeId,
+        sizeId,
+        typeId,
+        agentId,
+        agentBranchId,
+        expImp,
+        icd,
+        invoiceExchangeRate,
+        invoiceChargeExchangeRate,
+        rate,
+        transhipPortId,
+        cfsId,
+        containerRepairId,
+        depotId,
+        containerTransactionId,
+        includeMNR
+      };
+
+      // ✅ Replace undefined/empty string with null
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === "") params[key] = null;
+      });
+
+      // Call stored procedure
+      let data = await executeStoredProcedureSecond("getSecondThirdLevelDetails", params);
+
+      if (!data || data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
 };
