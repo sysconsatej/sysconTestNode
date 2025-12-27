@@ -20,5 +20,6 @@ router.post("/containerActivity", controller.spContainerActivity);
 router.post("/igmBlData", controller.spIgmReport);
 router.post("/cargoManifestBldata", controller.spCargoManifestBldata);
 router.post("/blProfitability", controller.spBlProfitability);
+router.post("/jobProfitability", controller.spJobProfitability);
 
 module.exports = router;
