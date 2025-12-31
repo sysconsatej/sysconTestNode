@@ -1155,7 +1155,7 @@ module.exports = {
       const request = pool.request();
 
       const result = await request
-        .input("recordId", sql.Int, pRecordId)
+        .input("recordId", sql.Int, pRecordId === 0 ? null : pRecordId)
         .input("clientId", sql.Int, pClientId)
         .input("companyId", sql.Int, pCompanyId)
         .input("companyBranchId", sql.Int, pCompanyBranchId)
