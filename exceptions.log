@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 {
   error: TypeError: Router.use() requires a middleware function but got a Object
       at Function.use (C:\Users\user2\Desktop\ak\01_10_2025\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:469:13)
@@ -1288,3 +1290,4 @@
   ],
   timestamp: '2026-01-08T10:21:56.901Z'
 }
+>>>>>>> f88d45011d247084145818f926c595aa953c8610

@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 {
   error: ConnectionError: Failed to connect to 156.67.111.117:15999 in 15000ms
       at C:\Users\user2\Desktop\Codes\SqlCode\06_08_2025\mainCode-NodeJs-SQL\node_modules\mssql\lib\tedious\connection-pool.js:85:17
@@ -4903,3 +4905,4 @@
   ],
   timestamp: '2026-01-09T06:15:44.941Z'
 }
+>>>>>>> f88d45011d247084145818f926c595aa953c8610
