@@ -542,7 +542,7 @@ module.exports = {
 
    fetchVoucherDataDynamic: async (req, res) => {
     const { clientID, recordID, menuID ,companyId,companyBranchId,financialYearId,userId} = req.body;
-    if (!clientID || !recordID || !menuID || !companyId || !companyBranchId || !financialYearId) {
+    if (!clientID || !recordID || !menuID || !companyId || !companyBranchId || !financialYearId || !userId) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
     try {
