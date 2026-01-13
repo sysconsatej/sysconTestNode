@@ -474,4 +474,105 @@ module.exports = {
       });
     }
   },
+  //   fetchVoucherDataDynamic: async (req, res) => {
+  //   try {
+  //     const {
+  //       recordId,
+  //       clientId,
+  //       companyId,
+  //       companyBranchId,
+  //       financialYearId,
+  //       userId
+  //     } = req.body;
+
+  //     if (
+  //       !recordId ||
+  //       !userId ||
+  //       !clientId ||
+  //       !companyId ||
+  //       !companyBranchId ||
+  //       !financialYearId
+  //     ) {
+  //       return res.status(400).send({
+  //         success: false,
+  //         message:
+  //           "recordId, userId, clientId, companyId, and companyBranchId, financialYearId are required.",
+  //       });
+  //     }
+
+  //     const pool = await connectToSql();
+  //     const request = pool.request();
+
+  //     const result = await request
+  //       .input("recordId", sql.Int, Number(recordId))
+  //       .input("clientId", sql.Int, Number(clientId))
+  //       .input("companyId", sql.Int, Number(companyId))
+  //       .input("companyBranchId", sql.Int, Number(companyBranchId))
+  //       .input("financialYearId", sql.Int, Number(financialYearId))
+  //       .input("userId", sql.Int, Number(userId))
+  //       .execute("fetchVoucherData");
+
+  //     // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]
+  //     const row0 = result.recordset?.[0] || {};
+  //     const firstColName = Object.keys(row0)[0]; // "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+  //     const jsonText = firstColName ? row0[firstColName] : "[]";
+
+  //     let rows = [];
+  //     try {
+  //       rows = jsonText ? JSON.parse(jsonText) : [];
+  //     } catch (_) {
+  //       rows = [];
+  //     }
+
+  //     return res.send({
+  //       success: true,
+  //       message: "Data Fetched Successfully",
+  //       Count: rows.length,
+  //       data: rows, // <-- proper JSON array now
+  //     });
+  //   } catch (err) {
+  //     console.error("fetchVoucherSearchPageData error:", err);
+  //     return res.status(500).send({
+  //       success: false,
+  //       message: "Server error",
+  //       error: String(err?.message || err),
+  //     });
+  //   }
+  // },
+
+   fetchVoucherDataDynamic: async (req, res) => {
+    const { clientID, recordID, menuID ,companyId,companyBranchId,financialYearId,userId} = req.body;
+    if (!clientID || !recordID || !menuID || !companyId || !companyBranchId || !financialYearId || !userId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+    try {
+      let parameter = {
+        clientID: clientID,
+        recordID: recordID,
+        menuID: menuID,
+        companyId:companyId,
+        companyBranchId:companyBranchId,
+        financialYearId:financialYearId,
+        userId :userId 
+      };
+      let data = await executeStoredProcedure("fetchVoucherDataDynamic", parameter);
+      let message = "Data fetched successfully....!";
+      let success = true;
+      if (data.length > 0) {
+        return res.send({ success: true, message: message, data: data });
+      }
+      return res.send({
+        success: false,
+        message: "Restricted access can not edit!",
+        data: [],
+      });
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
 };

@@ -30,4 +30,6 @@ router.post("/editContainerMovement", auth.verifyToken, controller.editContainer
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
 router.post("/getVoucherThirlLevelData",auth.verifyToken,controller.getVoucherThirlLevelData);
 router.post("/getcontainerNextActivities",auth.verifyToken,controller.getContainerNextActivities);
+router.post("/getSecondThirdLevelData",auth.verifyToken,controller.getSecondThirdLevelData);
+
 module.exports = router;

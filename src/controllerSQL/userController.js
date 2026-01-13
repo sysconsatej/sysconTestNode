@@ -947,14 +947,10 @@ module.exports = {
         await client.expire(sessionKey, Redis_expire_time);
         return res.status(200).json({ success: true });
       } else {
-        return res
-          .status(404)
-          .json({ success: false, message: "Token not found" });
+        return res.status(404).json({ success: false, message: "Token not found" });
       }
     } catch (error) {
-      res
-        .status(500)
-        .json({ success: false, message: `server error ${error.message}` });
+      return res.status(500).json({ success: false, message: `server error ${error.message}` });
     }
   },
   menuAccessByEmailId: async (req, res) => {

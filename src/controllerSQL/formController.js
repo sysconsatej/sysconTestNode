@@ -4,6 +4,7 @@ const {
   executeQuery,
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
+  validatePrintExecuteStoredProcedure,
 } = require("../modelSQL/model");
 async function controlDefalutValue(data, clientId) {
   if (data.controlname.toLowerCase() === "dropdown") {
@@ -531,7 +532,8 @@ module.exports = {
         loginFinYearId,
         formOrReport,
       };
-      let data = await executeStoredProcedure(query, parameters);
+      //let data = await executeStoredProcedure(query, parameters);
+      let data = await validatePrintExecuteStoredProcedure(query, parameters);
       if (data) {
         res.send({
           success: data[0].success,

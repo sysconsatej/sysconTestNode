@@ -38,6 +38,29 @@ module.exports = {
       return [];
     }
   },
+  validatePrintExecuteStoredProcedure: async (procedureName, data) => {
+    try {
+      const pool = await connectToSql();
+      const request = pool.request();
+      for (const [key, value] of Object.entries(data)) {
+        request.input(key, value);
+      }
+      const result = await request.execute(procedureName);
+
+      if (result.recordsets.length == 0) {
+        return [];
+      }
+      return (
+        JSON.parse(
+          result.recordsets[2]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"] ||
+            result.recordset[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+        ) || []
+      ); // Return the result set
+    } catch (error) {
+      console.error("Error inserting data:", error);
+      return [];
+    }
+  },
   executeStoredProcedureXML: async (procedureName, data) => {
     try {
       const pool = await connectToSql();
@@ -236,4 +259,28 @@ module.exports = {
       if (pool) await pool.close();
     }
   },
+   executeStoredProcedureSecond: async (procedureName, data) => {
+    try {
+      const pool = await connectToSql();
+      const request = pool.request();
+      for (const [key, value] of Object.entries(data)) {
+        request.input(key, value);
+      }
+      const result = await request.execute(procedureName);
+
+      if (result.recordsets.length == 0) {
+        return [];
+      }
+      return (
+        JSON.parse(
+          result.recordset[0]?.["secondLevel"]
+        ) || []
+      ); // Return the result set
+    } catch (error) {
+      console.error("Error inserting data:", error);
+      return [];
+    }
+  },
 };
+
+
