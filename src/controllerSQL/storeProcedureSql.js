@@ -511,7 +511,7 @@ module.exports = {
   //   }
   // }
 
- saveContainerMovement: async (req, res) => {
+saveContainerMovement: async (req, res) => {
   try {
     const { tblContainerMovement, clientId, userId } = req.body;
 
@@ -528,10 +528,11 @@ module.exports = {
 
     const toSqlDate = (value) => {
       const d = value ? new Date(value) : new Date();
-      if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA");
+      if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
       return d.toLocaleDateString("en-CA");
     };
 
+    // ✅ DateTime with milliseconds (yyyy-MM-dd HH:mm:ss.SSS)
     const toSqlDateTimeMs = (value) => {
       const d = value ? new Date(value) : new Date();
       const dt = Number.isNaN(d.getTime()) ? new Date() : d;
@@ -547,6 +548,7 @@ module.exports = {
       return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
     };
 
+    // createdDate always now (with time)
     const createdDateWithTime = toSqlDateTimeMs(new Date());
 
     const payload = {
@@ -559,7 +561,11 @@ module.exports = {
         "tblContainerMovement.remarks": item.remarks || "",
         "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
 
+        // (keep as DATE only)
         "tblContainerMovement.activityDate": toSqlDate(item.activityDate),
+
+        // ✅ SAVE nextActivityDate WITH TIME (same as createdDate)
+        "tblContainerMovement.nextActivityDate": toSqlDateTimeMs(item.nextActivityDate),
 
         "tblContainerMovement.clientId": clientId,
         "tblContainerMovement.createdBy": userId,
@@ -567,11 +573,9 @@ module.exports = {
         "tblContainerMovement.vesselId": item.vesselId ? Number(item.vesselId) : null,
         "tblContainerMovement.voyageId": item.voyageId ? Number(item.voyageId) : null,
         "tblContainerMovement.importBlId": item.importBlId ? Number(item.importBlId) : null,
-
         "tblContainerMovement.exportBlId": item.exportBlId ? Number(item.exportBlId) : null,
 
         "tblContainerMovement.status": 1,
-
         "tblContainerMovement.createdDate": createdDateWithTime,
       })),
     };
@@ -582,7 +586,6 @@ module.exports = {
       jsonPayload: JSON.stringify(payload),
     });
 
-    // Response
     return res.send({
       success: true,
       message: "Data saved successfully!",
@@ -599,6 +602,7 @@ module.exports = {
     });
   }
 },
+
 
 
   generalLegerBillingParty: async (req, res) => {
