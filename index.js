@@ -3,7 +3,7 @@ require("dotenv").config();
 var express = require("express");
 const fileUpload = require("express-fileupload");
 var path = require("path");
-var cookieParser = require("cookie-parser");
+const cookieParser = require("cookie-parser");
 var logger = require("morgan");
 // var { errorLogger } = require("./src/helper/loggerService");
 var bodyParser = require("body-parser");
