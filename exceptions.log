@@ -1291,3 +1291,465 @@
   timestamp: '2026-01-08T10:21:56.901Z'
 }
 >>>>>>> f88d45011d247084145818f926c595aa953c8610
+{
+  error: C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:34
+    },
+     ^
+  
+  SyntaxError: Unexpected token ','
+      at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+      at Module._compile (node:internal/modules/cjs/loader:1680:20)
+      at Object..js (node:internal/modules/cjs/loader:1839:10)
+      at Module.load (node:internal/modules/cjs/loader:1441:32)
+      at Function._load (node:internal/modules/cjs/loader:1263:12)
+      at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+      at Module.require (node:internal/modules/cjs/loader:1463:12)
+      at require (node:internal/modules/helpers:147:16)
+      at Object.<anonymous> (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\routesSQL\sso.route.js:2:23),
+  level: 'error',
+  message: "uncaughtException: Unexpected token ','\n" +
+    'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:34\n' +
+    '  },\n' +
+    '   ^\n' +
+    '\n' +
+    "SyntaxError: Unexpected token ','\n" +
+    '    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n' +
+    '    at Object..js (node:internal/modules/cjs/loader:1839:10)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1441:32)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1263:12)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1463:12)\n' +
+    '    at require (node:internal/modules/helpers:147:16)\n' +
+    '    at Object.<anonymous> (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js:2:23)',
+  stack: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:34\n' +
+    '  },\n' +
+    '   ^\n' +
+    '\n' +
+    "SyntaxError: Unexpected token ','\n" +
+    '    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n' +
+    '    at Object..js (node:internal/modules/cjs/loader:1839:10)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1441:32)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1263:12)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1463:12)\n' +
+    '    at require (node:internal/modules/helpers:147:16)\n' +
+    '    at Object.<anonymous> (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js:2:23)',
+  exception: true,
+  date: 'Sat Jan 17 2026 15:40:32 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 5240,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 143814656,
+      heapTotal: 97841152,
+      heapUsed: 69217080,
+      external: 22290169,
+      arrayBuffers: 18758658
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2087968.937 },
+  trace: [
+    {
+      column: 18,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'wrapSafe',
+      line: 1638,
+      method: null,
+      native: false
+    },
+    {
+      column: 20,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1680,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Object..js',
+      line: 1839,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1441,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Function._load',
+      line: 1263,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:diagnostics_channel',
+      function: 'TracingChannel.traceSync',
+      line: 322,
+      method: 'traceSync',
+      native: false
+    },
+    {
+      column: 24,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'wrapModuleLoad',
+      line: 237,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1463,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 16,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 147,
+      method: null,
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js',
+      function: null,
+      line: 2,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:10:32.694Z'
+}
+{
+  error: C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:34
+    },
+     ^
+  
+  SyntaxError: Unexpected token ','
+      at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+      at Module._compile (node:internal/modules/cjs/loader:1680:20)
+      at Object..js (node:internal/modules/cjs/loader:1839:10)
+      at Module.load (node:internal/modules/cjs/loader:1441:32)
+      at Function._load (node:internal/modules/cjs/loader:1263:12)
+      at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+      at Module.require (node:internal/modules/cjs/loader:1463:12)
+      at require (node:internal/modules/helpers:147:16)
+      at Object.<anonymous> (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\routesSQL\sso.route.js:2:23),
+  level: 'error',
+  message: "uncaughtException: Unexpected token ','\n" +
+    'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:34\n' +
+    '  },\n' +
+    '   ^\n' +
+    '\n' +
+    "SyntaxError: Unexpected token ','\n" +
+    '    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n' +
+    '    at Object..js (node:internal/modules/cjs/loader:1839:10)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1441:32)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1263:12)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1463:12)\n' +
+    '    at require (node:internal/modules/helpers:147:16)\n' +
+    '    at Object.<anonymous> (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js:2:23)',
+  stack: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:34\n' +
+    '  },\n' +
+    '   ^\n' +
+    '\n' +
+    "SyntaxError: Unexpected token ','\n" +
+    '    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n' +
+    '    at Object..js (node:internal/modules/cjs/loader:1839:10)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1441:32)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1263:12)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1463:12)\n' +
+    '    at require (node:internal/modules/helpers:147:16)\n' +
+    '    at Object.<anonymous> (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js:2:23)',
+  exception: true,
+  date: 'Sat Jan 17 2026 15:40:59 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 9620,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 146370560,
+      heapTotal: 97841152,
+      heapUsed: 69164184,
+      external: 22290169,
+      arrayBuffers: 18758658
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2087996.218 },
+  trace: [
+    {
+      column: 18,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'wrapSafe',
+      line: 1638,
+      method: null,
+      native: false
+    },
+    {
+      column: 20,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1680,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Object..js',
+      line: 1839,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1441,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Function._load',
+      line: 1263,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:diagnostics_channel',
+      function: 'TracingChannel.traceSync',
+      line: 322,
+      method: 'traceSync',
+      native: false
+    },
+    {
+      column: 24,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'wrapModuleLoad',
+      line: 237,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1463,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 16,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 147,
+      method: null,
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js',
+      function: null,
+      line: 2,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:10:59.979Z'
+}
+{
+  error: C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:34
+    },
+     ^
+  
+  SyntaxError: Unexpected token ','
+      at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+      at Module._compile (node:internal/modules/cjs/loader:1680:20)
+      at Object..js (node:internal/modules/cjs/loader:1839:10)
+      at Module.load (node:internal/modules/cjs/loader:1441:32)
+      at Function._load (node:internal/modules/cjs/loader:1263:12)
+      at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+      at Module.require (node:internal/modules/cjs/loader:1463:12)
+      at require (node:internal/modules/helpers:147:16)
+      at Object.<anonymous> (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\routesSQL\sso.route.js:2:23),
+  level: 'error',
+  message: "uncaughtException: Unexpected token ','\n" +
+    'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:34\n' +
+    '  },\n' +
+    '   ^\n' +
+    '\n' +
+    "SyntaxError: Unexpected token ','\n" +
+    '    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n' +
+    '    at Object..js (node:internal/modules/cjs/loader:1839:10)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1441:32)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1263:12)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1463:12)\n' +
+    '    at require (node:internal/modules/helpers:147:16)\n' +
+    '    at Object.<anonymous> (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js:2:23)',
+  stack: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:34\n' +
+    '  },\n' +
+    '   ^\n' +
+    '\n' +
+    "SyntaxError: Unexpected token ','\n" +
+    '    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n' +
+    '    at Object..js (node:internal/modules/cjs/loader:1839:10)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1441:32)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1263:12)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1463:12)\n' +
+    '    at require (node:internal/modules/helpers:147:16)\n' +
+    '    at Object.<anonymous> (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js:2:23)',
+  exception: true,
+  date: 'Sat Jan 17 2026 15:41:10 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 28144,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 144044032,
+      heapTotal: 97579008,
+      heapUsed: 69352456,
+      external: 22290169,
+      arrayBuffers: 18758658
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2088006.781 },
+  trace: [
+    {
+      column: 18,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'wrapSafe',
+      line: 1638,
+      method: null,
+      native: false
+    },
+    {
+      column: 20,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1680,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Object..js',
+      line: 1839,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1441,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Function._load',
+      line: 1263,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:diagnostics_channel',
+      function: 'TracingChannel.traceSync',
+      line: 322,
+      method: 'traceSync',
+      native: false
+    },
+    {
+      column: 24,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'wrapModuleLoad',
+      line: 237,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1463,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 16,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 147,
+      method: null,
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\routesSQL\\sso.route.js',
+      function: null,
+      line: 2,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:11:10.523Z'
+}

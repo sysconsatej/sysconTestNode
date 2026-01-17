@@ -19,7 +19,7 @@ var app = express();
 app.use(
   fileUpload({
     createParentPath: true,
-  })
+  }),
 );
 app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser());
@@ -144,7 +144,11 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const { handleCrashes } = require("./handleCrash");
-const { deleteDeletedAttachments, deleteUnsavedAttachments } = require("./src/modelSQL/fileDelete");
+const {
+  deleteDeletedAttachments,
+  deleteUnsavedAttachments,
+} = require("./src/modelSQL/fileDelete");
+const ssoLoginRoute = require("./src/routesSQL/sso.route");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -167,6 +171,7 @@ app.use("/Sql/api/activites", activites);
 app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
+app.use("/Sql/api/", ssoLoginRoute);
 
 // test api made for test adter automating code is updating is working or not
 app.get("/run-test", (req, res) => {
@@ -177,16 +182,15 @@ app.get("/run-test", (req, res) => {
   }
 });
 
-
 /*********************************************
  * Uncomment the following lines to enable the cron job for cleaning up attachments every 4 hours
  ********************************************/
 
- cron.schedule('0 */4 * * *', async () => {
-   console.log('🕒 Running bulk attachment cleanup job...');
-   await deleteUnsavedAttachments();
-   await deleteDeletedAttachments();
- });
+cron.schedule("0 */4 * * *", async () => {
+  console.log("🕒 Running bulk attachment cleanup job...");
+  await deleteUnsavedAttachments();
+  await deleteDeletedAttachments();
+});
 
 app.use(function (req, res, next) {
   next(createError(404));
@@ -198,7 +202,7 @@ app.use(function (err, req, res, next) {
   res.removeHeader("X-Powered-By");
   res.set(
     "Cache-Control",
-    "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0"
+    "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0",
   );
 
   res.locals.message = err.message;

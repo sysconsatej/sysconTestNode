@@ -4293,3 +4293,1011 @@
   timestamp: '2026-01-09T06:15:44.941Z'
 }
 >>>>>>> f88d45011d247084145818f926c595aa953c8610
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:5
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:24:15 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 34988,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 151326720,
+      heapTotal: 100126720,
+      heapUsed: 73422312,
+      external: 22447736,
+      arrayBuffers: 18766023
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090591.64 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:54:15.383Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:5
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:24:34 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 7760,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 152633344,
+      heapTotal: 99864576,
+      heapUsed: 73348696,
+      external: 22447736,
+      arrayBuffers: 18766023
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090610.75 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:54:34.495Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:5
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:25:50 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 49144,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 125632512,
+      heapTotal: 71290880,
+      heapUsed: 67666248,
+      external: 22451851,
+      arrayBuffers: 18770138
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090686.39 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:55:50.130Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:5
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:26:32 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 35600,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 150654976,
+      heapTotal: 100126720,
+      heapUsed: 73493464,
+      external: 22447736,
+      arrayBuffers: 18766023
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090729.093 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:56:32.849Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:5
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:27:24 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 31816,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 121683968,
+      heapTotal: 70766592,
+      heapUsed: 67334160,
+      external: 22445511,
+      arrayBuffers: 18763798
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090781.14 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:57:24.883Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:5
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:5\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:28:24 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 55396,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 150904832,
+      heapTotal: 100126720,
+      heapUsed: 73379536,
+      external: 22447736,
+      arrayBuffers: 18766023
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090840.546 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T10:58:24.308Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at ssoLogin (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\ssoController.js:46:23)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\config\auth.js:32:12
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\jsonwebtoken\verify.js:261:12 {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:12\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at ssoLogin (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js:46:23)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js:32:12\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js:261:12',
+  rejection: true,
+  date: 'Sat Jan 17 2026 16:30:20 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 14008,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 150568960,
+      heapTotal: 99864576,
+      heapUsed: 73435816,
+      external: 22447736,
+      arrayBuffers: 18766023
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 2090956.843 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\ssoController.js',
+      function: 'ssoLogin',
+      line: 46,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\config\\auth.js',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\jsonwebtoken\\verify.js',
+      function: null,
+      line: 261,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-01-17T11:00:20.592Z'
+}
