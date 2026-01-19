@@ -5,7 +5,7 @@ module.exports = {
   ssoLogin: async (req, res) => {
     try {
       const token = req.query?.token;
-      const clientCode = String(req?.clientCode).toLowerCase() || "";
+      const clientCode = req.query?.clientCode || "";
       const fallBackUrl = `http://94.136.187.170:5001/dashboard`;
 
       if (!token) {
