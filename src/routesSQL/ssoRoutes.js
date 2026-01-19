@@ -1,4 +1,3 @@
-route;
 const express = require("express");
 const ssoController = require("../controllerSQL/ssoLoginController");
 const auth = require("../config/auth");
