@@ -143,7 +143,7 @@ const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
-const ssoLoginRoute = require("./src/routesSQL/sso.route");  // by aakash yadav  a new sso route for by pass login for mobile app
+const ssoLoginRoute = require("./src/routesSQL/ssoRoutes");  // by aakash yadav  a new sso route for by pass login for mobile app
 const { handleCrashes } = require("./handleCrash");
 const { deleteDeletedAttachments, deleteUnsavedAttachments } = require("./src/modelSQL/fileDelete");
 
