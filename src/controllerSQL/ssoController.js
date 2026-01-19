@@ -1,50 +1,44 @@
-// const validate = require("../helper/validate");
-// const model = require("../models/module");
 const jwt = require("jsonwebtoken");
-const secretKey = require("../../src/config/auth.config.js");
-
-// const { executeStoredProcedure } = require("../modelSQL/model");
+const authConfig = require("../config/auth.config");
 
 module.exports = {
   ssoLogin: async (req, res) => {
-    const token = req.headers["x-access-token"];
-    if (!token) {
-      return res.status(403).send({
-        success: false,
-        message: "No token provided!",
-        data: [],
-      });
-    }
     try {
-      const decoded = jwt.verify(token, secretKey.secret);
-      if (!decoded) {
-        return res.status(401).send({
+      const token = req.query?.token;
+      const clientCode = String(req?.clientCode).toLowerCase() || "";
+      const fallBackUrl = `http://94.136.187.170:5001/dashboard`;
+
+      if (!token) {
+        return res.status(403).json({
           success: false,
-          message: "Unauthorized!",
+          message: "No SSO token provided",
+          data: [],
+        });
+      }
+      const decoded = jwt.verify(token, authConfig.secret);
+      if (!decoded) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid SSO token",
           data: [],
         });
       }
       res.cookie("token", token, {
-        httpOnly: false, // JS cannot access
-        secure: false, // HTTPS only
-        sameSite: "lax", // allows redirect usage
+        httpOnly: process.env.NODE_ENV === "production" ? true : false,
+        secure: process.env.NODE_ENV === "production" ? true : false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        maxAge: 24 * 60 * 60 * 2,
       });
+      const url = clientCode
+        ? `https://${clientCode}.artinshipping.com/dashboard`
+        : fallBackUrl;
 
-      // return res.redirect(`http://localhost:3001/login`);
-      return res.status(200).send({
-        success: true,
-        message: "SSO login successful, redirected to frontend.",
-        redirectUrl: `http://localhost:3001/dashboard`,
-      });
-
-      // res.end();
+      return res.redirect(url);
     } catch (error) {
-      console.error("Error during SSO login:", error);
-      res.status(500).send({
+      return res.status(401).json({
         success: false,
-        message: "Internal server error during SSO login.",
+        message: "SSO authentication failed",
         data: [],
       });
     }

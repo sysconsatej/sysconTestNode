@@ -28,7 +28,6 @@ exports.verifyToken = (req, res, next) => {
     req.userId= decoded.id;
     // req.logged_in_id = decoded.id;
     // req.logged_in_id = decoded.id;
-    console.log(req.logged_in_id, req.clientCode);
     return next();
   });
   // next();
