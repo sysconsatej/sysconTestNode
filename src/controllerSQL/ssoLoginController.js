@@ -24,11 +24,11 @@ module.exports = {
         });
       }
       res.cookie("token", token, {
-        httpOnly: process.env.NODE_ENV === "production" ? true : false,
-        secure: process.env.NODE_ENV === "production" ? true : false,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        domain: ".artinshipping.com",
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
         path: "/",
-        maxAge: 24 * 60 * 60 * 2,
       });
       const url = clientCode
         ? `https://${clientCode}.artinshipping.com/dashboard`
