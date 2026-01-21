@@ -143,6 +143,7 @@ const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
+const ssoLoginRoute = require("./src/routesSQL/ssoRoutes");  // by aakash yadav  a new sso route for by pass login for mobile app
 const { handleCrashes } = require("./handleCrash");
 const { deleteDeletedAttachments, deleteUnsavedAttachments } = require("./src/modelSQL/fileDelete");
 
@@ -167,6 +168,7 @@ app.use("/Sql/api/activites", activites);
 app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
+app.use("/Sql/api/", ssoLoginRoute);  // by aakash yadav  a new sso route for by pass login for mobile app
 
 // test api made for test adter automating code is updating is working or not
 app.get("/run-test", (req, res) => {
