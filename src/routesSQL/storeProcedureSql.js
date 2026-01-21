@@ -25,6 +25,7 @@ router.post("/calculateDetentionRate", auth.verifyToken, controller.calculateDet
 router.post("/getThirdLevelDetailsPurchase", auth.verifyToken, controller.getThirdLevelDetailsPurchase);
 router.post("/fetchContainerDropdownData", auth.verifyToken, controller.fetchContainerDropdownData);
 router.post("/insertVoucherData", auth.verifyToken, controller.insertVoucherData);
+router.post("/insertVoucherDataDynamic", auth.verifyToken, controller.insertVoucherDataDynamic);
 
 router.post("/editContainerMovement", auth.verifyToken, controller.editContainerMovement);
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
