@@ -191,7 +191,7 @@ module.exports = {
             "master_schema",
             "master_schema",
             [{ $match: { tableName: "tblUser" } }],
-            res
+            res,
           );
           if (SchemaCheck.length == 0) {
             return res.send({
@@ -242,7 +242,7 @@ module.exports = {
                 validator: (value) => {
                   return createDecimalValidator(
                     parseDecimalFormat(field.type).m,
-                    parseDecimalFormat(field.type).n
+                    parseDecimalFormat(field.type).n,
                   )(value);
                 },
                 message: `Value of ${field.fieldname} is not valid decimal format.`,
@@ -300,14 +300,14 @@ module.exports = {
                   // Assuming you want to keep 2 decimal places
                   return truncateDecimal(
                     value,
-                    parseDecimalFormat(field.type).n
+                    parseDecimalFormat(field.type).n,
                   );
                 };
                 properties.validate = {
                   validator: (value) => {
                     return createDecimalValidator(
                       parseDecimalFormat(field.type).m,
-                      parseDecimalFormat(field.type).n
+                      parseDecimalFormat(field.type).n,
                     )(value);
                   },
                   message: `Value of ${field.fieldname} is not valid decimal format`,
@@ -321,7 +321,7 @@ module.exports = {
                     const fieldsArray = this.parent()[child.tableName];
                     // Count occurrences of `value` in `fieldname`s of the `fieldsArray`
                     const occurrences = fieldsArray.filter(
-                      (item) => item[field.fieldname] === value
+                      (item) => item[field.fieldname] === value,
                     ).length;
                     // Validation passes if there's only one occurrence (the current field itself)
                     return occurrences === 1;
@@ -367,14 +367,14 @@ module.exports = {
                     // Assuming you want to keep 2 decimal places
                     return truncateDecimal(
                       value,
-                      parseDecimalFormat(field.type).n
+                      parseDecimalFormat(field.type).n,
                     );
                   };
                   properties.validate = {
                     validator: (value) => {
                       return createDecimalValidator(
                         parseDecimalFormat(field.type).m,
-                        parseDecimalFormat(field.type).n
+                        parseDecimalFormat(field.type).n,
                       )(value);
                     },
                     message: `Value of ${field.fieldname} is not valid decimal format`,
@@ -389,7 +389,7 @@ module.exports = {
                       const fieldsArray = this.parent()[subChild.tableName];
                       // Count occurrences of `value` in `fieldname`s of the `fieldsArray`
                       const occurrences = fieldsArray.filter(
-                        (item) => item[field.fieldname] === value
+                        (item) => item[field.fieldname] === value,
                       ).length;
                       // Validation passes if there's only one occurrence (the current field itself)
                       return occurrences === 1;
@@ -413,7 +413,7 @@ module.exports = {
             schemaObj,
             insertData,
             { ip: extractIPv4(req.ip || req.connection.remoteAddress) },
-            ""
+            "",
           );
           data
             ? res.send({
@@ -458,14 +458,14 @@ module.exports = {
           };
           let { data, success } = await executeStoredProcedure(
             "loginApi",
-            parameters
+            parameters,
           );
 
           if (success) {
             const parameters = { themeId: data.themeId };
             let themeData = await executeStoredProcedure(
               "themeApi",
-              parameters
+              parameters,
             );
 
             data = [{ theme: themeData, ...data }];
@@ -480,12 +480,12 @@ module.exports = {
                 clientId: data[0].clientId,
               },
               config.secret,
-              { expiresIn: 7200000 }
+              { expiresIn: 7200000 },
             );
 
             try {
               const checkWrongPass = await userFindByEmailLogin(
-                data[0].emailId
+                data[0].emailId,
               );
               if (checkWrongPass > 2) {
                 return res.status(400).send({
@@ -544,7 +544,7 @@ module.exports = {
             };
             let { error, data } = await executeStoredProcedure(
               "loginApi",
-              parameters
+              parameters,
             );
 
             if (error == "Password is not valid!") {
@@ -647,7 +647,7 @@ module.exports = {
             "tblUser",
             "tblUser",
             query,
-            res
+            res,
           );
           if (data.length > 0) {
             let userName = data[0].userName;
@@ -663,7 +663,7 @@ module.exports = {
                   },
                 },
               ],
-              res
+              res,
             );
             if (otpdata.length > 0) {
               // let token = jwt.sign({ id: data[0].id ,userName: data[0].email, iat: Date.now(), companyName: data[0].defaultCompanyId, brachName: data[0].defaultBranchId,defaultFinYearId:data[0].defaultFinYear,numberFormat:data[0].numberFormat  }, config.secret, { expiresIn: 7200000 });
@@ -675,7 +675,7 @@ module.exports = {
                   numberFormat: data[0].numberFormat,
                 },
                 config.secret,
-                { expiresIn: 7200000 }
+                { expiresIn: 7200000 },
               );
               // await model.updateIfAvailableElseInsert("tblOtpLog", "tblOtpLog", { id: otpdata[0].id, isUseable: 0 }, {}, res)
               await model.Update(
@@ -684,7 +684,7 @@ module.exports = {
                 { userID: data[0].id },
                 { isUseable: 0 },
                 {},
-                res
+                res,
               );
               res.send({
                 success: true,
@@ -753,7 +753,7 @@ module.exports = {
             "tblUser",
             "tblUser",
             query,
-            res
+            res,
           );
           if (data.length > 0) {
             await model.updateIfAvailableElseInsert(
@@ -761,7 +761,7 @@ module.exports = {
               "tblOtpLog",
               { id: "", userID: data[0].id, otp: otp, action: "forgot" },
               {},
-              res
+              res,
             );
             let templete = Mailtemplate.mailOtp(otp);
             //                        console.log(templete);
@@ -815,7 +815,7 @@ module.exports = {
             };
             let { data, error } = await executeStoredProcedure(
               "changePasswordApi",
-              parameters
+              parameters,
             );
 
             if (data) {
@@ -858,10 +858,12 @@ module.exports = {
       };
       let { data, error } = await executeStoredProcedure(
         "resetPasswordApi",
-        parameters
+        parameters,
       );
 
       if (data) {
+        const sessionKey = `user:${req?.body?.emailId}:session`;
+        await client.del(sessionKey);
         res.send({
           success: true,
           message: "Password Changed Successfully",
@@ -947,10 +949,14 @@ module.exports = {
         await client.expire(sessionKey, Redis_expire_time);
         return res.status(200).json({ success: true });
       } else {
-        return res.status(404).json({ success: false, message: "Token not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "Token not found" });
       }
     } catch (error) {
-      return res.status(500).json({ success: false, message: `server error ${error.message}` });
+      return res
+        .status(500)
+        .json({ success: false, message: `server error ${error.message}` });
     }
   },
   menuAccessByEmailId: async (req, res) => {
@@ -958,7 +964,7 @@ module.exports = {
       const parameters = { emailId: req.body.emailId };
       let { data, error } = await executeStoredProcedure(
         "menuAccessByEmailIdApi",
-        parameters
+        parameters,
       );
 
       if (data) {
