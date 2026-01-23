@@ -149,7 +149,6 @@ const {
   deleteDeletedAttachments,
   deleteUnsavedAttachments,
 } = require("./src/modelSQL/fileDelete");
-const ssoLoginRoute = require("./src/routesSQL/sso.route");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
