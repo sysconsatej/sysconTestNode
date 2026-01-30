@@ -570,4 +570,65 @@ module.exports = {
       });
     }
   },
+  spwarehouseData: async (req, res) => {
+    try {
+      const { recordId, clientId } = req.body;
+      const query = `warehouseData`;
+      const parameters = {
+        id: recordId,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+  spBlPrint: async (req, res) => {
+    try {
+      const { recordId, clientId } = req.body;
+      const query = `blPrintDynamic`;
+      const parameters = {
+        blid: recordId,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      console.log(data);
+      if (data) {
+        res.send({
+          success: true,
+          message: "Data Fetched Successfully",
+          count: data.length,
+          data: data,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
 }; //end

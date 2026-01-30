@@ -609,9 +609,9 @@ module.exports = {
     console.log("requestBody =>>", requestBody);
     console.log("spName =>>", spName);
     try {
-      const response = await executeMultipleStoredProcedure(
+      const response = await execSpWithJsonParam(
         spName,
-        requestBody
+        filterCondition
       );
       if (!Array.isArray(response)) {
         return res.status(400).json({

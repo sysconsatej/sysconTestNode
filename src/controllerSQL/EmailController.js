@@ -20,14 +20,14 @@ module.exports = {
       port: 587,
       secure: false,
       auth: {
-        user: "rohitanabhavane26@gmail.com",
-        pass: "eghq byjb ggbk wgbm",
+        user: process.env.EMAIL || "rohitanabhavane26@gmail.com",
+        pass: process.env.EMAIL_PASSWORD || "eghq byjb ggbk wgbm",
       },
     });
 
     // Prepare the email data
     const mailOptions = {
-      from: "rohitanabhavane26@gmail.com",
+      from: process.env.EMAIL || "rohitanabhavane26@gmail.com",
       to: to,
       cc: cc,
       bcc: bcc,

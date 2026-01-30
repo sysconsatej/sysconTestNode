@@ -1367,4 +1367,81 @@ saveContainerMovement: async (req, res) => {
     }
   },
 
+  insertVoucherDataDynamic: async (req, res) => {
+    try {
+      let {
+        recordId,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        userId,
+        json,
+      } = req.body;
+
+      // ---- Basic validation (INT params) ----
+      const toInt = (v, name) => {
+        const n = Number(v);
+        if (!Number.isInteger(n)) {
+          throw new Error(`Invalid integer for "${name}"`);
+        }
+        return n;
+      };
+
+      const pRecordId = toInt(recordId, "recordId");
+      const pClientId = toInt(clientId, "clientId");
+      const pCompanyId = toInt(companyId, "companyId");
+      const pCompanyBranchId = toInt(companyBranchId, "companyBranchId");
+      const pFinancialYearId = toInt(financialYearId, "financialYearId");
+      const pUserId = toInt(userId, "userId");
+      let jsonParam = json;
+      if (typeof jsonParam !== "string") {
+        jsonParam = JSON.stringify(jsonParam ?? {});
+      }
+      // Optional sanity check: make sure it parses
+      try {
+        JSON.parse(jsonParam);
+      } catch {
+        throw new Error("The 'json' payload is not valid JSON text");
+      }
+
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      const result = await request
+        .input("recordId", sql.Int, pRecordId === 0 ? null : pRecordId)
+        .input("clientId", sql.Int, pClientId)
+        .input("companyId", sql.Int, pCompanyId)
+        .input("companyBranchId", sql.Int, pCompanyBranchId)
+        .input("financialYearId", sql.Int, pFinancialYearId)
+        .input("userId", sql.Int, pUserId)
+        .input("json", sql.NVarChar(sql.MAX), jsonParam)
+        .execute("insertVoucherDataDynamic");
+
+      const rows = result?.recordset ?? [];
+
+      if (!rows.length) {
+        return res.send({
+          success: true,
+          message: "No data returned.",
+          data: [],
+          rowsAffected: result?.rowsAffected || [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data Inserted successfully.",
+        data: rows,
+        rowsAffected: result?.rowsAffected || [],
+      });
+    } catch (error) {
+      return res.status(400).send({
+        success: false,
+        message: error.message || "Request failed.",
+        data: [],
+      });
+    }
+  },
+
 };
