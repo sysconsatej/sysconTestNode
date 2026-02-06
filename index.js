@@ -12,6 +12,7 @@ var status = require("express-status-monitor");
 const cron = require("node-cron");
 const sqllConnection = require("./src/config/sqlConfig");
 
+
 var flash = require("connect-flash");
 // const connection=require('./src/config/MongoConnection');
 const cors = require("cors");
@@ -144,6 +145,7 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes");  // by aakash yadav  a new sso route for by pass login for mobile app
+const notifications    =  require("./src/routesSQL/notification.route")
 const { handleCrashes } = require("./handleCrash");
 const {
   deleteDeletedAttachments,
@@ -172,6 +174,8 @@ app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute);  // by aakash yadav  a new sso route for by pass login for mobile app
+app.use("/" , notifications);
+
 
 // test api made for test adter automating code is updating is working or not
 app.get("/run-test", (req, res) => {
