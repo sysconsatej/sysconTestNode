@@ -1,6 +1,6 @@
 const validate = require("../helper/validate");
 const model = require("../models/module");
-const { executeQuery, executeStoredProcedure,executeStoredProcedureSecond } = require("../modelSQL/model");
+const { executeQuery, executeStoredProcedure, executeStoredProcedureSecond } = require("../modelSQL/model");
 const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
 const mongoose = require("mongoose");
 const moment = require("moment");
@@ -430,194 +430,194 @@ module.exports = {
     }
   },
 
-// saveContainerMovement: async (req, res) => {
-//   try {
-//     const { tblContainerMovement, clientId, userId } = req.body;
- 
-//     if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
-//       return res.status(400).send({
-//         success: false,
-//         message: "No container movement data provided.",
-//         data: [],
-//       });
-//     }
- 
-//     const pad2 = (n) => String(n).padStart(2, "0");
-//     const pad3 = (n) => String(n).padStart(3, "0");
- 
-//     const toSqlDate = (value) => {
-//       const d = value ? new Date(value) : new Date();
-//       if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA");
-//       return d.toLocaleDateString("en-CA");
-//     };
- 
-//     const toSqlDateTimeMs = (value) => {
-//       const d = value ? new Date(value) : new Date();
-//       const dt = Number.isNaN(d.getTime()) ? new Date() : d;
- 
-//       const yyyy = dt.getFullYear();
-//       const MM = pad2(dt.getMonth() + 1);
-//       const dd = pad2(dt.getDate());
-//       const HH = pad2(dt.getHours());
-//       const mm = pad2(dt.getMinutes());
-//       const ss = pad2(dt.getSeconds());
-//       const SSS = pad3(dt.getMilliseconds());
- 
-//       return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
-//     };
- 
-//     const createdDateWithTime = toSqlDateTimeMs(new Date());
- 
-//     const payload = {
-//       childJson1: tblContainerMovement.map((item) => ({
-//         "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
-//         "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
-//         "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
-//         "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
-//         "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
-//         "tblContainerMovement.remarks": item.remarks || "",
-//         "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
- 
-//         "tblContainerMovement.activityDate": toSqlDate(item.activityDate),
- 
-//         "tblContainerMovement.clientId": clientId,
-//         "tblContainerMovement.createdBy": userId,
-//         "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
-//         "tblContainerMovement.vesselId": item.vesselId ? Number(item.vesselId) : null,
-//         "tblContainerMovement.voyageId": item.voyageId ? Number(item.voyageId) : null,
-//         "tblContainerMovement.importBlId": item.importBlId ? Number(item.importBlId) : null,
- 
-//         "tblContainerMovement.exportBlId": item.exportBlId ? Number(item.exportBlId) : null,
- 
-//         "tblContainerMovement.status": 1,
- 
-//         "tblContainerMovement.createdDate": createdDateWithTime,
-//       })),
-//     };
- 
-//     console.log("Payload to SP:", JSON.stringify(payload, null, 2));
- 
-//     const data = await executeStoredProcedure("staticInsertUpdate", {
-//       jsonPayload: JSON.stringify(payload),
-//     });
- 
-//     // Response
-//     return res.send({
-//       success: true,
-//       message: "Data saved successfully!",
-//       Chargers: data,
-//       count: data?.length || 0,
-//     });
-//   } catch (error) {
-//     console.error("Error in saveContainerMovement:", error);
-//     return res.status(500).send({
-//       success: false,
-//       message: "Error - " + error.message,
-//       data: [],
-//       error: error.message,
-//     });
-//   }
-// },
+  // saveContainerMovement: async (req, res) => {
+  //   try {
+  //     const { tblContainerMovement, clientId, userId } = req.body;
+
+  //     if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
+  //       return res.status(400).send({
+  //         success: false,
+  //         message: "No container movement data provided.",
+  //         data: [],
+  //       });
+  //     }
+
+  //     const pad2 = (n) => String(n).padStart(2, "0");
+  //     const pad3 = (n) => String(n).padStart(3, "0");
+
+  //     const toSqlDate = (value) => {
+  //       const d = value ? new Date(value) : new Date();
+  //       if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA");
+  //       return d.toLocaleDateString("en-CA");
+  //     };
+
+  //     const toSqlDateTimeMs = (value) => {
+  //       const d = value ? new Date(value) : new Date();
+  //       const dt = Number.isNaN(d.getTime()) ? new Date() : d;
+
+  //       const yyyy = dt.getFullYear();
+  //       const MM = pad2(dt.getMonth() + 1);
+  //       const dd = pad2(dt.getDate());
+  //       const HH = pad2(dt.getHours());
+  //       const mm = pad2(dt.getMinutes());
+  //       const ss = pad2(dt.getSeconds());
+  //       const SSS = pad3(dt.getMilliseconds());
+
+  //       return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
+  //     };
+
+  //     const createdDateWithTime = toSqlDateTimeMs(new Date());
+
+  //     const payload = {
+  //       childJson1: tblContainerMovement.map((item) => ({
+  //         "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
+  //         "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
+  //         "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
+  //         "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
+  //         "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
+  //         "tblContainerMovement.remarks": item.remarks || "",
+  //         "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
+
+  //         "tblContainerMovement.activityDate": toSqlDate(item.activityDate),
+
+  //         "tblContainerMovement.clientId": clientId,
+  //         "tblContainerMovement.createdBy": userId,
+  //         "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
+  //         "tblContainerMovement.vesselId": item.vesselId ? Number(item.vesselId) : null,
+  //         "tblContainerMovement.voyageId": item.voyageId ? Number(item.voyageId) : null,
+  //         "tblContainerMovement.importBlId": item.importBlId ? Number(item.importBlId) : null,
+
+  //         "tblContainerMovement.exportBlId": item.exportBlId ? Number(item.exportBlId) : null,
+
+  //         "tblContainerMovement.status": 1,
+
+  //         "tblContainerMovement.createdDate": createdDateWithTime,
+  //       })),
+  //     };
+
+  //     console.log("Payload to SP:", JSON.stringify(payload, null, 2));
+
+  //     const data = await executeStoredProcedure("staticInsertUpdate", {
+  //       jsonPayload: JSON.stringify(payload),
+  //     });
+
+  //     // Response
+  //     return res.send({
+  //       success: true,
+  //       message: "Data saved successfully!",
+  //       Chargers: data,
+  //       count: data?.length || 0,
+  //     });
+  //   } catch (error) {
+  //     console.error("Error in saveContainerMovement:", error);
+  //     return res.status(500).send({
+  //       success: false,
+  //       message: "Error - " + error.message,
+  //       data: [],
+  //       error: error.message,
+  //     });
+  //   }
+  // },
 
 
-saveContainerMovement: async (req, res) => {
-  try {
-    const { tblContainerMovement, clientId, userId } = req.body;
+  saveContainerMovement: async (req, res) => {
+    try {
+      const { tblContainerMovement, clientId, userId } = req.body;
 
-    if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
-      return res.status(400).send({
+      if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
+        return res.status(400).send({
+          success: false,
+          message: "No container movement data provided.",
+          data: [],
+        });
+      }
+
+      const pad2 = (n) => String(n).padStart(2, "0");
+      const pad3 = (n) => String(n).padStart(3, "0");
+
+      // YYYY-MM-DD (date only)
+      const toSqlDate = (value) => {
+        const d = value ? new Date(value) : new Date();
+        if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA");
+        return d.toLocaleDateString("en-CA");
+      };
+
+      // YYYY-MM-DD HH:mm:ss.SSS (datetime with milliseconds)
+      const toSqlDateTimeMs = (value) => {
+        const d = value ? new Date(value) : new Date();
+        const dt = Number.isNaN(d.getTime()) ? new Date() : d;
+
+        const yyyy = dt.getFullYear();
+        const MM = pad2(dt.getMonth() + 1);
+        const dd = pad2(dt.getDate());
+        const HH = pad2(dt.getHours());
+        const mm = pad2(dt.getMinutes());
+        const ss = pad2(dt.getSeconds());
+        const SSS = pad3(dt.getMilliseconds());
+
+        return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
+      };
+
+      // If activityDate is missing/invalid => keep NULL (recommended)
+      // If you want default NOW instead of NULL, tell me and I'll change this.
+      const toSqlDateTimeMsNullable = (value) => {
+        if (!value) return null;
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return null;
+        return toSqlDateTimeMs(d);
+      };
+
+      const createdDateWithTime = toSqlDateTimeMs(new Date());
+
+      const payload = {
+        childJson1: tblContainerMovement.map((item) => ({
+          "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
+          "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
+          "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
+          "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
+          "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
+          "tblContainerMovement.remarks": item.remarks || "",
+          "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
+
+          // ✅ NOW SAVES WITH TIME (like createdDate)
+          // - If item.activityDate is blank/invalid => NULL (won't auto-fill now)
+          "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(item.activityDate),
+
+          "tblContainerMovement.clientId": clientId,
+          "tblContainerMovement.createdBy": userId,
+          "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
+          "tblContainerMovement.vesselId": item.vesselId ? Number(item.vesselId) : null,
+          "tblContainerMovement.voyageId": item.voyageId ? Number(item.voyageId) : null,
+          "tblContainerMovement.importBlId": item.importBlId ? Number(item.importBlId) : null,
+          "tblContainerMovement.exportBlId": item.exportBlId ? Number(item.exportBlId) : null,
+
+          "tblContainerMovement.status": 1,
+          "tblContainerMovement.createdDate": createdDateWithTime,
+        })),
+      };
+
+      console.log("Payload to SP:", JSON.stringify(payload, null, 2));
+
+      const data = await executeStoredProcedure("staticInsertUpdate", {
+        jsonPayload: JSON.stringify(payload),
+      });
+
+      return res.send({
+        success: true,
+        message: "Data saved successfully!",
+        Chargers: data,
+        count: data?.length || 0,
+      });
+    } catch (error) {
+      console.error("Error in saveContainerMovement:", error);
+      return res.status(500).send({
         success: false,
-        message: "No container movement data provided.",
+        message: "Error - " + error.message,
         data: [],
+        error: error.message,
       });
     }
-
-    const pad2 = (n) => String(n).padStart(2, "0");
-    const pad3 = (n) => String(n).padStart(3, "0");
-
-    // YYYY-MM-DD (date only)
-    const toSqlDate = (value) => {
-      const d = value ? new Date(value) : new Date();
-      if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA");
-      return d.toLocaleDateString("en-CA");
-    };
-
-    // YYYY-MM-DD HH:mm:ss.SSS (datetime with milliseconds)
-    const toSqlDateTimeMs = (value) => {
-      const d = value ? new Date(value) : new Date();
-      const dt = Number.isNaN(d.getTime()) ? new Date() : d;
-
-      const yyyy = dt.getFullYear();
-      const MM = pad2(dt.getMonth() + 1);
-      const dd = pad2(dt.getDate());
-      const HH = pad2(dt.getHours());
-      const mm = pad2(dt.getMinutes());
-      const ss = pad2(dt.getSeconds());
-      const SSS = pad3(dt.getMilliseconds());
-
-      return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
-    };
-
-    // If activityDate is missing/invalid => keep NULL (recommended)
-    // If you want default NOW instead of NULL, tell me and I'll change this.
-    const toSqlDateTimeMsNullable = (value) => {
-      if (!value) return null;
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return null;
-      return toSqlDateTimeMs(d);
-    };
-
-    const createdDateWithTime = toSqlDateTimeMs(new Date());
-
-    const payload = {
-      childJson1: tblContainerMovement.map((item) => ({
-        "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
-        "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
-        "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
-        "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
-        "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
-        "tblContainerMovement.remarks": item.remarks || "",
-        "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
-
-        // ✅ NOW SAVES WITH TIME (like createdDate)
-        // - If item.activityDate is blank/invalid => NULL (won't auto-fill now)
-        "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(item.activityDate),
-
-        "tblContainerMovement.clientId": clientId,
-        "tblContainerMovement.createdBy": userId,
-        "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
-        "tblContainerMovement.vesselId": item.vesselId ? Number(item.vesselId) : null,
-        "tblContainerMovement.voyageId": item.voyageId ? Number(item.voyageId) : null,
-        "tblContainerMovement.importBlId": item.importBlId ? Number(item.importBlId) : null,
-        "tblContainerMovement.exportBlId": item.exportBlId ? Number(item.exportBlId) : null,
-
-        "tblContainerMovement.status": 1,
-        "tblContainerMovement.createdDate": createdDateWithTime,
-      })),
-    };
-
-    console.log("Payload to SP:", JSON.stringify(payload, null, 2));
-
-    const data = await executeStoredProcedure("staticInsertUpdate", {
-      jsonPayload: JSON.stringify(payload),
-    });
-
-    return res.send({
-      success: true,
-      message: "Data saved successfully!",
-      Chargers: data,
-      count: data?.length || 0,
-    });
-  } catch (error) {
-    console.error("Error in saveContainerMovement:", error);
-    return res.status(500).send({
-      success: false,
-      message: "Error - " + error.message,
-      data: [],
-      error: error.message,
-    });
-  }
-},
+  },
 
   generalLegerBillingParty: async (req, res) => {
     try {
@@ -1253,7 +1253,7 @@ saveContainerMovement: async (req, res) => {
     }
   },
 
-    getSecondThirdLevelData: async (req, res) => {
+  getSecondThirdLevelData: async (req, res) => {
     try {
       let {
         clientId,
@@ -1444,4 +1444,50 @@ saveContainerMovement: async (req, res) => {
     }
   },
 
+  getTariffChargeDetails: async (req, res) => {
+    try {
+      let {
+        clientId,
+        chargeId,
+        voucherType,
+        companyId,
+        companyBranchId,
+        blIds,
+      } = req.body;
+
+      // Call stored procedure with all necessary parameters
+      let data = await executeStoredProcedure("getTariffChargeDetails", {
+        clientId,
+        chargeId,
+        voucherType,
+        companyId,
+        companyBranchId,
+        blIds,
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+
+  
 };
