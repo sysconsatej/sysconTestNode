@@ -22,5 +22,6 @@ router.post("/cargoManifestBldata", controller.spCargoManifestBldata);
 router.post("/blProfitability", controller.spBlProfitability);
 router.post("/jobProfitability", controller.spJobProfitability);
 router.post("/warehouseData", controller.spwarehouseData);
+router.post("/blPrint", controller.spBlPrint);
 
 module.exports = router;

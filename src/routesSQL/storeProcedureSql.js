@@ -26,11 +26,11 @@ router.post("/getThirdLevelDetailsPurchase", auth.verifyToken, controller.getThi
 router.post("/fetchContainerDropdownData", auth.verifyToken, controller.fetchContainerDropdownData);
 router.post("/insertVoucherData", auth.verifyToken, controller.insertVoucherData);
 router.post("/insertVoucherDataDynamic", auth.verifyToken, controller.insertVoucherDataDynamic);
-
 router.post("/editContainerMovement", auth.verifyToken, controller.editContainerMovement);
 router.post("/getVoucher",auth.verifyToken,controller.getVoucher);
 router.post("/getVoucherThirlLevelData",auth.verifyToken,controller.getVoucherThirlLevelData);
 router.post("/getcontainerNextActivities",auth.verifyToken,controller.getContainerNextActivities);
 router.post("/getSecondThirdLevelData",auth.verifyToken,controller.getSecondThirdLevelData);
+router.post("/getTariffChargeDetails", auth.verifyToken, controller.getTariffChargeDetails);
 
 module.exports = router;

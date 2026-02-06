@@ -37,7 +37,7 @@ module.exports = {
   },
   menuAccessSubmit: async (req, res) => {
     try {
-      const { userId, menu_json, updatedBy } = req.body;
+      const { userId, menu_json, updatedBy, companyId, companyBranchId } = req.body;
 
       if (!userId || !menu_json || !updatedBy) {
         return res.status(400).json({
@@ -51,6 +51,8 @@ module.exports = {
         userId,
         menu_json,
         updatedBy,
+        companyId,
+        companyBranchId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
