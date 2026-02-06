@@ -6,7 +6,7 @@ amdin.initializeApp({
 });
 
 const notification = async (req, res) => {
-  const fcmToken = req?.body?.user?.fcmToken;
+  const fcmToken = req?.body?.data;
   const title = "Sample test 01";
   const body = "Hello there this is notification from ArtInShipping";
   try {
