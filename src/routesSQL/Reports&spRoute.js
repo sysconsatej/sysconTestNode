@@ -23,5 +23,6 @@ router.post("/blProfitability", controller.spBlProfitability);
 router.post("/jobProfitability", controller.spJobProfitability);
 router.post("/warehouseData", controller.spwarehouseData);
 router.post("/blPrint", controller.spBlPrint);
+router.post("/goodsInwardQrGenerator", controller.spGoodsInwardQrGenerator);
 
 module.exports = router;
