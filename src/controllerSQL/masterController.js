@@ -144,7 +144,7 @@ module.exports = {
       req.body.companyBranchId = req.body.loginBranch;
       req.body.financialYearId = req.body.loginfinYear;
       let { changes, prevFields } = await auditLog({ data: req.body, formId: req.body.menuID, clientID: req.clientId, id: req.body.id });
-      let logData={
+      let logData = {
         tableName: req.body.tableName,
         action: req.body.id ? 'UPDATE' : 'INSERT',
         prevField: JSON.stringify(prevFields),
@@ -156,17 +156,17 @@ module.exports = {
         updatedBy: req.userId,
       }
       console.log(req.id);
-      
-      let query=`INSERT INTO AuditLogs
+
+      let query = `INSERT INTO AuditLogs
           (tableName, action, prevField, changes, ipAddress, clientId, documentId, createdBy, updatedBy)
         VALUES
           (@tableName, @action, @prevField, @changes, @ipAddress, @clientId, @documentId, @createdBy, @updatedBy)`
 
-      
+
 
       // return res.send({ success: true, message: "Data Inserted Successfully", data: logData });
 
-      
+
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
         formId: req.body.menuID,
@@ -540,8 +540,8 @@ module.exports = {
   //   }
   // },
 
-   fetchVoucherDataDynamic: async (req, res) => {
-    const { clientID, recordID, menuID ,companyId,companyBranchId,financialYearId,userId} = req.body;
+  fetchVoucherDataDynamic: async (req, res) => {
+    const { clientID, recordID, menuID, companyId, companyBranchId, financialYearId, userId } = req.body;
     if (!clientID || !recordID || !menuID || !companyId || !companyBranchId || !financialYearId || !userId) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
@@ -550,10 +550,10 @@ module.exports = {
         clientID: clientID,
         recordID: recordID,
         menuID: menuID,
-        companyId:companyId,
-        companyBranchId:companyBranchId,
-        financialYearId:financialYearId,
-        userId :userId 
+        companyId: companyId,
+        companyBranchId: companyBranchId,
+        financialYearId: financialYearId,
+        userId: userId
       };
       let data = await executeStoredProcedure("fetchVoucherDataDynamic", parameter);
       let message = "Data fetched successfully....!";
@@ -575,4 +575,32 @@ module.exports = {
       });
     }
   },
+
+  saveJsonToDB: async (req, res) => {
+    try {
+      const { jsonData, tableName, formId, parentColumnName } = req.body;
+      if (!jsonData) {
+        return res.status(400).json({ error: "Missing jsonData in request body" });
+      }
+
+      let result = await executeStoredProcedure("dynamicMultiSubmit", {
+        submitJson: JSON.stringify(jsonData),
+        tableName: tableName || "defaultTableName",
+        formId, parentColumnName
+      });
+      return res.send({
+        success: true,
+        message: "Data saved successfully",
+        data: result,
+      })
+
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "some thing went wrong - ",
+        data: [],
+        error: error.message,
+      });
+    }
+  }
 };
