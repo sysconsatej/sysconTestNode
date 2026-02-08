@@ -578,16 +578,23 @@ module.exports = {
 
   saveJsonToDB: async (req, res) => {
     try {
-      const { jsonData, tableName, formId, parentColumnName } = req.body;
+      let { jsonData, tableName, formId, parentColumnName } = req.body;
       if (!jsonData) {
         return res.status(400).json({ error: "Missing jsonData in request body" });
       }
-
+      jsonData = { ...jsonData, clientId: req.clientId, createdBy: req.userId, companyId: req.body.loginCompany, companyBranchId: req.body.loginBranch, financialYearId: req.body.loginfinYear }
       let result = await executeStoredProcedure("dynamicMultiSubmit", {
         submitJson: JSON.stringify(jsonData),
         tableName: tableName || "defaultTableName",
         formId, parentColumnName
       });
+      if (result && result.success === false) {
+        return res.status(400).send({
+          success: false,
+          message: result.error || "Failed to save data",
+          data: [],
+        });
+      }
       return res.send({
         success: true,
         message: "Data saved successfully",
