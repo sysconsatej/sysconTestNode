@@ -7,7 +7,7 @@ amdin.initializeApp({
 
 const notification = async (req, res) => {
   const fcmToken = req?.body?.data;
-  const title = "Sample test 01";
+  const title = "Sample test 102";
   const body = "Hello there this is notification from ArtInShipping";
   try {
     const message = {
@@ -15,9 +15,14 @@ const notification = async (req, res) => {
       notification: {
         title,
         body,
+        imageUrl: "https://picsum.photos/600/300",
+        
       },
       android: {
         priority: "high",
+        notification: {
+        
+        },
       },
     };
 
