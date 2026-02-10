@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const authConfig = require("../config/auth.config");
+const { path } = require("pdfkit");
 
 module.exports = {
   ssoLogin: async (req, res) => {
@@ -29,34 +30,24 @@ module.exports = {
           data: [],
         });
       }
-      res.cookie("token", token, {
-        domain: isProd ? ".artinshipping.com" : undefined,
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "none" : "lax",
-        path: "/",
-      });
 
-      res.cookie("userType", userType, {
+      const cookiesOptions = {
         domain: isProd ? ".artinshipping.com" : undefined,
-        httpOnly: true,
+        httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "none" : "lax",
         path: "/",
-      });
+      };
 
-      res.cookie("userData", userData, {
-        domain: isProd ? ".artinshipping.com" : undefined,
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "none" : "lax",
-        path: "/",
-      });
+      res.cookie("token", token, cookiesOptions);
+
+      res.cookie("userType", userType, cookiesOptions);
+
+      res.cookie("userData", userData, cookiesOptions);
 
       const url = isProd
         ? `https://${clientCode}.artinshipping.com/dashboard`
         : fallBackUrl;
-
 
       return res.redirect(url);
     } catch (error) {

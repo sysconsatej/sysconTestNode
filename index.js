@@ -11,12 +11,37 @@ var session = require("express-session");
 var status = require("express-status-monitor");
 const cron = require("node-cron");
 const sqllConnection = require("./src/config/sqlConfig");
-
-
-var flash = require("connect-flash");
-// const connection=require('./src/config/MongoConnection');
+const flash = require("connect-flash");
 const cors = require("cors");
-var app = express();
+const promClient = require("prom-client");
+const app = express();
+
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register });
+
+const httpRequestDuration = new promClient.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status_code"],
+  buckets: [0.1, 0.5, 1, 2.5, 5, 10],
+});
+
+register.registerMetric(httpRequestDuration);
+
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+
+  res.on("finish", () => {
+    end({
+      method: req.method,
+      route: req.route?.path || req.path,
+      status_code: res.statusCode,
+    });
+  });
+
+  next();
+});
+
 app.use(
   fileUpload({
     createParentPath: true,
@@ -27,7 +52,7 @@ app.use(cookieParser());
 app.use(session({ secret: "123", resave: false, saveUninitialized: false }));
 
 app.use(flash());
-var sessionFlash = function (req, res, next) {
+const sessionFlash = function (req, res, next) {
   res.locals.currentUser = req.user;
   res.locals.error = req.flash("error");
   res.locals.success = req.flash("success");
@@ -144,8 +169,8 @@ const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
-const ssoLoginRoute = require("./src/routesSQL/ssoRoutes");  // by aakash yadav  a new sso route for by pass login for mobile app
-const notifications    =  require("./src/routesSQL/notification.route")
+const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
+const notifications = require("./src/routesSQL/notification.route");
 const { handleCrashes } = require("./handleCrash");
 const {
   deleteDeletedAttachments,
@@ -173,17 +198,22 @@ app.use("/Sql/api/activites", activites);
 app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
-app.use("/Sql/api/", ssoLoginRoute);  // by aakash yadav  a new sso route for by pass login for mobile app
-app.use("/api/v1" , notifications);
-
+app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
+app.use("/api/v1", notifications);
 
 // test api made for test adter automating code is updating is working or not
-app.get("/run-test", (req, res) => {
-  try {
-    res.status(200).json({ message: "Test run Final", status: 200 });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// app.get("/run-test", (req, res) => {
+//   try {
+//     console.log("Test run successful");
+//     res.status(200).json({ message: "Test run Final", status: 200 });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+app.get("/api/metrics", async (req, res) => {
+  res.setHeader("Content-Type", register.contentType);
+  res.end(await register.metrics());
 });
 
 /*********************************************

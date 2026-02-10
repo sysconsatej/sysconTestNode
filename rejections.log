@@ -1006,3 +1006,336 @@
   ],
   timestamp: '2026-01-17T11:00:20.592Z'
 }
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at getUserDashboard (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\createDashboardController.js:76:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at getUserDashboard (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js:76:23)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at getUserDashboard (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js:76:23)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  rejection: true,
+  date: 'Mon Feb 09 2026 18:33:16 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 27932,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 128487424,
+      heapTotal: 75100160,
+      heapUsed: 72549472,
+      external: 22448659,
+      arrayBuffers: 18766946
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 4085538.812 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js',
+      function: 'getUserDashboard',
+      line: 76,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'node:internal/process/task_queues',
+      function: 'process.processTicksAndRejections',
+      line: 105,
+      method: 'processTicksAndRejections',
+      native: false
+    }
+  ],
+  timestamp: '2026-02-09T13:03:16.178Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at getUserDashboard (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\createDashboardController.js:76:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at getUserDashboard (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js:76:23)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at getUserDashboard (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js:76:23)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  rejection: true,
+  date: 'Mon Feb 09 2026 18:34:20 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 46888,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 158461952,
+      heapTotal: 106557440,
+      heapUsed: 75703328,
+      external: 22454327,
+      arrayBuffers: 18772614
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 4085603.203 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js',
+      function: 'getUserDashboard',
+      line: 76,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'node:internal/process/task_queues',
+      function: 'process.processTicksAndRejections',
+      line: 105,
+      method: 'processTicksAndRejections',
+      native: false
+    }
+  ],
+  timestamp: '2026-02-09T13:04:20.575Z'
+}
+{
+  error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+      at ServerResponse.setHeader (node:_http_outgoing:700:11)
+      at ServerResponse.header (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:794:10)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:174:12)
+      at ServerResponse.json (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:278:15)
+      at ServerResponse.send (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\response.js:162:21)
+      at getUserDashboard (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\createDashboardController.js:76:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+    code: 'ERR_HTTP_HEADERS_SENT'
+  },
+  level: 'error',
+  message: 'unhandledRejection: Cannot set headers after they are sent to the client\n' +
+    'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at getUserDashboard (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js:76:23)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  stack: 'Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client\n' +
+    '    at ServerResponse.setHeader (node:_http_outgoing:700:11)\n' +
+    '    at ServerResponse.header (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:794:10)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:174:12)\n' +
+    '    at ServerResponse.json (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:278:15)\n' +
+    '    at ServerResponse.send (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js:162:21)\n' +
+    '    at getUserDashboard (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js:76:23)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  rejection: true,
+  date: 'Mon Feb 09 2026 18:37:35 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 58652,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 159592448,
+      heapTotal: 106557440,
+      heapUsed: 76618248,
+      external: 22460634,
+      arrayBuffers: 18778921
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 4085798.609 },
+  trace: [
+    {
+      column: 11,
+      file: 'node:_http_outgoing',
+      function: 'ServerResponse.setHeader',
+      line: 700,
+      method: 'setHeader',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.header',
+      line: 794,
+      method: 'header',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 174,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.json',
+      line: 278,
+      method: 'json',
+      native: false
+    },
+    {
+      column: 21,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\response.js',
+      function: 'ServerResponse.send',
+      line: 162,
+      method: 'send',
+      native: false
+    },
+    {
+      column: 23,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\createDashboardController.js',
+      function: 'getUserDashboard',
+      line: 76,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'node:internal/process/task_queues',
+      function: 'process.processTicksAndRejections',
+      line: 105,
+      method: 'processTicksAndRejections',
+      native: false
+    }
+  ],
+  timestamp: '2026-02-09T13:07:35.977Z'
+}
