@@ -32,5 +32,7 @@ router.post("/getVoucherThirlLevelData",auth.verifyToken,controller.getVoucherTh
 router.post("/getcontainerNextActivities",auth.verifyToken,controller.getContainerNextActivities);
 router.post("/getSecondThirdLevelData",auth.verifyToken,controller.getSecondThirdLevelData);
 router.post("/getTariffChargeDetails", auth.verifyToken, controller.getTariffChargeDetails);
+router.post("/getRoundOffSettings", auth.verifyToken, controller.getRoundOffSetting);
+
 
 module.exports = router;

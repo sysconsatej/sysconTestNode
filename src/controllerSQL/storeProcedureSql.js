@@ -1489,5 +1489,40 @@ module.exports = {
     }
   },
 
+  getRoundOffSetting: async (req, res) => {
+    try {
+      let {
+       voucherTypeId,
+        clientId
+      } = req.body;
+
+      let data = await executeStoredProcedure("getRoundOffSettings", {
+        voucherTypeId,
+        clientId
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
   
 };
