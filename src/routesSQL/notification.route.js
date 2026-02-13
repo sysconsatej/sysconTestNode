@@ -4,12 +4,5 @@ const controller = require("../controllerSQL/notification.controller");
 const auth = require("../config/auth");
 
 router.post("/notify", controller.notification);
-router.get("/me", auth.verifyToken, async (req, res) => {
-  return res.json({
-    success: true,
-    userType: req?.cookies?.userType,
-    data: [req.user],
-  });
-});
 
 module.exports = router;

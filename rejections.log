@@ -1339,3 +1339,145 @@
   ],
   timestamp: '2026-02-09T13:07:35.977Z'
 }
+{
+  error: ReferenceError: title is not defined
+      at notification (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\src\controllerSQL\notification.controller.js:16:7)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:149:13)
+      at Route.dispatch (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\route.js:119:3)
+      at Layer.handle [as handle_request] (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\layer.js:95:5)
+      at C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:284:15
+      at Function.process_params (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:346:12)
+      at next (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:280:10)
+      at Function.handle (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:175:3)
+      at router (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\express\lib\router\index.js:47:12),
+  level: 'error',
+  message: 'unhandledRejection: title is not defined\n' +
+    'ReferenceError: title is not defined\n' +
+    '    at notification (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\notification.controller.js:16:7)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at Route.dispatch (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:284:15\n' +
+    '    at Function.process_params (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:346:12)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:280:10)\n' +
+    '    at Function.handle (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:175:3)\n' +
+    '    at router (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:47:12)',
+  stack: 'ReferenceError: title is not defined\n' +
+    '    at notification (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\notification.controller.js:16:7)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:149:13)\n' +
+    '    at Route.dispatch (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js:95:5)\n' +
+    '    at C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:284:15\n' +
+    '    at Function.process_params (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:346:12)\n' +
+    '    at next (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:280:10)\n' +
+    '    at Function.handle (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:175:3)\n' +
+    '    at router (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js:47:12)',
+  rejection: true,
+  date: 'Thu Feb 12 2026 16:34:21 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 60476,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 158375936,
+      heapTotal: 106557440,
+      heapUsed: 75800680,
+      external: 22449271,
+      arrayBuffers: 18767558
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 4337604 },
+  trace: [
+    {
+      column: 7,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\src\\controllerSQL\\notification.controller.js',
+      function: 'notification',
+      line: 16,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'next',
+      line: 149,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\route.js',
+      function: 'Route.dispatch',
+      line: 119,
+      method: 'dispatch',
+      native: false
+    },
+    {
+      column: 5,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\layer.js',
+      function: 'Layer.handle [as handle_request]',
+      line: 95,
+      method: 'handle [as handle_request]',
+      native: false
+    },
+    {
+      column: 15,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: null,
+      line: 284,
+      method: null,
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'Function.process_params',
+      line: 346,
+      method: 'process_params',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'next',
+      line: 280,
+      method: null,
+      native: false
+    },
+    {
+      column: 3,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'Function.handle',
+      line: 175,
+      method: 'handle',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\express\\lib\\router\\index.js',
+      function: 'router',
+      line: 47,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-02-12T11:04:21.376Z'
+}
