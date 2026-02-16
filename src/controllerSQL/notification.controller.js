@@ -1,13 +1,8 @@
-const amdin = require("firebase-admin");
-const serviceAcc = require("../../services/test-notification-eaa74-firebase-adminsdk-fbsvc-ab22a71ce8.json");
 const { executeQuery } = require("../modelSQL/model");
-
-amdin.initializeApp({
-  credential: amdin.credential.cert(serviceAcc),
-});
+const { notificationQueue } = require("../queues/notifcationQueue");
+const client = require("../redis/redis_client");
 
 const notification = async (req, res) => {
-  const fcmToken = req?.body?.data;
   const { clientId, companyId } = req?.body || {};
   const params = { clientId: clientId, companyId: companyId };
   try {
@@ -17,25 +12,58 @@ const notification = async (req, res) => {
     );
     const notificationData = result?.recordset?.[0] || {};
 
-    const message = {
-      token: fcmToken,
-      notification: {
+    await notificationQueue.add(
+      {
+        clientId: clientId,
         title: "ArtinShipping",
-        body: notificationData?.Notification || "Default notification body",
-        imageUrl: "https://picsum.photos/600/300",
+        body: notificationData?.Notification || "Default Body",
       },
-      android: {
-        priority: "high",
-        notification: {},
+      {
+        attempts: 3, // retry 3 times
+        backoff: 5000, // 5 sec delay
+        removeOnComplete: true,
+        removeOnFail: false,
       },
-    };
-    await amdin.messaging().send(message);
-    return res
-      .status(200)
-      .json({ success: true, message: "Notification sent" });
+    );
+
+    return res.send({
+      success: true,
+      message: "Notification queues successfully",
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-module.exports = { notification };
+const saveDeviceToken = async (req, res) => {
+  try {
+    const { clientId, deviceId, fcmToken, os, appVersion } = req.body;
+
+    if (!clientId || !deviceId || !fcmToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
+    }
+
+    const userDeviceKey = `user:${clientId}:devices`;
+    const deviceKey = `device:${deviceId}`;
+
+    // Add device to user's device set
+    await client.sAdd(userDeviceKey, deviceId);
+
+    // Store device metadata
+    await client.hSet(deviceKey, {
+      token: fcmToken,
+      os: os || "unknown",
+      appVersion: appVersion || "unknown",
+      lastSeen: Date.now(),
+    });
+
+    return res.json({ success: true, message: "Device token saved" });
+  } catch (err) {
+    console.error("Error saving device token:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { notification, saveDeviceToken };

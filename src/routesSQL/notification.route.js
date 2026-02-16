@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllerSQL/notification.controller");
-const auth = require("../config/auth");
+const {
+  notification,
+  saveDeviceToken,
+} = require("../controllerSQL/notification.controller");
+const { verifyToken } = require("../config/auth");
 
-router.post("/notify", controller.notification);
+router.post("/notify", notification);
+router.post("/save-device-token", verifyToken, saveDeviceToken);
 
 module.exports = router;
