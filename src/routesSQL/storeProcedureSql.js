@@ -33,6 +33,9 @@ router.post("/getcontainerNextActivities",auth.verifyToken,controller.getContain
 router.post("/getSecondThirdLevelData",auth.verifyToken,controller.getSecondThirdLevelData);
 router.post("/getTariffChargeDetails", auth.verifyToken, controller.getTariffChargeDetails);
 router.post("/getRoundOffSettings", auth.verifyToken, controller.getRoundOffSetting);
+router.post("/checkDischargeDoneForBL", auth.verifyToken, controller.checkDischargeDoneForBL);
+router.post("/checkJobCreatedAginstBl", auth.verifyToken, controller.checkJobCreatedAginstBl);
+
 
 
 module.exports = router;
