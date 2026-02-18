@@ -11,10 +11,13 @@ admin.initializeApp({
 notificationQueue.process(5, async (job) => {
   const { clientId, title, body } = job.data;
 
+
   const userDeviceKey = `user:${clientId}:devices`;
   const deviceIds = await client?.smembers(userDeviceKey);
+  console.log(`[Worker] Found device IDs:`, deviceIds, userDeviceKey);
 
   if (!deviceIds?.length) {
+    console.log(`[Worker] No devices found for clientId ${clientId}`);
     return;
   }
 
@@ -23,8 +26,10 @@ notificationQueue.process(5, async (job) => {
   );
 
   const tokens = deviceData?.map((d) => d?.fcmToken)?.filter(Boolean);
+  console.log(`[Worker] Tokens to send:`, tokens);
 
   if (!tokens?.length) {
+    console.log(`[Worker] No valid tokens for clientId ${clientId}`);
     return;
   }
 
@@ -39,6 +44,7 @@ notificationQueue.process(5, async (job) => {
 
   try {
     const response = await admin.messaging().sendEachForMulticast(message);
+    console.log(`[Worker] Firebase response:`, response);
 
     // remove invalid tokens
     for (let i = 0; i < response.responses.length; i++) {
@@ -51,6 +57,9 @@ notificationQueue.process(5, async (job) => {
 
         for (let j = 0; j < deviceIds?.length; j++) {
           if (deviceData[j]?.fcmToken === failedToken) {
+            console.log(
+              `[Worker] Removing invalid device: ${deviceIds[j]} for clientId ${clientId}`,
+            );
             await client?.srem(userDeviceKey, deviceIds[j]);
             await client?.del(`device:${deviceIds[j]}`);
           }
