@@ -19,8 +19,8 @@ const notification = async (req, res) => {
         body: notificationData?.Notification || "Default Body",
       },
       {
-        attempts: 3, // retry 3 times
-        backoff: 5000, // 5 sec delay
+        attempts: 3,
+        backoff: 5000,
         removeOnComplete: true,
         removeOnFail: false,
       },
