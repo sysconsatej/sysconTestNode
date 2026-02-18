@@ -28,13 +28,14 @@ module.exports = {
           data: [],
         });
       }
-      res.cookie("token", token, {
-        domain: ".artinshipping.com",
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
+
+      const cookiesOptions = {
+        domain: isProd ? ".artinshipping.com" : undefined,
+        httpOnly: false,
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
         path: "/",
-      });
+      };
       const url = clientCode
         ? `https://${String(clientCode).toLocaleLowerCase()}.artinshipping.com/dashboard`
         : fallBackUrl;

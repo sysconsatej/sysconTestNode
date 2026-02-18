@@ -28,8 +28,7 @@ exports.verifyToken = (req, res, next) => {
     req.userId= decoded.id;
     // req.logged_in_id = decoded.id;
     // req.logged_in_id = decoded.id;
-    console.log(req.logged_in_id, req.clientCode);
-    next();
+    return next();
   });
   // next();
 };
@@ -56,7 +55,7 @@ exports.verifyOTPToken = (req, res, next) => {
     }
     req.otp_token_id = decoded.id;
     console.log(decoded);
-    next();
+    returnnext();
   });
   // next();
 };
@@ -82,7 +81,7 @@ exports.verifyForgotPassToken = (req, res, next) => {
     }
     req.forgot_pass_token_id = decoded.id;
     console.log(decoded);
-    next();
+    returnnext();
   });
   // next();
 };
