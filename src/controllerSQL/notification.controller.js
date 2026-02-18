@@ -1,6 +1,6 @@
 const { executeQuery } = require("../modelSQL/model");
 const { notificationQueue } = require("../queues/notifcationQueue");
-const client = require("../redis/redis_client");
+const client = require("../redis/redis_notify_client");
 
 const notification = async (req, res) => {
   const { clientId, companyId } = req?.body || {};
@@ -38,6 +38,13 @@ const notification = async (req, res) => {
 const saveDeviceToken = async (req, res) => {
   try {
     const { clientId, deviceId, fcmToken, os, appVersion } = req.body;
+    console.log("Received device token data:", {
+      clientId,
+      deviceId,
+      fcmToken,
+      os,
+      appVersion,
+    });
 
     if (!clientId || !deviceId || !fcmToken) {
       return res
@@ -49,14 +56,16 @@ const saveDeviceToken = async (req, res) => {
     const deviceKey = `device:${deviceId}`;
 
     // Add device to user's device set
-    await client.sAdd(userDeviceKey, deviceId);
+    await client.sadd(userDeviceKey, deviceId);
 
     // Store device metadata
-    await client.hSet(deviceKey, {
-      token: fcmToken,
+    await client.hset(deviceKey, {
       os: os || "unknown",
       appVersion: appVersion || "unknown",
       lastSeen: Date.now(),
+      fcmTokenUpdatedAt: Date.now(),
+      fcmTokenCreatedAt: Date.now(),
+      fcmToken: `${fcmToken}`,
     });
 
     return res.json({ success: true, message: "Device token saved" });

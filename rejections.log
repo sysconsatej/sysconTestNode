@@ -2047,3 +2047,227 @@
   ],
   timestamp: '2026-02-16T08:01:12.309Z'
 }
+{
+  error: ReplyError: ERR value is not an integer or out of range
+      at parseError (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:179:12)
+      at parseType (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:302:14) {
+    command: { name: 'select', args: [ 'NaN' ] }
+  },
+  level: 'error',
+  message: 'unhandledRejection: ERR value is not an integer or out of range\n' +
+    'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  stack: 'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  rejection: true,
+  date: 'Wed Feb 18 2026 13:13:57 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 24468,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 155332608,
+      heapTotal: 100360192,
+      heapUsed: 75928248,
+      external: 22510947,
+      arrayBuffers: 18768214
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 334796 },
+  trace: [
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseError',
+      line: 179,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseType',
+      line: 302,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-02-18T07:43:57.227Z'
+}
+{
+  error: ReplyError: ERR value is not an integer or out of range
+      at parseError (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:179:12)
+      at parseType (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:302:14) {
+    command: { name: 'select', args: [ 'NaN' ] }
+  },
+  level: 'error',
+  message: 'unhandledRejection: ERR value is not an integer or out of range\n' +
+    'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  stack: 'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  rejection: true,
+  date: 'Wed Feb 18 2026 13:16:07 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 3780,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 155631616,
+      heapTotal: 100622336,
+      heapUsed: 74868760,
+      external: 22505848,
+      arrayBuffers: 18763115
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 334926.656 },
+  trace: [
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseError',
+      line: 179,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseType',
+      line: 302,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-02-18T07:46:07.881Z'
+}
+{
+  error: ReplyError: ERR value is not an integer or out of range
+      at parseError (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:179:12)
+      at parseType (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:302:14) {
+    command: { name: 'select', args: [ 'NaN' ] }
+  },
+  level: 'error',
+  message: 'unhandledRejection: ERR value is not an integer or out of range\n' +
+    'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  stack: 'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  rejection: true,
+  date: 'Wed Feb 18 2026 13:16:12 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 18108,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 155852800,
+      heapTotal: 100884480,
+      heapUsed: 75122256,
+      external: 22505843,
+      arrayBuffers: 18763110
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 334930.859 },
+  trace: [
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseError',
+      line: 179,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseType',
+      line: 302,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-02-18T07:46:12.091Z'
+}
+{
+  error: ReplyError: ERR value is not an integer or out of range
+      at parseError (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:179:12)
+      at parseType (C:\Users\Admin\syscon-app\mainCode-NodeJs-SQL\node_modules\redis-parser\lib\parser.js:302:14) {
+    command: { name: 'select', args: [ 'NaN' ] }
+  },
+  level: 'error',
+  message: 'unhandledRejection: ERR value is not an integer or out of range\n' +
+    'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  stack: 'ReplyError: ERR value is not an integer or out of range\n' +
+    '    at parseError (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:179:12)\n' +
+    '    at parseType (C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js:302:14)',
+  rejection: true,
+  date: 'Wed Feb 18 2026 13:19:24 GMT+0530 (India Standard Time)',
+  process: {
+    pid: 1984,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL',
+    execPath: 'C:\\nvm4w\\nodejs\\node.exe',
+    version: 'v22.20.0',
+    argv: [
+      'C:\\nvm4w\\nodejs\\node.exe',
+      'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\bin\\www'
+    ],
+    memoryUsage: {
+      rss: 154841088,
+      heapTotal: 100360192,
+      heapUsed: 75882696,
+      external: 22508171,
+      arrayBuffers: 18765438
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 335123.265 },
+  trace: [
+    {
+      column: 12,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseError',
+      line: 179,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'C:\\Users\\Admin\\syscon-app\\mainCode-NodeJs-SQL\\node_modules\\redis-parser\\lib\\parser.js',
+      function: 'parseType',
+      line: 302,
+      method: null,
+      native: false
+    }
+  ],
+  timestamp: '2026-02-18T07:49:24.498Z'
+}

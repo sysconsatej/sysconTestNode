@@ -4,9 +4,8 @@ const {
   notification,
   saveDeviceToken,
 } = require("../controllerSQL/notification.controller");
-const { verifyToken } = require("../config/auth");
 
 router.post("/notify", notification);
-router.post("/save-device-token", verifyToken, saveDeviceToken);
+router.post("/save-device-token", saveDeviceToken);
 
 module.exports = router;
