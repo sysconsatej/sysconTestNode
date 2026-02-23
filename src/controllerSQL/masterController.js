@@ -227,7 +227,7 @@ module.exports = {
           .send({ success: false, message: "Validation Error...!", data: err });
       }
       try {
-        let query = `select * from ${req.body.tableName} where id = ${req.body.id} and clientId = ${req.body.clientId} and updatedBy=${req.body.updateBy} `;
+        let query = `select * from ${req.body.tableName} where id = ${req.body.id} and clientId = ${req.body.clientId} `;
         let deleteCheck = await executeQuery(query, {});
         if (deleteCheck.recordset.length == 0) {
           return res.send({
