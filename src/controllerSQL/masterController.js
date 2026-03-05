@@ -144,7 +144,7 @@ module.exports = {
       req.body.companyBranchId = req.body.loginBranch;
       req.body.financialYearId = req.body.loginfinYear;
       let { changes, prevFields } = await auditLog({ data: req.body, formId: req.body.menuID, clientID: req.clientId, id: req.body.id });
-      let logData={
+      let logData = {
         tableName: req.body.tableName,
         action: req.body.id ? 'UPDATE' : 'INSERT',
         prevField: JSON.stringify(prevFields),
@@ -156,17 +156,17 @@ module.exports = {
         updatedBy: req.userId,
       }
       console.log(req.id);
-      
-      let query=`INSERT INTO AuditLogs
+
+      let query = `INSERT INTO AuditLogs
           (tableName, action, prevField, changes, ipAddress, clientId, documentId, createdBy, updatedBy)
         VALUES
           (@tableName, @action, @prevField, @changes, @ipAddress, @clientId, @documentId, @createdBy, @updatedBy)`
 
-      
+
 
       // return res.send({ success: true, message: "Data Inserted Successfully", data: logData });
 
-      
+
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
         formId: req.body.menuID,
@@ -227,7 +227,7 @@ module.exports = {
           .send({ success: false, message: "Validation Error...!", data: err });
       }
       try {
-        let query = `select * from ${req.body.tableName} where id = ${req.body.id} and clientId = ${req.body.clientId}`;
+        let query = `select * from ${req.body.tableName} where id = ${req.body.id} and clientId = ${req.body.clientId} `;
         let deleteCheck = await executeQuery(query, {});
         if (deleteCheck.recordset.length == 0) {
           return res.send({
@@ -241,6 +241,9 @@ module.exports = {
           tableName: req.body.tableName,
           recordID: req.body.id,
           clientId: req.body.clientId,
+          updatedBy:req.body.updatedBy,
+          deletedNo: req.body.id,
+         // updatedDate:req.body.updatedDate
         });
         res.send({
           success: true,
@@ -540,8 +543,8 @@ module.exports = {
   //   }
   // },
 
-   fetchVoucherDataDynamic: async (req, res) => {
-    const { clientID, recordID, menuID ,companyId,companyBranchId,financialYearId,userId} = req.body;
+  fetchVoucherDataDynamic: async (req, res) => {
+    const { clientID, recordID, menuID, companyId, companyBranchId, financialYearId, userId } = req.body;
     if (!clientID || !recordID || !menuID || !companyId || !companyBranchId || !financialYearId || !userId) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
@@ -550,10 +553,10 @@ module.exports = {
         clientID: clientID,
         recordID: recordID,
         menuID: menuID,
-        companyId:companyId,
-        companyBranchId:companyBranchId,
-        financialYearId:financialYearId,
-        userId :userId 
+        companyId: companyId,
+        companyBranchId: companyBranchId,
+        financialYearId: financialYearId,
+        userId: userId
       };
       let data = await executeStoredProcedure("fetchVoucherDataDynamic", parameter);
       let message = "Data fetched successfully....!";
@@ -575,4 +578,39 @@ module.exports = {
       });
     }
   },
+
+  saveJsonToDB: async (req, res) => {
+    try {
+      let { jsonData, tableName, formId, parentColumnName } = req.body;
+      if (!jsonData) {
+        return res.status(400).json({ error: "Missing jsonData in request body" });
+      }
+      jsonData = { ...jsonData, clientId: req.clientId, createdBy: req.userId, companyId: req.body.loginCompany, companyBranchId: req.body.loginBranch, financialYearId: req.body.loginfinYear }
+      let result = await executeStoredProcedure("dynamicMultiSubmit", {
+        submitJson: JSON.stringify(jsonData),
+        tableName: tableName || "defaultTableName",
+        formId, parentColumnName
+      });
+      if (result && result.success === false) {
+        return res.status(400).send({
+          success: false,
+          message: result.error || "Failed to save data",
+          data: [],
+        });
+      }
+      return res.send({
+        success: true,
+        message: "Data saved successfully",
+        data: result,
+      })
+
+    } catch (error) {
+      return res.status(500).send({
+        success: false,
+        message: "some thing went wrong - ",
+        data: [],
+        error: error.message,
+      });
+    }
+  }
 };
