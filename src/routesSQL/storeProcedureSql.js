@@ -35,7 +35,6 @@ router.post("/getTariffChargeDetails", auth.verifyToken, controller.getTariffCha
 router.post("/getRoundOffSettings", auth.verifyToken, controller.getRoundOffSetting);
 router.post("/checkDischargeDoneForBL", auth.verifyToken, controller.checkDischargeDoneForBL);
 router.post("/checkJobCreatedAginstBl", auth.verifyToken, controller.checkJobCreatedAginstBl);
-
-
+router.post("/getBillingPartyOnBl", auth.verifyToken, controller.getBillingPartyForBl);
 
 module.exports = router;
