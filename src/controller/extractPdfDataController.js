@@ -177,12 +177,67 @@ const EXTRACTION_SCHEMA = {
           iso: S.str("ISO code, for example 22G1."),
           weight: S.str("Container weight as printed in the PDF."),
           rate: S.str("Rate as printed in the PDF."),
+          tariffCode: S.str("Tariff Code"),
+          tariff: S.str("Tariff $ / ₹"),
+          exRate: S.str("Ex. Rate"),
+          exDate: S.str("Ex. Date"),
+          amount: S.str("Amount"),
         },
         required: [],
       },
     },
+
+    containerTotal: {
+      type: "object",
+      additionalProperties: false,
+      description: "Invoice Sub Total After the container table.",
+      properties: {
+        containerSubTotal: S.str("Sub Total"),
+      },
+    },
   },
 };
+
+// function buildTaskPrompt(fileNames = []) {
+//   return `
+// You are a high-accuracy invoice and logistics PDF extraction engine.
+
+// Extract data from the provided PDF files and return ONLY valid JSON matching the schema.
+
+// Rules:
+// 1. Do not guess values.
+// 2. If a value is not clearly present, return null.
+// 3. Map labels intelligently. For example:
+//    - invoiceNo may appear as Invoice No, Tax Invoice No, Bill No, Document No
+//    - invoiceDate may appear as Invoice Date, Bill Date, Document Date
+//    - CustomerCode may appear as Customer Code, Client Code, Party Code
+//    - CustomerName may appear as Buyer Name, Customer Name, Party Name
+//    - gstinNo may appear as GSTIN, GST No, GSTIN/UIN
+//    - irnNo may appear as IRN, Invoice Reference Number
+//    - poNo may appear as PO No, Purchase Order No
+//    - VesselCallNo may appear as Vessel Call No, Call No
+//    - vesselName may appear as Vessel, Vessel Name
+//    - ackNo may appear as Ack No, Acknowledgement No
+//    - ackDate may appear as Ack Date, Acknowledgement Date
+// 4. Extract all rows from the charges table into "tblCharges".
+// 5. Extract the totals/summary box into "chargesTotal":
+//    - Actual -> actual
+//    - Total -> total
+//    - Advance -> advance
+//    - Balance Invoice -> balanceInvoice
+// 6. Extract all rows from the container details table into "tblContainer".
+// 7. In tblContainer keep one object per visible row. Do not merge rows.
+// 8. If the same left-side grouped description applies to multiple rows, repeat it in each row as chargeGroup.
+// 9. Keep monetary values and table values exactly as printed in the PDF.
+// 10. Use warnings for conflicting values.
+// 11. Use missingFields for important fields that are not found.
+// 12. Set reviewRequired to true if key fields like invoiceNo, invoiceDate, CustomerName, or gstinNo are missing or ambiguous.
+// 13. Return dates in YYYY-MM-DD only when clearly derivable from the document. Otherwise keep the original printed value if it includes time/table content.
+
+// File names:
+// ${fileNames.join(", ") || "N/A"}
+// `;
+// }
 
 function buildTaskPrompt(fileNames = []) {
   return `
@@ -205,20 +260,33 @@ Rules:
    - vesselName may appear as Vessel, Vessel Name
    - ackNo may appear as Ack No, Acknowledgement No
    - ackDate may appear as Ack Date, Acknowledgement Date
-4. Extract all rows from the charges table into "tblCharges".
-5. Extract the totals/summary box into "chargesTotal":
+   - tariffCode may appear as Tariff Code, TariffCode
+   - tariff may appear as Tariff
+   - exRate may appear as Ex. Rate, Exchange Rate, Ex Rate
+   - exDate may appear as Ex. Date, Exchange Date, Ex Date
+   - amount may appear as Amount
+   - containerNo may appear as Container No, Container Number, Cntr No
+   - container may appear as Container
+   - fe may appear as F/E, Full/Empty, Full Empty
+   - iso may appear as ISO, ISO Code
+   - rate may appear as Rate, Tariff Rate
+   - weight may appear as Weight, Gross Weight, Net Weight if only one weight column is present
+
+4. Extract all visible rows from the charges table into "tblCharges".
+5. If the charges table contains columns such as Tariff Code, Container, Tariff, Ex. Rate, Ex. Date, or Amount, map them into the corresponding fields in "tblCharges".
+6. Extract the totals/summary box into "chargesTotal":
    - Actual -> actual
    - Total -> total
    - Advance -> advance
    - Balance Invoice -> balanceInvoice
-6. Extract all rows from the container details table into "tblContainer".
-7. In tblContainer keep one object per visible row. Do not merge rows.
-8. If the same left-side grouped description applies to multiple rows, repeat it in each row as chargeGroup.
-9. Keep monetary values and table values exactly as printed in the PDF.
-10. Use warnings for conflicting values.
-11. Use missingFields for important fields that are not found.
-12. Set reviewRequired to true if key fields like invoiceNo, invoiceDate, CustomerName, or gstinNo are missing or ambiguous.
-13. Return dates in YYYY-MM-DD only when clearly derivable from the document. Otherwise keep the original printed value if it includes time/table content.
+
+7. Extract all visible rows from the container details table into "tblContainer".
+8. In "tblContainer", keep one object per visible row. Do not merge rows.
+9. If the same left-side grouped description applies to multiple rows, repeat it in each row as chargeGroup.
+10. If the container table includes extra columns such as Tariff Code, Tariff, Ex. Rate, Ex. Date, Amount, Rate, Weight, ISO, or Container No, map them into the matching fields in "tblContainer".
+11. Keep monetary values, codes, dates, and table values exactly as printed in the PDF unless clearly normalizing a date is possible.
+12. Return dates in YYYY-MM-DD only when clearly derivable from the document. Otherwise keep the original printed value.
+13. Do not invent missing rows, totals, or container values.
 
 File names:
 ${fileNames.join(", ") || "N/A"}
