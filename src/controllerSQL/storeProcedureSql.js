@@ -623,11 +623,11 @@ module.exports = {
 
   generalLegerBillingParty: async (req, res) => {
     try {
-      let { id,clientId,voucherTypeId } = req.body;
+      let { id,clientId,voucherTypeId,companyId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
-        id,clientId,voucherTypeId
+        id,clientId,voucherTypeId,companyId
       });
       console.log("data", data);
 
