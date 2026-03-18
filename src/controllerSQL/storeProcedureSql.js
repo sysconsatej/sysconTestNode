@@ -116,6 +116,7 @@ module.exports = {
         billingPartyBranch,
         billingPartyState,
         totalAmountHc,
+        voucherTypeId
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -139,6 +140,7 @@ module.exports = {
         SelectedParentInvId: SelectedParentInvId,
         departmentId: departmentId,
         placeOfSupply_state: placeOfSupply_state,
+        voucherTypeId:voucherTypeId
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
@@ -621,11 +623,11 @@ module.exports = {
 
   generalLegerBillingParty: async (req, res) => {
     try {
-      let { id } = req.body;
+      let { id,clientId,voucherTypeId,companyId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
-        id,
+        id,clientId,voucherTypeId,companyId
       });
       console.log("data", data);
 

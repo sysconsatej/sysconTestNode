@@ -13,7 +13,7 @@ async function getTailwindCSS() {
   if (tailwindCSSPromise) return tailwindCSSPromise;
 
   tailwindCSSPromise = fetch(
-    "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css",
   )
     .then((res) => res.text())
     .catch((err) => {
@@ -24,6 +24,8 @@ async function getTailwindCSS() {
 
   return tailwindCSSPromise;
 }
+
+const envMode = (process.env.isLiveOrLocal || "local").trim().toLowerCase();
 
 module.exports = {
   Email: async (req, res) => {
@@ -552,16 +554,17 @@ module.exports = {
       });
     }
   },
+  // Your API handler
   // localPDFReports: async (req, res) => {
+  //   let browser;
+  //   let page;
+
   //   try {
   //     const { htmlContent, orientation, pdfFilename } = req.body;
 
-  //     // Fetch Tailwind CSS
-  //     const tailwindCSS = await fetch(
-  //       "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-  //     ).then((res) => res.text());
+  //     // ✅ Keep behavior same: assume htmlContent is provided by caller
+  //     const tailwindCSS = await getTailwindCSS();
 
-  //     // Wrap HTML
   //     const fullStyledHtml = `
   //     <!DOCTYPE html>
   //     <html lang="en">
@@ -579,26 +582,30 @@ module.exports = {
   //     </html>
   //   `;
 
-  //     const browser = await puppeteer.launch({
+  //     browser = await puppeteer.launch({
   //       args: ["--no-sandbox", "--disable-setuid-sandbox"],
   //       //executablePath: "/usr/bin/chromium-browser",
   //     });
 
-  //     const page = await browser.newPage();
+  //     page = await browser.newPage();
 
   //     await page.setContent(fullStyledHtml, {
   //       waitUntil: "networkidle0",
   //     });
 
-  //     // ✅ Wait for all images to load
+  //     // ✅ Wait for all images to load (same behavior, slightly tighter code)
   //     await page.evaluate(async () => {
-  //       const selectors = Array.from(document.images).map((img) => {
-  //         if (img.complete) return Promise.resolve();
-  //         return new Promise((resolve) => {
-  //           img.onload = img.onerror = resolve;
-  //         });
-  //       });
-  //       await Promise.all(selectors);
+  //       const images = Array.from(document.images);
+  //       if (!images.length) return;
+
+  //       await Promise.all(
+  //         images.map((img) => {
+  //           if (img.complete) return;
+  //           return new Promise((resolve) => {
+  //             img.onload = img.onerror = resolve;
+  //           });
+  //         })
+  //       );
   //     });
 
   //     const pdfBuffer = await page.pdf({
@@ -608,8 +615,6 @@ module.exports = {
   //       margin: { top: "10px", bottom: "10px", left: "10px", right: "10px" },
   //     });
 
-  //     await browser.close();
-
   //     res.setHeader("Content-Type", "application/pdf");
   //     res.setHeader(
   //       "Content-Disposition",
@@ -618,93 +623,225 @@ module.exports = {
   //     res.end(pdfBuffer, "binary");
   //   } catch (error) {
   //     console.error("Error generating PDF:", error);
-  //     res.status(500).send("An error occurred while generating the PDF");
+  //     // res.status(500).send("An error occurred while generating the PDF");
+  //     res.status(500).json({
+  //       success: false,
+  //       message: error.message || "An error occurred while generating the PDF",
+  //     });
+  //   } finally {
+  //     // ✅ Make sure resources are cleaned up even on error
+  //     if (page) {
+  //       try {
+  //         await page.close();
+  //       } catch {}
+  //     }
+  //     if (browser) {
+  //       try {
+  //         await browser.close();
+  //       } catch {}
+  //     }
   //   }
   // },
-
-  // Put these at the top of your file (module-level)
-
-  // Your API handler
+  // API Modification by Akash For Big PDF. That was not Working Like IGM
   localPDFReports: async (req, res) => {
     let browser;
     let page;
 
     try {
-      const { htmlContent, orientation, pdfFilename } = req.body;
+      const {
+        htmlContent = "",
+        orientation = "portrait",
+        pdfFilename = "report",
+      } = req.body || {};
 
-      // ✅ Keep behavior same: assume htmlContent is provided by caller
+      if (!htmlContent || typeof htmlContent !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "htmlContent is required",
+        });
+      }
+
       const tailwindCSS = await getTailwindCSS();
 
+      // Keep HTML lean. Avoid remote font dependency for huge PDFs.
       const fullStyledHtml = `
       <!DOCTYPE html>
       <html lang="en">
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
           <style>
             ${tailwindCSS}
-            body { font-family: 'Inter', sans-serif; }
-            @page { margin: 10px; }
+
+            html, body {
+              margin: 0;
+              padding: 0;
+              font-family: Arial, Helvetica, sans-serif;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+
+            * {
+              box-sizing: border-box;
+            }
+
+            @page {
+              size: A4 ${orientation === "landscape" ? "landscape" : "portrait"};
+              margin: 10px;
+            }
           </style>
         </head>
         <body>${htmlContent}</body>
       </html>
     `;
 
-      browser = await puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        executablePath: "/usr/bin/chromium-browser",
+      // browser = await puppeteer.launch({
+      //   headless: true,
+      //   protocolTimeout: 900000, // 15 min for heavy Page.printToPDF
+      //   args: [
+      //     "--no-sandbox",
+      //     "--disable-setuid-sandbox",
+      //     "--disable-dev-shm-usage",
+      //     "--disable-gpu",
+      //   ],
+      //   // executablePath: "/usr/bin/chromium-browser",
+      // });
+
+      console.log("envMode =>", envMode);
+
+      const browser = await puppeteer.launch({
+        headless: true,
+        protocolTimeout: 900000,
+        ...(envMode === "live"
+          ? {
+              executablePath:
+                process.env.PUPPETEER_EXECUTABLE_PATH ||
+                "/usr/bin/chromium-browser",
+            }
+          : {}),
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ],
       });
 
       page = await browser.newPage();
 
-      await page.setContent(fullStyledHtml, {
-        waitUntil: "networkidle0",
+      page.setDefaultTimeout(0);
+      page.setDefaultNavigationTimeout(0);
+
+      await page.setViewport({
+        width: 1400,
+        height: 900,
+        deviceScaleFactor: 1,
       });
 
-      // ✅ Wait for all images to load (same behavior, slightly tighter code)
-      await page.evaluate(async () => {
-        const images = Array.from(document.images);
-        if (!images.length) return;
+      // Block remote fonts/analytics if any exist in incoming HTML/CSS
+      await page.setRequestInterception(true);
+      page.on("request", (request) => {
+        const url = request.url();
+        const type = request.resourceType();
 
+        if (
+          type === "font" ||
+          url.includes("fonts.googleapis.com") ||
+          url.includes("fonts.gstatic.com") ||
+          url.includes("google-analytics") ||
+          url.includes("gtag")
+        ) {
+          return request.abort();
+        }
+
+        return request.continue();
+      });
+
+      await page.emulateMediaType("screen");
+
+      await page.setContent(fullStyledHtml, {
+        waitUntil: "domcontentloaded",
+        timeout: 0,
+      });
+
+      // Wait for images, but do not hang forever
+      await page.evaluate(async () => {
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        const images = Array.from(document.images || []);
         await Promise.all(
           images.map((img) => {
-            if (img.complete) return;
-            return new Promise((resolve) => {
-              img.onload = img.onerror = resolve;
-            });
-          })
+            if (img.complete) return Promise.resolve();
+
+            return Promise.race([
+              new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+              }),
+              sleep(15000),
+            ]);
+          }),
+        );
+
+        // Let layout settle
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
         );
       });
 
+      // Optional: inspect complexity in server logs
+      const metrics = await page.evaluate(() => {
+        const nodeCount = document.getElementsByTagName("*").length;
+        const imgCount = document.images.length;
+        const htmlSize = document.documentElement.outerHTML.length;
+        return { nodeCount, imgCount, htmlSize };
+      });
+
+      console.log("PDF metrics:", metrics);
+
       const pdfBuffer = await page.pdf({
         format: "A4",
-        printBackground: true,
         landscape: orientation === "landscape",
-        margin: { top: "10px", bottom: "10px", left: "10px", right: "10px" },
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: {
+          top: "10px",
+          right: "10px",
+          bottom: "10px",
+          left: "10px",
+        },
+
+        // Important for huge jobs
+        timeout: 0,
+        waitForFonts: false,
+        tagged: false,
+        outline: false,
+
+        // Slightly reduce rendering pressure
+        scale: 0.95,
       });
 
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${pdfFilename}.pdf"`
+        `attachment; filename="${pdfFilename}.pdf"`,
       );
-      res.end(pdfBuffer, "binary");
+
+      return res.end(Buffer.from(pdfBuffer), "binary");
     } catch (error) {
       console.error("Error generating PDF:", error);
-      // res.status(500).send("An error occurred while generating the PDF");
-      res.status(500).json({
+
+      return res.status(500).json({
         success: false,
         message: error.message || "An error occurred while generating the PDF",
       });
     } finally {
-      // ✅ Make sure resources are cleaned up even on error
       if (page) {
         try {
           await page.close();
         } catch {}
       }
+
       if (browser) {
         try {
           await browser.close();

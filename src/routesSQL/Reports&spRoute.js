@@ -24,5 +24,6 @@ router.post("/jobProfitability", controller.spJobProfitability);
 router.post("/warehouseData", controller.spwarehouseData);
 router.post("/blPrint", controller.spBlPrint);
 router.post("/goodsInwardQrGenerator", controller.spGoodsInwardQrGenerator);
+router.post("/croprint", controller.spCroprint);
 
 module.exports = router;

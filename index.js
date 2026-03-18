@@ -93,7 +93,6 @@ const chartRoutes = require("./src/routes/chartRoutes");
 const eInvoicing = require("./src/routes/eInvoicingRoute");
 const DynamicReports = require("./src/routes/DynamicReports");
 const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
-// 
 
 const SendEmail = require("./src/routes/Email");
 const validations = require("./src/routes/validation");
@@ -171,7 +170,8 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
-const notifications = require("./src/routesSQL/notification.route");
+// const notifications = require("./src/routesSQL/notification.route");
+const extractPDfDataRoute = require("./src/routes/extractPdfDataRoute.js");
 const { handleCrashes } = require("./handleCrash");
 const {
   deleteDeletedAttachments,
@@ -201,6 +201,7 @@ app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
 // app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
+app.use("/Sql/api/extract", extractPDfDataRoute);
 
 // test api made for test adter automating code is updating is working or not
 // app.get("/run-test", (req, res) => {
