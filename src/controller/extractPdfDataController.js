@@ -5,16 +5,26 @@ const crypto = require("crypto");
 const { PDFDocument } = require("pdf-lib");
 const { GoogleGenAI, createPartFromUri } = require("@google/genai");
 
+const pdfParseModule = require("pdf-parse");
+const pdfParse =
+  typeof pdfParseModule === "function"
+    ? pdfParseModule
+    : typeof pdfParseModule?.default === "function"
+      ? pdfParseModule.default
+      : null;
+
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50 MB per uploaded PDF
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
 // Big PDF handling
-const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024); // 15 MB
-const BIG_PDF_PAGE_THRESHOLD = Number(process.env.BIG_PDF_PAGE_THRESHOLD || 25);
+const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024);
+const BIG_PDF_PAGE_THRESHOLD = Number(
+  process.env.BIG_PDF_PAGE_THRESHOLD || 25,
+);
 const PDF_CHUNK_PAGE_COUNT = Number(process.env.PDF_CHUNK_PAGE_COUNT || 12);
 
 // Retry / polling handling
@@ -32,7 +42,7 @@ const GEMINI_FILE_PROCESSING_TIMEOUT_MS = Number(
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let readingStatus = {
-  status: "idle", // idle | running | completed | failed
+  status: "idle",
   stage: "idle",
   progress: 0,
   message: "No active process",
@@ -222,7 +232,6 @@ function buildPdfFilesSummary(workItems = []) {
     }
 
     const existing = map.get(pdfName);
-
     existing.pages = existing.pages ?? item.totalPages ?? null;
     existing.sizeBytes =
       existing.sizeBytes ?? item.originalSizeBytes ?? item.sizeBytes ?? null;
@@ -235,6 +244,282 @@ function buildPdfFilesSummary(workItems = []) {
 
   return [...map.values()];
 }
+
+/* ------------------------ invoice helpers ------------------------ */
+
+function cleanInvoiceNoCandidate(value) {
+  if (!value) return null;
+
+  let s = String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .trim();
+
+  s = s.replace(/^[\s:=#|._-]+/, "");
+  s = s.replace(/\s+$/g, "");
+  s = s.replace(/\s*([\/\\-])\s*/g, "$1");
+  s = s.replace(/\s{2,}/g, " ");
+
+  return s || null;
+}
+
+function looksLikeInvoiceNo(value) {
+  const s = cleanInvoiceNoCandidate(value);
+  if (!s) return false;
+
+  if (s.length < 4 || s.length > 60) return false;
+  if (/invoice|number|document|bill|tax\s+invoice/i.test(s)) return false;
+  if (!/[0-9]/.test(s)) return false;
+  if (!/^[A-Za-z0-9\/._\- ]+$/.test(s)) return false;
+
+  return true;
+}
+
+function getAmbiguousInvoiceCharGroup(ch) {
+  const c = String(ch || "").toUpperCase();
+
+  if ("I1L|".includes(c)) return "I_GROUP";
+  if ("O0Q".includes(c)) return "O_GROUP";
+  if ("B8".includes(c)) return "B_GROUP";
+  if ("S5".includes(c)) return "S_GROUP";
+  if ("Z2".includes(c)) return "Z_GROUP";
+  if ("G6".includes(c)) return "G_GROUP";
+
+  return c;
+}
+
+function areEquivalentExceptAmbiguousChars(a, b) {
+  const x = cleanInvoiceNoCandidate(a)?.replace(/\s+/g, "") || "";
+  const y = cleanInvoiceNoCandidate(b)?.replace(/\s+/g, "") || "";
+
+  if (!x || !y || x.length !== y.length) return false;
+
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] === y[i]) continue;
+
+    if (
+      getAmbiguousInvoiceCharGroup(x[i]) !== getAmbiguousInvoiceCharGroup(y[i])
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function scoreInvoiceNoCandidate(value, source = "unknown") {
+  const s = cleanInvoiceNoCandidate(value);
+  if (!s) return -Infinity;
+
+  let score = 0;
+
+  if (looksLikeInvoiceNo(s)) score += 8;
+  if (/[A-Za-z]/.test(s)) score += 3;
+  if (/\d/.test(s)) score += 3;
+  if (/[\/-]/.test(s)) score += 3;
+  if (/^[A-Za-z][\/-]/.test(s)) score += 4;
+  if (/^[A-Za-z0-9][A-Za-z0-9\/._\- ]*$/.test(s)) score += 2;
+  if (/^\d+$/.test(s)) score -= 4;
+  if (/invoice|number|document|bill/i.test(s)) score -= 10;
+
+  if (source === "pdf_text") score += 10;
+  if (source === "gemini_invoice_fallback") score += 2;
+  if (source === "gemini_main") score += 1;
+
+  return score;
+}
+
+function pickBestInvoiceNo(candidates = []) {
+  const prepared = candidates
+    .map((item) =>
+      typeof item === "string" ? { value: item, source: "unknown" } : item,
+    )
+    .map((item) => ({
+      ...item,
+      cleaned: cleanInvoiceNoCandidate(item.value),
+    }))
+    .filter((item) => item.cleaned);
+
+  if (!prepared.length) return null;
+
+  const strongPdfText = prepared.find(
+    (item) => item.source === "pdf_text" && looksLikeInvoiceNo(item.cleaned),
+  );
+
+  if (strongPdfText) {
+    const corroborated = prepared.some(
+      (item) =>
+        item !== strongPdfText &&
+        areEquivalentExceptAmbiguousChars(item.cleaned, strongPdfText.cleaned),
+    );
+
+    if (corroborated) {
+      return strongPdfText.cleaned;
+    }
+  }
+
+  prepared.sort((a, b) => {
+    return (
+      scoreInvoiceNoCandidate(b.cleaned, b.source) -
+      scoreInvoiceNoCandidate(a.cleaned, a.source)
+    );
+  });
+
+  return prepared[0]?.cleaned || null;
+}
+
+async function extractPdfTextInfo(buffer, fileName = "upload.pdf") {
+  try {
+    if (!buffer || !Buffer.isBuffer(buffer)) {
+      return {
+        rawText: "",
+        lines: [],
+        isPSAInvoice: false,
+        matchedBy: [],
+        textInvoiceCandidate: null,
+      };
+    }
+
+    if (typeof pdfParse !== "function") {
+      console.error("pdf-parse import failed for file:", fileName);
+      return {
+        rawText: "",
+        lines: [],
+        isPSAInvoice: false,
+        matchedBy: [],
+        textInvoiceCandidate: null,
+      };
+    }
+
+    const parsed = await pdfParse(buffer);
+    const rawText = String(parsed?.text || "");
+
+    const lines = rawText
+      .split(/\r?\n/)
+      .map((line) =>
+        line
+          .replace(/\u00A0/g, " ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .filter(Boolean);
+
+    const headText = lines.slice(0, 50).join(" ").toUpperCase();
+    const matchedBy = [];
+
+    if (/\bPSA\b/.test(headText)) matchedBy.push("PSA");
+    if (/PSA\s+INDIA/.test(headText)) matchedBy.push("PSA INDIA");
+    if (/PSA\s+MUMBAI/.test(headText)) matchedBy.push("PSA MUMBAI");
+    if (/PSA\s+SICAL/.test(headText)) matchedBy.push("PSA SICAL");
+    if (/PSA\s+AMEYA/.test(headText)) matchedBy.push("PSA AMEYA");
+
+    const sameLinePatterns = [
+      /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)\s*[:\-]?\s*(.+)$/i,
+      /^(?:bill|document)\s*(?:number|no\.?|#)\s*[:\-]?\s*(.+)$/i,
+    ];
+
+    const labelOnlyPatterns = [
+      /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?$/i,
+      /^(?:bill|document)\s*(?:number|no\.?|#)?$/i,
+    ];
+
+    const candidates = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      for (const pattern of sameLinePatterns) {
+        const match = line.match(pattern);
+        if (match?.[1]) candidates.push(match[1]);
+      }
+
+      for (const pattern of labelOnlyPatterns) {
+        if (!pattern.test(line)) continue;
+        if (i + 1 < lines.length) candidates.push(lines[i + 1]);
+        if (i + 2 < lines.length && !looksLikeInvoiceNo(lines[i + 1])) {
+          candidates.push(lines[i + 2]);
+        }
+      }
+    }
+
+    const broadRegex =
+      /(?:tax\s+)?(?:invoice|bill|document)\s*(?:number|no\.?|#)?\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9\/._\- ]{3,60})/gi;
+
+    for (const match of rawText.matchAll(broadRegex)) {
+      if (match?.[1]) candidates.push(match[1]);
+    }
+
+    const textInvoiceCandidate = pickBestInvoiceNo(
+      candidates.map((value) => ({
+        value,
+        source: "pdf_text",
+      })),
+    );
+
+    return {
+      rawText,
+      lines,
+      isPSAInvoice: matchedBy.length > 0,
+      matchedBy,
+      textInvoiceCandidate,
+    };
+  } catch (error) {
+    console.error("PDF text invoice extraction failed:", {
+      fileName,
+      error: error?.message || error,
+    });
+
+    return {
+      rawText: "",
+      lines: [],
+      isPSAInvoice: false,
+      matchedBy: [],
+      textInvoiceCandidate: null,
+    };
+  }
+}
+
+function forceLeadingAlphabetForPSA(invoiceNo) {
+  const s = cleanInvoiceNoCandidate(invoiceNo);
+  if (!s) return s;
+
+  // only act on invoice numbers like 1/2526/045274
+  if (!/^[A-Za-z0-9][\/-][A-Za-z0-9]/.test(s)) return s;
+
+  const first = s.charAt(0);
+  const rest = s.slice(1);
+
+  const map = {
+    "1": "I",
+    I: "I",
+    l: "I",
+    L: "I",
+    "|": "I",
+    "0": "O",
+    O: "O",
+    o: "O",
+    Q: "O",
+    q: "O",
+    "5": "S",
+    S: "S",
+    s: "S",
+    "8": "B",
+    B: "B",
+    b: "B",
+    "2": "Z",
+    Z: "Z",
+    z: "Z",
+    "6": "G",
+    G: "G",
+    g: "G",
+  };
+
+  if (!map[first]) return s;
+  return `${map[first]}${rest}`;
+}
+
+/* ------------------------ retry helpers ------------------------ */
 
 function isPdfFile(file) {
   const mime = String(file?.mimetype || "").toLowerCase();
@@ -310,6 +595,8 @@ async function withRetry(fn, options = {}) {
   throw lastError;
 }
 
+/* ------------------------ schemas ------------------------ */
+
 const S = {
   str: (description) => ({
     type: ["string", "null"],
@@ -334,7 +621,7 @@ const EXTRACTION_SCHEMA = {
     CustomerCode: S.str(
       "Customer code, client code, party code, or buyer code if present.",
     ),
-    ProformaInvNo: S.str("Proforma Inv No if present."), // ProformaInvNo
+    ProformaInvNo: S.str("Proforma Inv No if present."),
     CustomerName: S.str("Customer or buyer name."),
     CustomerAddress: S.str("Customer or buyer address."),
     gstinNo: S.str("GSTIN number of the customer or relevant party."),
@@ -355,29 +642,12 @@ const EXTRACTION_SCHEMA = {
     tanNo: S.str("TAN number if present."),
     VesselCallNo: S.str("Vessel call number if present."),
     rawVesselOrVoyageText: S.str(
-      "Raw printed vessel/voyage text exactly as seen in the PDF, especially when combined in one value like 'EVER LIBRA/EVBR2653'.",
+      "Raw printed vessel/voyage text exactly as seen in the PDF.",
     ),
-    rawVesselText: S.str(
-      "Raw text exactly under the Vessel label before any cleanup or splitting.",
-    ),
-    rawVoyageText: S.str(
-      "Raw text exactly under the Voyage label before any cleanup.",
-    ),
-    rawVesselOrVoyageText: S.str(
-      "Raw printed vessel/voyage text exactly as seen in the PDF, especially when vessel and voyage/service/via are combined in one value like 'EVER LIBRA/EVBR2653'.",
-    ),
-    rawVesselText: S.str(
-      "Raw text exactly under labels such as Vessel, Vessel Name, or similar before any cleanup or splitting.",
-    ),
-    rawVoyageText: S.str(
-      "Raw text exactly under labels such as Voyage, Voyage No, VIA, Via, Service, Service/Voyage, or similar before any cleanup.",
-    ),
-    vesselName: S.str(
-      "Vessel name only. This may appear under labels such as 'Vessel', 'Vessel Name', or similar. If combined text like 'EVER LIBRA/EVBR2653' is present, extract only 'EVER LIBRA' here when clearly separable.",
-    ),
-    voyageName: S.str(
-      "Voyage name/code only. This may appear under labels such as 'Voyage', 'Voyage No', 'VIA', 'Via', 'Service', or similar. If combined text like 'EVER LIBRA/EVBR2653' is present, extract only 'EVBR2653' here when clearly separable. If the PDF has a separate label 'VIA' next to 'VESSEL NAME', treat the VIA value as voyageName.",
-    ),
+    rawVesselText: S.str("Raw vessel text."),
+    rawVoyageText: S.str("Raw voyage text."),
+    vesselName: S.str("Vessel name only."),
+    voyageName: S.str("Voyage name/code only."),
     timeOfArrival: S.str(
       "Time/date of arrival in YYYY-MM-DD or datetime only when clearly derivable.",
     ),
@@ -385,12 +655,8 @@ const EXTRACTION_SCHEMA = {
       "Time/date of departure in YYYY-MM-DD or datetime only when clearly derivable.",
     ),
     trainNo: S.str("Train number if present."),
-    trainArrivalTime: S.str(
-      "Train arrival time/date if present and clearly derivable.",
-    ),
-    trainDepartureTime: S.str(
-      "Train departure time/date if present and clearly derivable.",
-    ),
+    trainArrivalTime: S.str("Train arrival time/date if present."),
+    trainDepartureTime: S.str("Train departure time/date if present."),
     ackNo: S.str("Acknowledgement number if present."),
     ackDate: S.str("Acknowledgement date if present."),
     activityCode: S.str("Activity code if present."),
@@ -398,27 +664,21 @@ const EXTRACTION_SCHEMA = {
 
     tblCharges: {
       type: "array",
-      description:
-        "Charge/tariff rows extracted from the invoice table. If the SERVICE column contains grouped section headings, store that heading in serviceGroup and repeat it for each related row.",
       items: {
         type: "object",
         additionalProperties: false,
         properties: {
           sNo: S.str("Serial number of the row."),
-          serviceGroup: S.str(
-            "Grouped section heading shown in the SERVICE column above a set of charge rows. Example: 'STEVEDORING/ TERMINAL HANDLING CHARGES (IMPORT -'. Repeat this same value for each charge row until the next grouped heading appears.",
-          ),
-          service: S.str("Raw SERVICE column value as printed in the PDF."),
-          serviceDescription: S.str(
-            "Actual charge line description. Example: 'CONTAINER LADEN 20\"'. Do not use grouped section headings here unless the PDF truly treats them as a row.",
-          ),
-          sac: S.str("Raw SAC column value as printed in the PDF."),
+          serviceGroup: S.str("Grouped section heading."),
+          service: S.str("Raw SERVICE column value."),
+          serviceDescription: S.str("Actual charge line description."),
+          sac: S.str("Raw SAC column value."),
           sacCode: S.str("SAC code."),
           sacPercent: S.str("SAC percentage."),
-          qty: S.str("Raw QTY column value as printed in the PDF."),
+          qty: S.str("Raw QTY column value."),
           unitQtyPerDay: S.str("Unit quantity per day."),
-          uom: S.str("Unit of measure. Example: CNT."),
-          rate: S.str("Raw RATE column value as printed in the PDF."),
+          uom: S.str("Unit of measure."),
+          rate: S.str("Raw RATE column value."),
           tariffRate: S.str("Tariff rate."),
           tariffCurrency: S.str("Tariff currency."),
           exchRate: S.str("Exchange rate."),
@@ -427,29 +687,17 @@ const EXTRACTION_SCHEMA = {
           sgst: S.str("SGST amount."),
           cgst: S.str("CGST amount."),
           igst: S.str("IGST amount."),
-          tariffCode: S.str(
-            "Tariff code if this column exists in the charges table.",
-          ),
-          tariff: S.str(
-            "Tariff value if this column exists in the charges table.",
-          ),
-          exRate: S.str(
-            "Exchange rate if printed as Ex. Rate in the charges table.",
-          ),
-          exDate: S.str(
-            "Exchange date if printed as Ex. Date in the charges table.",
-          ),
-          amount: S.str(
-            "Amount if printed as a separate amount column in the charges table.",
-          ),
-          containerNo: S.str(
-            "Container number if charges table includes container reference.",
-          ),
-          container: S.str("Container reference if printed as Container."),
-          fe: S.str("Full/Empty indicator if present in the charges table."),
-          size: S.str("Container size if present in the charges table."),
-          iso: S.str("ISO code if present in the charges table."),
-          weight: S.str("Weight if present in the charges table."),
+          tariffCode: S.str("Tariff code."),
+          tariff: S.str("Tariff value."),
+          exRate: S.str("Exchange rate."),
+          exDate: S.str("Exchange date."),
+          amount: S.str("Amount."),
+          containerNo: S.str("Container number."),
+          container: S.str("Container reference."),
+          fe: S.str("Full/Empty indicator."),
+          size: S.str("Container size."),
+          iso: S.str("ISO code."),
+          weight: S.str("Weight."),
         },
         required: [],
       },
@@ -458,7 +706,6 @@ const EXTRACTION_SCHEMA = {
     chargesTotal: {
       type: "object",
       additionalProperties: false,
-      description: "Invoice summary amounts shown in the totals/summary box.",
       properties: {
         actual: S.str("Actual amount."),
         total: S.str("Total amount."),
@@ -470,24 +717,21 @@ const EXTRACTION_SCHEMA = {
 
     tblContainer: {
       type: "array",
-      description: "Container detail rows extracted from the container table.",
       items: {
         type: "object",
         additionalProperties: false,
         properties: {
-          chargeGroup: S.str(
-            "Grouped label shown at the left side of the container table.",
-          ),
-          no: S.str("Serial number of the row."),
+          chargeGroup: S.str("Grouped label."),
+          no: S.str("Serial number."),
           containerNo: S.str("Container number."),
-          container: S.str("Container reference if printed as Container."),
-          fe: S.str("Full/Empty indicator, usually F or E."),
-          size: S.str("Container size, for example 20 or 40."),
-          iso: S.str("ISO code, for example 22G1."),
-          weight: S.str("Container weight as printed in the PDF."),
-          rate: S.str("Rate as printed in the PDF."),
+          container: S.str("Container reference."),
+          fe: S.str("Full/Empty indicator."),
+          size: S.str("Container size."),
+          iso: S.str("ISO code."),
+          weight: S.str("Weight."),
+          rate: S.str("Rate."),
           tariffCode: S.str("Tariff Code."),
-          tariff: S.str("Tariff $ / ₹."),
+          tariff: S.str("Tariff."),
           exRate: S.str("Ex. Rate."),
           exDate: S.str("Ex. Date."),
           amount: S.str("Amount."),
@@ -499,7 +743,6 @@ const EXTRACTION_SCHEMA = {
     containerTotal: {
       type: "object",
       additionalProperties: false,
-      description: "Invoice Sub Total after the container table.",
       properties: {
         containerSubTotal: S.str("Sub Total."),
       },
@@ -530,6 +773,8 @@ const INVOICE_NO_ONLY_SCHEMA = {
   required: [],
 };
 
+/* ------------------------ prompt builders ------------------------ */
+
 function buildTaskPrompt(fileNames = []) {
   return `
 You are a high-accuracy invoice and logistics PDF extraction engine.
@@ -539,87 +784,13 @@ Extract data from the provided PDF files and return ONLY valid JSON matching the
 Rules:
 1. Do not guess values.
 2. If a value is not clearly present, return null.
-3. Map labels intelligently. For example:
-   - invoiceNo may appear as Invoice No, Tax Invoice No, Bill No, Document No
-   - invoiceDate may appear as Invoice Date, Bill Date, Document Date
-   - CustomerCode may appear as Customer Code, Client Code, Party Code
-   - CustomerName may appear as Buyer Name, Customer Name, Party Name
-   - gstinNo may appear as GSTIN, GST No, GSTIN/UIN
-   - irnNo may appear as IRN, Invoice Reference Number
-   - poNo may appear as PO No, Purchase Order No
-   - VesselCallNo may appear as Vessel Call No, Call No
-   - vesselName may appear as Vessel, Vessel Name
-   - vesselName may appear as Vessel, Vessel Name, MV, Mother Vessel
-   - voyageName may appear as Voyage, Voyage No, Voyage Code, VIA, Via, Service, Service/Voyage
-   - ackNo may appear as Ack No, Acknowledgement No
-   - ackDate may appear as Ack Date, Acknowledgement Date
-   - tariffCode may appear as Tariff Code, TariffCode
-   - tariff may appear as Tariff
-   - exRate may appear as Ex. Rate, Exchange Rate, Ex Rate
-   - exDate may appear as Ex. Date, Exchange Date, Ex Date
-   - amount may appear as Amount
-   - containerNo may appear as Container No, Container Number, Cntr No
-   - container may appear as Container
-   - fe may appear as F/E, Full/Empty, Full Empty
-   - iso may appear as ISO, ISO Code
-   - rate may appear as Rate, Tariff Rate
-   - weight may appear as Weight, Gross Weight, Net Weight if only one weight column is present
-
-4. Preserve identifier values exactly as printed in the document.
-   - Do not change letters into numbers or numbers into letters.
-   - Do not auto-correct or normalize alphanumeric identifiers.
-   - This applies especially to invoiceNo, ackNo, irnNo, containerNo, CustomerCode, VesselCallNo, vesselName, voyageName, tariffCode, GSTIN, PAN, TAN, trainNo, and similar identifiers.
-   - Preserve prefixes, suffixes, slashes, hyphens, spaces, and mixed alphanumeric patterns exactly as printed when they are visible.
-
-5. For visually ambiguous characters in identifiers, be very careful.
-   - Characters such as I and 1, O and 0, B and 8, S and 5, Z and 2, G and 6 can look similar in PDFs.
-   - Do not replace one with the other unless the document clearly shows it.
-   - Prefer the exact printed text over pattern-based correction.
-   - If the identifier is visible, extract it exactly as shown in the PDF.
-
-6. Extract all visible rows from the charges table into "tblCharges".
-7. Preserve raw printed charge-table columns where available:
-   - SERVICE -> service
-   - SAC -> sac
-   - QTY -> qty
-   - UOM -> uom
-   - RATE -> rate
-   - AMOUNT(INR) -> amountInINR
-
-8. Also map normalized values where clearly possible:
-   - serviceDescription from the actual charge line text
-   - sacCode from SAC
-   - unitQtyPerDay from QTY
-   - tariffRate from RATE when RATE is the relevant rate field
-
-9. IMPORTANT FOR GROUPED SERVICE HEADINGS:
-   - Some charge tables contain section/group headings inside the SERVICE column.
-   - Example: "STEVEDORING/ TERMINAL HANDLING CHARGES (IMPORT -"
-   - These headings are not normal charge rows when they do not have their own qty/rate/amount values.
-   - Store such headings in "serviceGroup".
-   - Repeat the same "serviceGroup" value for each following charge row until the next grouped heading appears.
-   - The actual service rows such as "CONTAINER LADEN 20\\"" and "CONTAINER LADEN 40\\"" must remain in "service" and/or "serviceDescription".
-   - Do NOT place grouped service headings into tblContainer.
-
-10. If the charges table contains columns such as Tariff Code, Container, Tariff, Ex. Rate, Ex. Date, or Amount, map them into the corresponding fields in "tblCharges".
-
-11. Extract the totals/summary box into "chargesTotal":
-   - Actual -> actual
-   - Total -> total
-   - Advance -> advance
-   - Balance Invoice -> balanceInvoice
-
-12. Extract all visible rows from the container details table into "tblContainer".
-13. In "tblContainer", keep one object per visible row. Do not merge rows.
-14. If the same left-side grouped description applies to multiple rows, repeat it in each row as chargeGroup.
-15. If the container table includes extra columns such as Tariff Code, Tariff, Ex. Rate, Ex. Date, Amount, Rate, Weight, ISO, or Container No, map them into the matching fields in "tblContainer".
-16. Keep monetary values, codes, dates, and table values exactly as printed in the PDF unless clearly normalizing a date is possible.
-17. Return dates in YYYY-MM-DD only when clearly derivable from the document. Otherwise keep the original printed value.
-18. Do not invent missing rows, totals, or container values.
-19. SPECIAL RULE FOR VESSEL / VIA LAYOUT:
-   - If the PDF shows a field labeled 'VESSEL NAME', map it to vesselName.
-   - If the PDF shows a field labeled 'VIA', map it to voyageName.
-   - Do not treat 'VIA' as a route description when it is clearly paired with vessel details and contains a voyage/service code.
+3. Preserve identifier values exactly as printed in the document.
+4. Do not change letters into numbers or numbers into letters.
+5. Be very careful with visually ambiguous characters like I/1, O/0, B/8, S/5, Z/2, G/6.
+6. Extract all visible rows from charges table into tblCharges.
+7. Extract all visible rows from container table into tblContainer.
+8. Return dates in YYYY-MM-DD only when clearly derivable.
+9. Do not invent missing rows or values.
 
 File names:
 ${fileNames.join(", ") || "N/A"}
@@ -637,10 +808,7 @@ ${basePrompt}
 IMPORTANT CHUNK RULES:
 - You are receiving only part ${workItem.partIndex} of ${workItem.partCount} of the same PDF document.
 - Extract ONLY what is visible in this chunk.
-- If a header field, summary total, charge row, or container row is not visible in this chunk, return null or [] for this chunk.
-- Do not invent values from other unseen pages.
-- Do not assume earlier or later pages.
-- The final application will merge chunk outputs together.
+- If a field is not visible in this chunk, return null or [] for this chunk.
 `;
 }
 
@@ -653,31 +821,6 @@ You are a high-accuracy PDF extraction engine.
 Your task is to extract ONLY the container table and container subtotal from this PDF.
 
 Return ONLY valid JSON matching the schema.
-
-Rules:
-1. Focus only on the container details section/table.
-2. Extract all visible rows from the container details table into "tblContainer".
-3. Keep one object per visible row. Do not merge rows.
-4. If the same grouped description applies to multiple rows, repeat it in each row as chargeGroup.
-5. Map these fields when visible:
-   - no
-   - containerNo
-   - container
-   - fe
-   - size
-   - iso
-   - weight
-   - rate
-   - tariffCode
-   - tariff
-   - exRate
-   - exDate
-   - amount
-6. Extract subtotal after the container table into:
-   - containerTotal.containerSubTotal
-7. Do not extract charges table rows into tblContainer.
-8. Do not guess values.
-9. If container table is truly not present, return an empty array.
 
 File name:
 ${fileName}
@@ -695,30 +838,17 @@ Your task is to extract ONLY the invoice number from this PDF.
 Return ONLY valid JSON matching the schema.
 
 Rules:
-1. Extract only the value for invoiceNo.
-2. invoiceNo may appear as:
-   - Invoice No
-   - Invoice Number
-   - Tax Invoice No
-   - Bill No
-   - Document No
-3. Preserve the invoice number exactly as printed in the PDF.
-4. Do not change letters into numbers or numbers into letters.
-5. Be very careful with visually similar characters such as:
-   - I and 1
-   - O and 0
-   - B and 8
-   - S and 5
-   - Z and 2
-   - G and 6
-6. Preserve slashes, hyphens, spaces, prefixes, and suffixes exactly as printed.
-7. Do not auto-correct, normalize, or infer the invoice number.
-8. If the invoice number is not clearly visible, return null.
+1. Preserve the invoice number exactly as printed.
+2. Do not change letters into numbers or numbers into letters.
+3. Be careful with I/1, O/0, B/8, S/5, Z/2, G/6.
+4. If not clearly visible, return null.
 
 File name:
 ${fileName}
 `;
 }
+
+/* ------------------------ file helpers ------------------------ */
 
 function getUploadedFiles(req) {
   if (!req.files || typeof req.files !== "object") return [];
@@ -787,7 +917,12 @@ async function getPdfPageCount(buffer) {
   return pdf.getPageCount();
 }
 
-async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
+async function splitPdfBufferToTempFiles(
+  buffer,
+  originalName,
+  chunkPageCount,
+  sharedMeta = {},
+) {
   const srcPdf = await PDFDocument.load(buffer, {
     ignoreEncryption: true,
     updateMetadata: false,
@@ -815,6 +950,7 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
     copiedPages.forEach((page) => chunkPdf.addPage(page));
 
     const bytes = await chunkPdf.save();
+    const chunkBuffer = Buffer.from(bytes);
     const partIndex = Math.floor(start / chunkPageCount) + 1;
     const displayName = `${safeBaseName}__part_${partIndex}_of_${partCount}.pdf`;
     const tempPath = path.join(
@@ -822,7 +958,7 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
       `${Date.now()}-${crypto.randomUUID()}-${displayName}`,
     );
 
-    await fs.writeFile(tempPath, Buffer.from(bytes));
+    await fs.writeFile(tempPath, chunkBuffer);
 
     items.push({
       originalFileName: originalName || "upload.pdf",
@@ -839,8 +975,9 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
       startPage: start + 1,
       endPage: end,
       totalPages,
-      sizeBytes: Buffer.byteLength(bytes),
+      sizeBytes: chunkBuffer.length,
       originalSizeBytes: buffer.length,
+      ...sharedMeta,
     });
   }
 
@@ -858,6 +995,15 @@ async function buildWorkItems(files) {
       throw new Error(`Could not read uploaded file: ${displayName}`);
     }
 
+    const pdfTextInfo = await extractPdfTextInfo(buffer, displayName);
+
+    console.log("[PSA DETECTION]", {
+      file: displayName,
+      isPSAInvoice: pdfTextInfo.isPSAInvoice,
+      matchedBy: pdfTextInfo.matchedBy,
+      pdfTextInvoice: pdfTextInfo.textInvoiceCandidate,
+    });
+
     let pageCount = null;
     try {
       pageCount = await getPdfPageCount(buffer);
@@ -869,11 +1015,19 @@ async function buildWorkItems(files) {
       buffer.length >= BIG_PDF_BYTES ||
       (Number.isFinite(pageCount) && pageCount > BIG_PDF_PAGE_THRESHOLD);
 
+    const sharedMeta = {
+      textInvoiceCandidate: pdfTextInfo.textInvoiceCandidate,
+      isPSAInvoice: pdfTextInfo.isPSAInvoice,
+      psaMatchedBy: pdfTextInfo.matchedBy,
+      rawPdfText: pdfTextInfo.rawText,
+    };
+
     if (shouldChunk && Number.isFinite(pageCount) && pageCount > 1) {
       const chunkItems = await splitPdfBufferToTempFiles(
         buffer,
         displayName,
         PDF_CHUNK_PAGE_COUNT,
+        sharedMeta,
       );
       workItems.push(...chunkItems);
       continue;
@@ -894,11 +1048,14 @@ async function buildWorkItems(files) {
       totalPages: pageCount || null,
       sizeBytes: buffer.length,
       originalSizeBytes: buffer.length,
+      ...sharedMeta,
     });
   }
 
   return workItems;
 }
+
+/* ------------------------ gemini upload helpers ------------------------ */
 
 async function uploadAndWaitForFile(workItem, index, totalItems) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
@@ -1053,6 +1210,8 @@ async function deleteGeminiFiles(fileNames = []) {
   }
 }
 
+/* ------------------------ extraction helpers ------------------------ */
+
 async function extractContainerFallbackFromGemini(
   fetchedFile,
   workItem,
@@ -1096,17 +1255,6 @@ async function extractContainerFallbackFromGemini(
     },
     {
       label: `container fallback ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_container_fallback",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying container fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
     },
   );
 
@@ -1174,17 +1322,6 @@ async function extractInvoiceNoFallbackFromGemini(
     },
     {
       label: `invoiceNo fallback ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_invoice_no_fallback",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying invoice number fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
     },
   );
 
@@ -1201,7 +1338,7 @@ async function extractInvoiceNoFallbackFromGemini(
   return {
     invoiceNo:
       parsed?.invoiceNo && typeof parsed.invoiceNo === "string"
-        ? parsed.invoiceNo.trim()
+        ? cleanInvoiceNoCandidate(parsed.invoiceNo)
         : null,
   };
 }
@@ -1242,7 +1379,6 @@ function buildUsageMetadata(usageMetadataList = []) {
     };
   }
 
-  // If only one file/chunk was processed, return exactly the flat shape you want
   if (usageMetadataList.length === 1) {
     const item = usageMetadataList[0];
     const meta = item?.usageMetadata || {};
@@ -1263,7 +1399,6 @@ function buildUsageMetadata(usageMetadataList = []) {
     };
   }
 
-  // If multiple files/chunks were processed, aggregate token counts
   return {
     promptTokenCount: usageMetadataList.reduce(
       (sum, item) => sum + Number(item?.usageMetadata?.promptTokenCount || 0),
@@ -1298,8 +1433,6 @@ function normalizeVesselVoyageFields(data = {}) {
 
   const rawVessel = String(out.rawVesselText || "").trim();
   const rawVoyage = String(out.rawVoyageText || "").trim();
-  const vesselName = String(out.vesselName || "").trim();
-  const voyageName = String(out.voyageName || "").trim();
   const combined = String(out.rawVesselOrVoyageText || "").trim();
 
   if (!out.vesselName && rawVessel) {
@@ -1332,54 +1465,38 @@ async function extractSingleChunkFromGemini(
     ? buildChunkTaskPrompt(workItem)
     : buildTaskPrompt([workItem.originalFileName || workItem.displayName]);
 
-  const response = await withRetry(
-    async () => {
-      setReadingStatus({
-        status: "running",
-        stage: "generating_content",
-        progress: Math.min(
-          75 + Math.floor((index / Math.max(totalItems, 1)) * 18),
-          94,
-        ),
-        currentFileIndex: index + 1,
-        totalFiles: totalItems,
-        currentFileName: displayName,
-        message: `Extracting data from ${displayName}`,
-        error: null,
-      });
+  const response = await withRetry(async () => {
+    setReadingStatus({
+      status: "running",
+      stage: "generating_content",
+      progress: Math.min(
+        75 + Math.floor((index / Math.max(totalItems, 1)) * 18),
+        94,
+      ),
+      currentFileIndex: index + 1,
+      totalFiles: totalItems,
+      currentFileName: displayName,
+      message: `Extracting data from ${displayName}`,
+      error: null,
+    });
 
-      const contents = [
-        prompt,
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
-      ];
+    const contents = [
+      prompt,
+      createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+    ];
 
-      return await ai.models.generateContent({
-        model: MODEL,
-        contents,
-        config: {
-          temperature: 0,
-          systemInstruction:
-            "You are a strict JSON extraction engine. Prefer null over guessing. Follow the schema exactly.",
-          responseMimeType: "application/json",
-          responseJsonSchema: EXTRACTION_SCHEMA,
-        },
-      });
-    },
-    {
-      label: `generate content ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_generate_content",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying extraction for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
+    return await ai.models.generateContent({
+      model: MODEL,
+      contents,
+      config: {
+        temperature: 0,
+        systemInstruction:
+          "You are a strict JSON extraction engine. Prefer null over guessing. Follow the schema exactly.",
+        responseMimeType: "application/json",
+        responseJsonSchema: EXTRACTION_SCHEMA,
       },
-    },
-  );
+    });
+  });
 
   let parsed;
 
@@ -1393,18 +1510,16 @@ async function extractSingleChunkFromGemini(
   parsed = normalizeResultShape(parsed);
   parsed = normalizeVesselVoyageFields(parsed);
 
-  // Focused fallback for invoice number
+  const geminiMainInvoiceRaw = parsed.invoiceNo;
+  let invoiceFallback = null;
+
   try {
-    const invoiceFallback = await extractInvoiceNoFallbackFromGemini(
+    invoiceFallback = await extractInvoiceNoFallbackFromGemini(
       fetchedFile,
       workItem,
       index,
       totalItems,
     );
-
-    if (invoiceFallback.invoiceNo) {
-      parsed.invoiceNo = invoiceFallback.invoiceNo;
-    }
   } catch (invoiceFallbackError) {
     console.error(
       `InvoiceNo fallback failed for ${displayName}:`,
@@ -1412,7 +1527,27 @@ async function extractSingleChunkFromGemini(
     );
   }
 
-  // Focused fallback for container table
+  let finalInvoiceNo = pickBestInvoiceNo([
+    { value: workItem.textInvoiceCandidate, source: "pdf_text" },
+    { value: invoiceFallback?.invoiceNo, source: "gemini_invoice_fallback" },
+    { value: geminiMainInvoiceRaw, source: "gemini_main" },
+  ]);
+
+  if (workItem.isPSAInvoice && finalInvoiceNo) {
+    const before = finalInvoiceNo;
+    finalInvoiceNo = forceLeadingAlphabetForPSA(finalInvoiceNo);
+
+    console.log("[PSA NORMALIZATION]", {
+      file: displayName,
+      isPSAInvoice: workItem.isPSAInvoice,
+      matchedBy: workItem.psaMatchedBy || [],
+      before,
+      after: finalInvoiceNo,
+    });
+  }
+
+  parsed.invoiceNo = finalInvoiceNo;
+
   if (!Array.isArray(parsed.tblContainer) || parsed.tblContainer.length === 0) {
     try {
       const fallback = await extractContainerFallbackFromGemini(
@@ -1448,11 +1583,23 @@ async function extractSingleChunkFromGemini(
     }
   }
 
+  console.log("[FINAL INVOICE DECISION]", {
+    file: displayName,
+    isPSAInvoice: !!workItem.isPSAInvoice,
+    matchedBy: workItem.psaMatchedBy || [],
+    pdfTextInvoice: workItem.textInvoiceCandidate || null,
+    geminiFallbackInvoice: invoiceFallback?.invoiceNo || null,
+    geminiMainInvoice: geminiMainInvoiceRaw || null,
+    finalInvoiceNo: parsed.invoiceNo || null,
+  });
+
   return {
     parsed,
     usageMetadata: response.usageMetadata || {},
   };
 }
+
+/* ------------------------ exports ------------------------ */
 
 module.exports = {
   extractPdfData: async (req, res) => {
