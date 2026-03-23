@@ -4,6 +4,7 @@ const os = require("os");
 const crypto = require("crypto");
 const { PDFDocument } = require("pdf-lib");
 const { GoogleGenAI, createPartFromUri } = require("@google/genai");
+const pdfParse = require("pdf-parse");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -234,6 +235,344 @@ function buildPdfFilesSummary(workItems = []) {
   }
 
   return [...map.values()];
+}
+
+function cleanInvoiceNo(value) {
+  if (!value) return null;
+
+  let s = String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  s = s.replace(/^[\s:=#._-]+/, "");
+  s = s.replace(/\s*([\/\\-])\s*/g, "$1");
+
+  return s || null;
+}
+
+function looksLikeInvoiceNo(value) {
+  const s = cleanInvoiceNo(value);
+  if (!s) return false;
+
+  if (s.length < 4 || s.length > 60) return false;
+  if (!/[0-9]/.test(s)) return false;
+  if (!/^[A-Za-z0-9\/._\- ]+$/.test(s)) return false;
+  if (/invoice|number|document|bill/i.test(s)) return false;
+
+  return true;
+}
+
+function getAmbiguousGroup(ch) {
+  const c = String(ch || "").toUpperCase();
+
+  if ("I1L|".includes(c)) return "I_GROUP";
+  if ("O0Q".includes(c)) return "O_GROUP";
+  if ("B8".includes(c)) return "B_GROUP";
+  if ("S5".includes(c)) return "S_GROUP";
+  if ("Z2".includes(c)) return "Z_GROUP";
+  if ("G6".includes(c)) return "G_GROUP";
+
+  return c;
+}
+
+function equivalentExceptAmbiguous(a, b) {
+  const x = cleanInvoiceNo(a)?.replace(/\s+/g, "") || "";
+  const y = cleanInvoiceNo(b)?.replace(/\s+/g, "") || "";
+
+  if (!x || !y || x.length !== y.length) return false;
+
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] === y[i]) continue;
+    if (getAmbiguousGroup(x[i]) !== getAmbiguousGroup(y[i])) return false;
+  }
+
+  return true;
+}
+
+function scoreInvoiceCandidate(value, source = "unknown") {
+  const s = cleanInvoiceNo(value);
+  if (!s) return -Infinity;
+
+  let score = 0;
+
+  if (looksLikeInvoiceNo(s)) score += 10;
+  if (/[A-Za-z]/.test(s)) score += 3;
+  if (/\d/.test(s)) score += 3;
+  if (/[\/-]/.test(s)) score += 3;
+  if (/^[A-Za-z][\/-]/.test(s)) score += 5; // important for I/2526/045274
+  if (/^\d+$/.test(s)) score -= 5;
+
+  if (source === "pdf_text") score += 100; // always prefer deterministic text layer
+  if (source === "gemini_main") score += 5;
+  if (source === "gemini_invoice_fallback") score += 3;
+
+  return score;
+}
+
+function chooseBestInvoiceNo(candidates = []) {
+  const prepared = candidates
+    .map((c) => ({
+      value: cleanInvoiceNo(c?.value),
+      source: c?.source || "unknown",
+    }))
+    .filter((c) => c.value);
+
+  if (!prepared.length) return null;
+
+  prepared.sort(
+    (a, b) =>
+      scoreInvoiceCandidate(b.value, b.source) -
+      scoreInvoiceCandidate(a.value, a.source),
+  );
+
+  return prepared[0].value;
+}
+
+async function extractInvoiceNoFromPdfTextBuffer(buffer) {
+  try {
+    if (!buffer || !Buffer.isBuffer(buffer)) return null;
+
+    const parsed = await pdfParse(buffer);
+    const rawText = String(parsed?.text || "");
+    if (!rawText.trim()) return null;
+
+    const lines = rawText
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\u00A0/g, " ").trim())
+      .filter(Boolean);
+
+    const candidates = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Case 1: label and value on same line
+      let m = line.match(
+        /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?\s*[:\-]?\s*(.+)$/i,
+      );
+      if (m?.[1]) {
+        candidates.push(m[1]);
+      }
+
+      // Case 2: label on one line, value on next line
+      if (/^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?$/i.test(line)) {
+        if (lines[i + 1]) candidates.push(lines[i + 1]);
+        if (lines[i + 2] && !looksLikeInvoiceNo(lines[i + 1])) {
+          candidates.push(lines[i + 2]);
+        }
+      }
+    }
+
+    const cleaned = candidates.map(cleanInvoiceNo).filter(looksLikeInvoiceNo);
+
+    if (!cleaned.length) return null;
+
+    cleaned.sort(
+      (a, b) =>
+        scoreInvoiceCandidate(b, "pdf_text") -
+        scoreInvoiceCandidate(a, "pdf_text"),
+    );
+
+    return cleaned[0];
+  } catch (error) {
+    console.error("extractInvoiceNoFromPdfTextBuffer failed:", error);
+    return null;
+  }
+}
+
+function cleanInvoiceNoCandidate(value) {
+  if (!value) return null;
+
+  let s = String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .trim();
+
+  s = s.replace(/^[\s:=#|._-]+/, "");
+  s = s.replace(/\s+$/g, "");
+  s = s.replace(/\s*([\/\\-])\s*/g, "$1");
+  s = s.replace(/\s{2,}/g, " ");
+
+  return s || null;
+}
+
+function looksLikeInvoiceNo(value) {
+  const s = cleanInvoiceNoCandidate(value);
+  if (!s) return false;
+
+  if (s.length < 4 || s.length > 60) return false;
+  if (/invoice|number|document|bill|tax\s+invoice/i.test(s)) return false;
+  if (!/[0-9]/.test(s)) return false;
+  if (!/^[A-Za-z0-9\/._\- ]+$/.test(s)) return false;
+
+  return true;
+}
+
+function getAmbiguousInvoiceCharGroup(ch) {
+  const c = String(ch || "").toUpperCase();
+
+  if ("I1L|".includes(c)) return "I_GROUP";
+  if ("O0Q".includes(c)) return "O_GROUP";
+  if ("B8".includes(c)) return "B_GROUP";
+  if ("S5".includes(c)) return "S_GROUP";
+  if ("Z2".includes(c)) return "Z_GROUP";
+  if ("G6".includes(c)) return "G_GROUP";
+
+  return c;
+}
+
+function areEquivalentExceptAmbiguousChars(a, b) {
+  const x = cleanInvoiceNoCandidate(a)?.replace(/\s+/g, "") || "";
+  const y = cleanInvoiceNoCandidate(b)?.replace(/\s+/g, "") || "";
+
+  if (!x || !y || x.length !== y.length) return false;
+
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] === y[i]) continue;
+
+    if (
+      getAmbiguousInvoiceCharGroup(x[i]) !== getAmbiguousInvoiceCharGroup(y[i])
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function scoreInvoiceNoCandidate(value, source = "unknown") {
+  const s = cleanInvoiceNoCandidate(value);
+  if (!s) return -Infinity;
+
+  let score = 0;
+
+  if (looksLikeInvoiceNo(s)) score += 8;
+  if (/[A-Za-z]/.test(s)) score += 3;
+  if (/\d/.test(s)) score += 3;
+  if (/[\/-]/.test(s)) score += 3;
+  if (/^[A-Za-z][\/-]/.test(s)) score += 3; // e.g. I/2526/045274
+  if (/^[A-Za-z0-9][A-Za-z0-9\/._\- ]*$/.test(s)) score += 2;
+  if (/^\d+$/.test(s)) score -= 4;
+  if (/invoice|number|document|bill/i.test(s)) score -= 10;
+
+  if (source === "pdf_text") score += 5;
+  if (source === "gemini_invoice_fallback") score += 2;
+
+  return score;
+}
+
+function pickBestInvoiceNo(candidates = []) {
+  const prepared = candidates
+    .map((item) =>
+      typeof item === "string" ? { value: item, source: "unknown" } : item,
+    )
+    .map((item) => ({
+      ...item,
+      cleaned: cleanInvoiceNoCandidate(item.value),
+    }))
+    .filter((item) => item.cleaned);
+
+  if (!prepared.length) return null;
+
+  const strongPdfText = prepared.find(
+    (item) => item.source === "pdf_text" && looksLikeInvoiceNo(item.cleaned),
+  );
+
+  if (strongPdfText) {
+    const corroborated = prepared.some(
+      (item) =>
+        item !== strongPdfText &&
+        areEquivalentExceptAmbiguousChars(item.cleaned, strongPdfText.cleaned),
+    );
+
+    if (corroborated) {
+      return strongPdfText.cleaned;
+    }
+  }
+
+  prepared.sort((a, b) => {
+    return (
+      scoreInvoiceNoCandidate(b.cleaned, b.source) -
+      scoreInvoiceNoCandidate(a.cleaned, a.source)
+    );
+  });
+
+  return prepared[0]?.cleaned || null;
+}
+
+async function extractInvoiceNoFromPdfTextBuffer(buffer) {
+  try {
+    if (!buffer || !Buffer.isBuffer(buffer)) return null;
+
+    const parsed = await pdfParse(buffer);
+    const rawText = String(parsed?.text || "");
+
+    if (!rawText.trim()) return null;
+
+    const lines = rawText
+      .split(/\r?\n/)
+      .map((line) =>
+        line
+          .replace(/\u00A0/g, " ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .filter(Boolean);
+
+    const labelOnlyPatterns = [
+      /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?$/i,
+      /^(?:bill|document)\s*(?:number|no\.?|#)?$/i,
+    ];
+
+    const sameLinePatterns = [
+      /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)\s*[:\-]?\s*(.+)$/i,
+      /^(?:bill|document)\s*(?:number|no\.?|#)\s*[:\-]?\s*(.+)$/i,
+    ];
+
+    const candidates = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      for (const pattern of sameLinePatterns) {
+        const match = line.match(pattern);
+        if (match?.[1]) {
+          candidates.push(match[1]);
+        }
+      }
+
+      for (const pattern of labelOnlyPatterns) {
+        if (!pattern.test(line)) continue;
+
+        if (i + 1 < lines.length) candidates.push(lines[i + 1]);
+        if (i + 2 < lines.length && !looksLikeInvoiceNo(lines[i + 1])) {
+          candidates.push(lines[i + 2]);
+        }
+      }
+    }
+
+    const broadRegex =
+      /(?:tax\s+)?(?:invoice|bill|document)\s*(?:number|no\.?|#)?\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9\/._\- ]{3,60})/gi;
+
+    for (const match of rawText.matchAll(broadRegex)) {
+      if (match?.[1]) candidates.push(match[1]);
+    }
+
+    return pickBestInvoiceNo(
+      candidates.map((value) => ({
+        value,
+        source: "pdf_text",
+      })),
+    );
+  } catch (error) {
+    console.error(
+      "PDF text invoice extraction failed:",
+      error?.message || error,
+    );
+    return null;
+  }
 }
 
 function isPdfFile(file) {
@@ -815,6 +1154,9 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
     copiedPages.forEach((page) => chunkPdf.addPage(page));
 
     const bytes = await chunkPdf.save();
+    const chunkBuffer = Buffer.from(bytes);
+    const textInvoiceCandidate =
+      await extractInvoiceNoFromPdfTextBuffer(chunkBuffer);
     const partIndex = Math.floor(start / chunkPageCount) + 1;
     const displayName = `${safeBaseName}__part_${partIndex}_of_${partCount}.pdf`;
     const tempPath = path.join(
@@ -839,7 +1181,8 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
       startPage: start + 1,
       endPage: end,
       totalPages,
-      sizeBytes: Buffer.byteLength(bytes),
+      sizeBytes: chunkBuffer.length,
+      textInvoiceCandidate,
       originalSizeBytes: buffer.length,
     });
   }
@@ -853,7 +1196,8 @@ async function buildWorkItems(files) {
   for (const file of files) {
     const displayName = file?.name || "upload.pdf";
     const buffer = await getFileBuffer(file);
-
+    const textInvoiceCandidate =
+      await extractInvoiceNoFromPdfTextBuffer(buffer);
     if (!buffer) {
       throw new Error(`Could not read uploaded file: ${displayName}`);
     }
@@ -894,6 +1238,7 @@ async function buildWorkItems(files) {
       totalPages: pageCount || null,
       sizeBytes: buffer.length,
       originalSizeBytes: buffer.length,
+      textInvoiceCandidate,
     });
   }
 
@@ -1394,23 +1739,27 @@ async function extractSingleChunkFromGemini(
   parsed = normalizeVesselVoyageFields(parsed);
 
   // Focused fallback for invoice number
+  let invoiceFallback = null;
+
   try {
-    const invoiceFallback = await extractInvoiceNoFallbackFromGemini(
+    invoiceFallback = await extractInvoiceNoFallbackFromGemini(
       fetchedFile,
       workItem,
       index,
       totalItems,
     );
-
-    if (invoiceFallback.invoiceNo) {
-      parsed.invoiceNo = invoiceFallback.invoiceNo;
-    }
   } catch (invoiceFallbackError) {
     console.error(
       `InvoiceNo fallback failed for ${displayName}:`,
       invoiceFallbackError,
     );
   }
+
+  parsed.invoiceNo = pickBestInvoiceNo([
+    { value: workItem.textInvoiceCandidate, source: "pdf_text" },
+    { value: invoiceFallback?.invoiceNo, source: "gemini_invoice_fallback" },
+    { value: parsed.invoiceNo, source: "gemini_main" },
+  ]);
 
   // Focused fallback for container table
   if (!Array.isArray(parsed.tblContainer) || parsed.tblContainer.length === 0) {
@@ -1673,3 +2022,4 @@ module.exports = {
     }
   },
 };
+// today back Up
