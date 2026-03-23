@@ -167,7 +167,7 @@ module.exports = {
       });
     }
   },
-  getTDSDetails: async (req, res) => {
+ getTDSDetails: async (req, res) => {
     try {
       const {
         partyId,
@@ -177,6 +177,7 @@ module.exports = {
         exchangeRateGrid,
         invoiceDate,
         companyId,
+        clientId
       } = req.body;
       let parameters = {
         glId: glId,
@@ -185,7 +186,7 @@ module.exports = {
         invoiceDate: invoiceDate,
         exchangeRateGrid: exchangeRateGrid,
         companyId: companyId,
-        clientId: req.clientId,
+        clientId: clientId,
       };
       let data = await executeStoredProcedure("GetTdsDetails", parameters);
       if (data.length === 0) {
@@ -195,7 +196,7 @@ module.exports = {
           tblTDS: [],
         });
       }
-
+ 
       return res.send({
         success: true,
         message: "Data fetched successfully!",
@@ -211,6 +212,7 @@ module.exports = {
       });
     }
   },
+ 
 
   getGeneralLedgerData: async (req, res) => {
     try {
