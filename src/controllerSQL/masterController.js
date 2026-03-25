@@ -37,6 +37,7 @@ module.exports = {
           loginBranch,
           loginCompany,
           loginfinYear,
+          userTypeId,
         } = req.body;
         let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
         let limit = parseInt(req.body.limit, 10) || 10; // Default to 10 items per page if not specified
@@ -53,6 +54,7 @@ module.exports = {
           loginCompanyBranchId: loginBranch,
           loginCompanyId: loginCompany,
           loginfinYearId: loginfinYear,
+          userTypeId: userTypeId,
         };
         let query = ``;
         if (
@@ -93,8 +95,8 @@ module.exports = {
 
         let count = await executeQuery(
           `select count(*) as total from ${tableName} where status = 1 and clientId in ( ${req.clientId}, (select id from tblClient where clientCode = 'SYSCON') )` +
-          query,
-          {}
+            query,
+          {},
         );
         console.log(count.recordset[0].total === 0);
 
@@ -115,7 +117,7 @@ module.exports = {
         };
         let getDataCount = await executeStoredProcedure(
           "dynamicSearchApi",
-          parameterForCount
+          parameterForCount,
         );
         console.log("=>", getDataCount?.length);
         if (data.length > 0) {
@@ -143,10 +145,15 @@ module.exports = {
       req.body.companyId = req.body.loginCompany;
       req.body.companyBranchId = req.body.loginBranch;
       req.body.financialYearId = req.body.loginfinYear;
-      let { changes, prevFields } = await auditLog({ data: req.body, formId: req.body.menuID, clientID: req.clientId, id: req.body.id });
+      let { changes, prevFields } = await auditLog({
+        data: req.body,
+        formId: req.body.menuID,
+        clientID: req.clientId,
+        id: req.body.id,
+      });
       let logData = {
         tableName: req.body.tableName,
-        action: req.body.id ? 'UPDATE' : 'INSERT',
+        action: req.body.id ? "UPDATE" : "INSERT",
         prevField: JSON.stringify(prevFields),
         changes: JSON.stringify(changes),
         ipAddress: req.ip,
@@ -154,18 +161,15 @@ module.exports = {
         documentId: req.body.id,
         createdBy: req.userId,
         updatedBy: req.userId,
-      }
+      };
       console.log(req.id);
 
       let query = `INSERT INTO AuditLogs
           (tableName, action, prevField, changes, ipAddress, clientId, documentId, createdBy, updatedBy)
         VALUES
-          (@tableName, @action, @prevField, @changes, @ipAddress, @clientId, @documentId, @createdBy, @updatedBy)`
-
-
+          (@tableName, @action, @prevField, @changes, @ipAddress, @clientId, @documentId, @createdBy, @updatedBy)`;
 
       // return res.send({ success: true, message: "Data Inserted Successfully", data: logData });
-
 
       let data = await executeNonJSONStoredProcedure("insertDataApi", {
         json: JSON.stringify(req.body),
@@ -202,8 +206,8 @@ module.exports = {
       data.length > 0
         ? res.send({ success: true, message: "list fetched", data: data })
         : res
-          .status(403)
-          .send({ success: false, message: "No Data Found", data: [] });
+            .status(403)
+            .send({ success: false, message: "No Data Found", data: [] });
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -241,9 +245,9 @@ module.exports = {
           tableName: req.body.tableName,
           recordID: req.body.id,
           clientId: req.body.clientId,
-          updatedBy:req.body.updatedBy,
+          updatedBy: req.body.updatedBy,
           deletedNo: req.body.id,
-         // updatedDate:req.body.updatedDate
+          // updatedDate:req.body.updatedDate
         });
         res.send({
           success: true,
@@ -308,7 +312,7 @@ module.exports = {
               moment().format("YYYYMMDDHHmmssSSS") +
               extension;
             element.mv(
-              `./public/api/images/${req.clientCode}/` + image_name.trim()
+              `./public/api/images/${req.clientCode}/` + image_name.trim(),
             );
             // insertData["documents"] = image_name; // Store the processed file name
             responce.success = true; // Update flag since response is being sent
@@ -420,7 +424,7 @@ module.exports = {
         companyId,
         companyBranchId,
         financialYearId,
-        userId
+        userId,
       } = req.body;
 
       if (
@@ -544,8 +548,24 @@ module.exports = {
   // },
 
   fetchVoucherDataDynamic: async (req, res) => {
-    const { clientID, recordID, menuID, companyId, companyBranchId, financialYearId, userId } = req.body;
-    if (!clientID || !recordID || !menuID || !companyId || !companyBranchId || !financialYearId || !userId) {
+    const {
+      clientID,
+      recordID,
+      menuID,
+      companyId,
+      companyBranchId,
+      financialYearId,
+      userId,
+    } = req.body;
+    if (
+      !clientID ||
+      !recordID ||
+      !menuID ||
+      !companyId ||
+      !companyBranchId ||
+      !financialYearId ||
+      !userId
+    ) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
     try {
@@ -556,9 +576,12 @@ module.exports = {
         companyId: companyId,
         companyBranchId: companyBranchId,
         financialYearId: financialYearId,
-        userId: userId
+        userId: userId,
       };
-      let data = await executeStoredProcedure("fetchVoucherDataDynamic", parameter);
+      let data = await executeStoredProcedure(
+        "fetchVoucherDataDynamic",
+        parameter,
+      );
       let message = "Data fetched successfully....!";
       let success = true;
       if (data.length > 0) {
@@ -583,13 +606,23 @@ module.exports = {
     try {
       let { jsonData, tableName, formId, parentColumnName } = req.body;
       if (!jsonData) {
-        return res.status(400).json({ error: "Missing jsonData in request body" });
+        return res
+          .status(400)
+          .json({ error: "Missing jsonData in request body" });
       }
-      jsonData = { ...jsonData, clientId: req.clientId, createdBy: req.userId, companyId: req.body.loginCompany, companyBranchId: req.body.loginBranch, financialYearId: req.body.loginfinYear }
+      jsonData = {
+        ...jsonData,
+        clientId: req.clientId,
+        createdBy: req.userId,
+        companyId: req.body.loginCompany,
+        companyBranchId: req.body.loginBranch,
+        financialYearId: req.body.loginfinYear,
+      };
       let result = await executeStoredProcedure("dynamicMultiSubmit", {
         submitJson: JSON.stringify(jsonData),
         tableName: tableName || "defaultTableName",
-        formId, parentColumnName
+        formId,
+        parentColumnName,
       });
       if (result && result.success === false) {
         return res.status(400).send({
@@ -602,8 +635,7 @@ module.exports = {
         success: true,
         message: "Data saved successfully",
         data: result,
-      })
-
+      });
     } catch (error) {
       return res.status(500).send({
         success: false,
@@ -612,5 +644,5 @@ module.exports = {
         error: error.message,
       });
     }
-  }
+  },
 };
