@@ -140,7 +140,7 @@ module.exports = {
         SelectedParentInvId: SelectedParentInvId,
         departmentId: departmentId,
         placeOfSupply_state: placeOfSupply_state,
-        voucherTypeId:voucherTypeId
+        voucherTypeId: voucherTypeId
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
@@ -167,7 +167,7 @@ module.exports = {
       });
     }
   },
- getTDSDetails: async (req, res) => {
+  getTDSDetails: async (req, res) => {
     try {
       const {
         partyId,
@@ -196,7 +196,7 @@ module.exports = {
           tblTDS: [],
         });
       }
- 
+
       return res.send({
         success: true,
         message: "Data fetched successfully!",
@@ -212,7 +212,7 @@ module.exports = {
       });
     }
   },
- 
+
 
   getGeneralLedgerData: async (req, res) => {
     try {
@@ -625,11 +625,11 @@ module.exports = {
 
   generalLegerBillingParty: async (req, res) => {
     try {
-      let { id,clientId,voucherTypeId,companyId } = req.body;
+      let { id, clientId, voucherTypeId, companyId } = req.body;
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
-        id,clientId,voucherTypeId,companyId
+        id, clientId, voucherTypeId, companyId
       });
       console.log("data", data);
 
@@ -1496,7 +1496,7 @@ module.exports = {
   getRoundOffSetting: async (req, res) => {
     try {
       let {
-       voucherTypeId,
+        voucherTypeId,
         clientId
       } = req.body;
 
@@ -1531,12 +1531,12 @@ module.exports = {
   checkDischargeDoneForBL: async (req, res) => {
     try {
       let {
-       blno,
-        
+        blno,
+
       } = req.body;
 
       let data = await executeStoredProcedure("checkDischargeDoneForBL", {
-       blno,
+        blno,
       });
 
       if (data?.length === 0) {
@@ -1565,14 +1565,14 @@ module.exports = {
   checkJobCreatedAginstBl: async (req, res) => {
     try {
       let {
-       blId,
-       clientId
-        
+        blId,
+        clientId
+
       } = req.body;
 
       let data = await executeStoredProcedure("checkJobCreatedAginstBl", {
-       blId,
-       clientId
+        blId,
+        clientId
       });
 
       if (data?.length === 0) {
@@ -1598,19 +1598,67 @@ module.exports = {
       });
     }
   },
-   getBillingPartyForBl: async (req, res) => {
+  getBillingPartyForBl: async (req, res) => {
     try {
       let {
-       blId,
-       clientId,
-       voucherTypeId
-        
+        blId,
+        clientId,
+        voucherTypeId
+
       } = req.body;
 
       let data = await executeStoredProcedure("getBillingPartyOnBl", {
-       blId,
-       clientId,
-       voucherTypeId
+        blId,
+        clientId,
+        voucherTypeId
+      });
+
+      if (data?.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      return res.send({
+        success: true,
+        message: "Data fetched successfully!",
+        Chargers: data,
+        count: data?.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: [],
+        error: error.message,
+      });
+    }
+  },
+  getChargeForTariff: async (req, res) => {
+    try {
+      let {
+        labourRate,
+        agentId,
+        depotId,
+        repairLocationId,
+        repairTypeId,
+        componentId,
+        damageId,
+        clientId
+
+      } = req.body;
+
+      let data = await executeStoredProcedure("getChargeForTariffData", {
+        labourRate,
+        agentId,
+        depotId,
+        repairLocationId,
+        repairTypeId,
+        componentId,
+        damageId,
+        clientId
       });
 
       if (data?.length === 0) {
