@@ -200,7 +200,7 @@ app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
-app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
+// app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
 app.use("/Sql/api/extract", extractPDfDataRoute);
 
 // test api made for test adter automating code is updating is working or not

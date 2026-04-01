@@ -195,35 +195,40 @@ module.exports = {
     }
   },
   getGLChargeDetails: async (req, res) => {
-    try {
-      const { chargeId, voucherTypeId,companyId } = req.body;
-      const query = `getGLChargeDetails`;
-      const parameters = {
-        chargeId,
-        voucherTypeId,
-        companyId
-      };
-      let data = await executeStoredProcedure(query, parameters);
-      if (data) {
-        res.send({
-          success: true,
-          message: "Data Fetched Successfully",
-          count: data.length,
-          data: data,
-        });
-      } else {
-        res.send({
-          success: false,
-          message: "No Data Found",
-          data: [],
-        });
-      }
-    } catch (error) {
-      res.status(500).send({
-        success: false,
-        message: "Error - " + error.message,
-        data: error.message,
+  try {
+    const { chargeId, voucherTypeId, companyId, glId } = req.body || {};
+
+    const query = "getGLChargeDetails";
+    const parameters = {
+      "chargeId": chargeId ?? 0,
+      "voucherTypeId": voucherTypeId,
+      "companyId": companyId,
+      "glId": glId,
+    };
+
+    const data = await executeStoredProcedure(query, parameters);
+
+    if (Array.isArray(data) && data.length > 0) {
+      return res.send({
+        success: true,
+        message: "Data Fetched Successfully",
+        count: data.length,
+        data,
       });
     }
-  },
+
+    return res.send({
+      success: false,
+      message: "No Data Found",
+      count: 0,
+      data: [],
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Error - " + error.message,
+      data: [],
+    });
+  }
+},
 };
