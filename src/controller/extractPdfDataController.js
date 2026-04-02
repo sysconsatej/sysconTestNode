@@ -1465,6 +1465,7 @@ async function extractContainerFallbackFromGemini(
     );
   }
 
+  // extractContainerFallbackFromGemini
   return {
     tblContainer: Array.isArray(parsed?.tblContainer)
       ? parsed.tblContainer
@@ -1473,6 +1474,7 @@ async function extractContainerFallbackFromGemini(
       parsed?.containerTotal && typeof parsed.containerTotal === "object"
         ? parsed.containerTotal
         : {},
+    usageMetadata: response?.usageMetadata || {},
   };
 }
 
@@ -1543,11 +1545,13 @@ async function extractInvoiceNoFallbackFromGemini(
     );
   }
 
+  // extractInvoiceNoFallbackFromGemini
   return {
     invoiceNo:
       parsed?.invoiceNo && typeof parsed.invoiceNo === "string"
         ? parsed.invoiceNo.trim()
         : null,
+    usageMetadata: response?.usageMetadata || {},
   };
 }
 
@@ -1572,8 +1576,12 @@ function mergePromptTokensDetails(usageMetadataList = []) {
 }
 
 function buildUsageMetadata(usageMetadataList = []) {
+  const pricingMode = (
+    process.env.GEMINI_PRICING_MODE || "standard"
+  ).toLowerCase();
+
   if (!usageMetadataList.length) {
-    return {
+    const emptyUsage = {
       promptTokenCount: 0,
       candidatesTokenCount: 0,
       totalTokenCount: 0,
@@ -1585,14 +1593,23 @@ function buildUsageMetadata(usageMetadataList = []) {
       totalPages: null,
       wasChunked: false,
     };
+
+    return {
+      ...emptyUsage,
+      tokensAmount: getBillableCostFromUsage({
+        usageMetadata: emptyUsage,
+        model: MODEL,
+        mode: pricingMode,
+      }),
+    };
   }
 
-  // If only one file/chunk was processed, return exactly the flat shape you want
+  // If only one file/chunk was processed, return flat shape
   if (usageMetadataList.length === 1) {
     const item = usageMetadataList[0];
     const meta = item?.usageMetadata || {};
 
-    return {
+    const singleUsage = {
       promptTokenCount: Number(meta.promptTokenCount || 0),
       candidatesTokenCount: Number(meta.candidatesTokenCount || 0),
       totalTokenCount: Number(meta.totalTokenCount || 0),
@@ -1606,10 +1623,18 @@ function buildUsageMetadata(usageMetadataList = []) {
       totalPages: item.totalPages ?? null,
       wasChunked: !!item.wasChunked,
     };
+
+    return {
+      ...singleUsage,
+      tokensAmount: getBillableCostFromUsage({
+        usageMetadata: singleUsage,
+        model: MODEL,
+        mode: pricingMode,
+      }),
+    };
   }
 
-  // If multiple files/chunks were processed, aggregate token counts
-  return {
+  const mergedUsage = {
     promptTokenCount: usageMetadataList.reduce(
       (sum, item) => sum + Number(item?.usageMetadata?.promptTokenCount || 0),
       0,
@@ -1635,6 +1660,15 @@ function buildUsageMetadata(usageMetadataList = []) {
     endPage: null,
     totalPages: null,
     wasChunked: usageMetadataList.some((item) => !!item.wasChunked),
+  };
+
+  return {
+    ...mergedUsage,
+    tokensAmount: getBillableCostFromUsage({
+      usageMetadata: mergedUsage,
+      model: MODEL,
+      mode: pricingMode,
+    }),
   };
 }
 
@@ -1738,6 +1772,8 @@ async function extractSingleChunkFromGemini(
   parsed = normalizeResultShape(parsed);
   parsed = normalizeVesselVoyageFields(parsed);
 
+  const usageEntries = [response?.usageMetadata || {}];
+
   // Focused fallback for invoice number
   let invoiceFallback = null;
 
@@ -1748,6 +1784,8 @@ async function extractSingleChunkFromGemini(
       index,
       totalItems,
     );
+
+    usageEntries.push(invoiceFallback?.usageMetadata || {});
   } catch (invoiceFallbackError) {
     console.error(
       `InvoiceNo fallback failed for ${displayName}:`,
@@ -1770,6 +1808,8 @@ async function extractSingleChunkFromGemini(
         index,
         totalItems,
       );
+
+      usageEntries.push(fallback?.usageMetadata || {});
 
       if (
         Array.isArray(fallback.tblContainer) &&
@@ -1797,9 +1837,80 @@ async function extractSingleChunkFromGemini(
     }
   }
 
+  const mergedUsageMetadata = {
+    promptTokenCount: usageEntries.reduce(
+      (sum, meta) => sum + Number(meta?.promptTokenCount || 0),
+      0, 
+    ),
+    candidatesTokenCount: usageEntries.reduce(
+      (sum, meta) => sum + Number(meta?.candidatesTokenCount || 0),
+      0,
+    ),
+    totalTokenCount: usageEntries.reduce(
+      (sum, meta) => sum + Number(meta?.totalTokenCount || 0),
+      0,
+    ),
+    thoughtsTokenCount: usageEntries.reduce(
+      (sum, meta) => sum + Number(meta?.thoughtsTokenCount || 0),
+      0,
+    ),
+    promptTokensDetails: mergePromptTokensDetails(
+      usageEntries.map((meta) => ({ usageMetadata: meta })),
+    ),
+  };
+
   return {
     parsed,
-    usageMetadata: response.usageMetadata || {},
+    usageMetadata: mergedUsageMetadata,
+  };
+}
+
+// Gemini pricing details as of June 2026, subject to change. Always refer to official documentation for the latest pricing.
+const GEMINI_PRICING = {
+  "gemini-2.5-flash": {
+    standard: { inputPer1M: 0.3, outputPer1M: 2.5 },
+    batch: { inputPer1M: 0.15, outputPer1M: 1.25 },
+  },
+  "gemini-2.5-flash-lite": {
+    standard: { inputPer1M: 0.1, outputPer1M: 0.4 },
+    batch: { inputPer1M: 0.05, outputPer1M: 0.2 },
+  },
+};
+
+function roundUSD(v) {
+  return Number((v || 0).toFixed(8));
+}
+
+function getBillableCostFromUsage({
+  usageMetadata = {},
+  model = "gemini-2.5-flash",
+  mode = "standard",
+}) {
+  const pricing = GEMINI_PRICING[model]?.[mode];
+  if (!pricing) {
+    throw new Error(`Pricing not configured for model=${model}, mode=${mode}`);
+  }
+
+  const promptTokenCount = Number(usageMetadata.promptTokenCount || 0);
+  const candidatesTokenCount = Number(usageMetadata.candidatesTokenCount || 0);
+  const thoughtsTokenCount = Number(usageMetadata.thoughtsTokenCount || 0);
+
+  const inputTokens = promptTokenCount;
+  const outputTokens = candidatesTokenCount + thoughtsTokenCount;
+
+  const inputCostUSD = (inputTokens / 1_000_000) * pricing.inputPer1M;
+
+  const outputCostUSD = (outputTokens / 1_000_000) * pricing.outputPer1M;
+
+  return {
+    inputTokens,
+    outputTokens,
+    thoughtsTokenCount,
+    inputRatePer1M: pricing.inputPer1M,
+    outputRatePer1M: pricing.outputPer1M,
+    inputCostUSD: roundUSD(inputCostUSD),
+    outputCostUSD: roundUSD(outputCostUSD),
+    totalCostUSD: roundUSD(inputCostUSD + outputCostUSD),
   };
 }
 
