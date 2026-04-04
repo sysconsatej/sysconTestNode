@@ -40,11 +40,13 @@ module.exports = {
   },
   spBlDataForDO: async (req, res) => {
     try {
-      const { id, clientId } = req.body;
+      const { id, clientId, reportId } = req.body;
+      //const query = `blDataForDO`;
       const query = `blDataForDO`;
       const parameters = {
         id,
         clientId,
+        reportId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
