@@ -14,6 +14,12 @@ const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
 const { auditLog } = require("../modelSQL/auditLog");
 
+const toNullableInt = (val) =>
+  val === null || val === undefined || val === "" ? null : Number(val);
+
+const toNullableString = (val) =>
+  val === null || val === undefined || val === "" ? null : val;
+
 module.exports = {
   DisPlaySeacrchApi: async (req, res) => {
     const validationRule = { tableName: "required", menuID: "required" };
@@ -642,6 +648,82 @@ module.exports = {
         message: "some thing went wrong - ",
         data: [],
         error: error.message,
+      });
+    }
+  },
+  fetchBLCreatorSearchpageData: async (req, res) => {
+    try {
+      const {
+        tableName,
+        fieldName,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+        filterCondition,
+        pageNo = 1,
+        pageSize = 17,
+        keyName,
+        keyValue,
+      } = req.body;
+
+      if (!tableName || !fieldName || !clientId) {
+        return res.status(400).send({
+          success: false,
+          message: "tableName, fieldName, clientId are required.",
+        });
+      }
+
+      const fieldNameJson =
+        typeof fieldName === "string"
+          ? fieldName
+          : JSON.stringify(fieldName || []);
+
+      const pool = await connectToSql();
+      const request = pool.request();
+
+      const result = await request
+        .input("tableName", sql.NVarChar(sql.MAX), tableName)
+        .input("fieldName", sql.NVarChar(sql.MAX), fieldNameJson)
+        .input("clientId", sql.Int, Number(clientId)) // mandatory
+        .input("companyId", sql.Int, toNullableInt(companyId))
+        .input("companyBranchId", sql.Int, toNullableInt(companyBranchId))
+        .input("financialYearId", sql.Int, toNullableInt(financialYearId))
+        .input(
+          "filterCondition",
+          sql.NVarChar(sql.MAX),
+          toNullableString(filterCondition),
+        )
+        .input("pageNo", sql.Int, toNullableInt(pageNo) ?? 1)
+        .input("pageSize", sql.Int, toNullableInt(pageSize) ?? 25)
+        .input("keyValue", sql.NVarChar(sql.MAX), toNullableString(keyValue))
+        .input("keyName", sql.NVarChar(sql.MAX), toNullableString(keyName))
+        .execute("fetchBLCreatorSearchpageData");
+
+      // result.recordset will look like: [{ "JSON_F52E2B61-...": "[{...},{...}]" }]
+      const row0 = result.recordset?.[0] || {};
+      const firstColName = Object.keys(row0)[0]; // "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+      const jsonText = firstColName ? row0[firstColName] : "[]";
+
+      let rows = [];
+      try {
+        rows = jsonText ? JSON.parse(jsonText) : [];
+      } catch (_) {
+        rows = [];
+      }
+
+      return res.send({
+        success: true,
+        message: "Data Fetched Successfully",
+        Count: rows.length,
+        data: rows, // <-- proper JSON array now
+      });
+    } catch (err) {
+      console.error("fetchVoucherSearchPageData error:", err);
+      return res.status(500).send({
+        success: false,
+        message: "Server error",
+        error: String(err?.message || err),
       });
     }
   },
