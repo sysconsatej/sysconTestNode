@@ -152,6 +152,10 @@ function sendError(res, error, options = {}) {
     payload.error = error?.originalMessage || error?.message || message;
   }
 
+  if (error?.details) {
+    payload.details = error.details;
+  }
+
   return res.status(status).send(payload);
 }
 
@@ -343,20 +347,12 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         );
       }
 
-      // Step 2: Fetch server link & basic authorization key
-      const [serverLinkResult, authKeyResult] = await Promise.all([
-        executeQuery(
-          `SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-          {}
-        ),
-        executeQuery(
-          `SELECT ISNULL(basicAuthKey, '') AS keys FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`,
-          {}
-        ),
-      ]);
-
-      const serverLink =
-        serverLinkResult.recordset[0]?.link || "https://gsthero.com";
+      // Match the legacy .NET flow: pre-auth always targets GSTHero directly.
+      const authKeyResult = await executeQuery(
+        `SELECT ISNULL(basicAuthKey, '') AS keys FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`,
+        {}
+      );
+      const serverLink = "https://gsthero.com";
       const basicAuthKey = authKeyResult.recordset[0]?.keys;
 
       if (!basicAuthKey) {
@@ -499,6 +495,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
       const requestUrl = `${serverLink}/authentication`;
       const preauthToken = `Bearer ${token}`;
+      const action = "ACCESSTOKEN";
 
       // Make authentication request
       const response = await fetch(requestUrl, {
@@ -507,7 +504,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           "X-Connector-Auth-Token": xConnectorToken,
           Authorization: preauthToken,
           gstin,
-          action: "ACCESSTOKEN",
+          action,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
@@ -525,6 +522,12 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           ),
           {
             data: [],
+            details: {
+              endpoint: requestUrl,
+              action,
+              statusCode: response.status || 502,
+              response: responseData,
+            },
           }
         );
       }
