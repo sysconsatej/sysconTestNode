@@ -53,7 +53,7 @@ function isDateBetweenGivenDates(givenDate, json) {
 const generateIRNFunction = async (invoiceId) => {
   // Here, fetch the necessary data to generate IRN using invoiceId
   // Adjust SP and params as per your business logic
-  const data = await executeStoredProcedure("getInvoiceForVoucher", {
+  const data = await executeStoredProcedure("einvoicingGSTHero", {
     invoiceId,
   });
 
@@ -196,12 +196,11 @@ module.exports = {
       );
       const accessToken = authRespons.access_token;
       const gstin = authRespons.gstin;
+      const serverLink = authRespons.serverLink;
 
       // Step 4: Fetch invoice data
-      const invoiceData = await executeStoredProcedure("getInvoiceForVoucher", {
-        clientId: req.clientId,
-        billingPartyId,
-        companyId,
+      const invoiceData = await executeStoredProcedure("einvoicingGSTHero", {
+        invoiceId
       });
 
       if (!invoiceData || invoiceData.length === 0) {
@@ -211,19 +210,22 @@ module.exports = {
           data: [],
         });
       }
-
+      console.log("Fetched invoice data for IRN generation:", invoiceData);
       // Step 5: Send data to generate IRN
-      const irnEndpoint = "https://gsthero.com/einvoice/generate-irn";
+      const irnEndpoint = `${serverLink}/invoice`;
       const irnResponse = await fetch(irnEndpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          'X-Connector-Auth-Token': authRespons.xConnectorResult,
           gstin,
           "Content-Type": "application/json",
+          action: "GENERATEIRN",
         },
-        body: JSON.stringify(invoiceData[0]),
+        body: JSON.stringify(invoiceData.data),
       });
       const irnResponseData = await parseJsonResponse(irnResponse);
+      console.log("IRN generation response from GSTHero:", irnResponseData);
 
       if (!irnResponse.ok) {
         throw createHttpError(
@@ -349,7 +351,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
       // Match the legacy .NET flow: pre-auth always targets GSTHero directly.
       const authKeyResult = await executeQuery(
-        `SELECT ISNULL(basicAuthKey, '') AS keys FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`,
+        `SELECT ISNULL(basicAuthKey, '') AS keys,einvoiceServerLink FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`,
         {}
       );
       const serverLink = "https://gsthero.com";
@@ -364,6 +366,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           }
         );
       }
+      console.log("Fetched credentials and configuration for pre-authentication:", username, password)
 
       // Step 3: Construct request URL
       const requestUrl = `${serverLink}/auth-server/oauth/token?username=${encodeURIComponent(
@@ -497,6 +500,19 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       const preauthToken = `Bearer ${token}`;
       const action = "ACCESSTOKEN";
 
+      console.log("Making authentication request to GSTHero with URL:", requestUrl);
+      console.log("Request headers:", {
+        method: "POST",
+        headers: {
+          "X-Connector-Auth-Token": xConnectorToken,
+          Authorization: preauthToken,
+          gstin,
+          action,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: jsonOutput,
+      });
       // Make authentication request
       const response = await fetch(requestUrl, {
         method: "POST",
@@ -540,6 +556,8 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       return {
         ...responseData,
         gstin,
+        serverLink,
+        xConnectorResult,
         success: true,
         message: "Authentication response fetched successfully!",
         data: [],
