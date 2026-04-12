@@ -182,7 +182,7 @@ module.exports = {
       if (isEinvoicing !== "y") {
         return res.send({
           success: true,
-          message: "Invoice is not eligible for e-invoicing",
+          message: "Innvoice Save successfully but not eligible for e-invoicing",
           isEinvoicing,
         });
       }
@@ -671,35 +671,48 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
   CancelanIRN_GSTHero: async (req, res) => {
     try {
-      const accInvId = req.body.invoiceId;
-      const { billingPartyId, companyId } = req.body;
+      const { invoiceId } = req.body;
 
-      if (!accInvId) {
-        return res.status(400).send({
-          success: false,
-          message: "Missing required parameter: accInvId",
-          data: [],
-        });
-      }
-      // check IRN is generated or not
-      const irnResult = await executeQuery(
-        `
-        EXEC CheckIRNStatus @InvoiceId = ${accInvId};
-      `,
-        {}
-      );
+      requireFields(req.body, ["invoiceId", "companyId", "loginBranch"]);
 
-      if (!irnResult.recordset[0].isIRN == "true") {
-        return res.send({
-          success: false,
-          message: "IRN is not generated yet",
-          data: [],
-        });
-      }
-      // 1. Call the stored procedure to get the JSON string
+      const result = await executeNonJSONStoredProcedure("isEinvoicing", {
+        invoiceId,
+      });
+      const isEinvoicing =
+        String(result?.recordset?.[0]?.isenvoicing || "n").toLowerCase();
+
+      console.log("Cancel IRN e-invoicing result:", result);
+
+      // if (isEinvoicing !== "y") {
+      //   return res.send({
+      //     success: true,
+      //     message: "Innvoice Deleted successfully but not eligible for e-invoicing",
+      //     isEinvoicing,
+      //   });
+      // }
+
+      // const irnResult = await executeQuery(
+      //   `
+      //   EXEC CheckIRNStatus @InvoiceId = ${invoiceId};
+      // `,
+      //   {}
+      // );
+
+      // const isIRNGenerated = String(
+      //   irnResult?.recordset?.[0]?.isIRN || ""
+      // ).toLowerCase();
+
+      // if (isIRNGenerated !== "true") {
+      //   return res.send({
+      //     success: false,
+      //     message: "IRN is not generated yet",
+      //     data: [],
+      //   });
+      // }
+
       const jsonResult = await executeQuery(
         `
-        EXEC irn_cancellation_gsthero @account_invoice_id = ${accInvId}
+        EXEC irn_cancellation_gsthero @account_invoice_id = ${invoiceId}
       `,
         {}
       );
@@ -709,88 +722,111 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         .join("");
 
       if (!jsonOutput) {
-        return res.send({
-          success: false,
-          message: "No JSON data found from stored procedure",
-          data: [],
-        });
+        throw createHttpError(
+          404,
+          "No JSON data found from stored procedure",
+          {
+            data: [],
+          }
+        );
       }
-      //  Fetch auth credentials
-      const resultPreAuth = await module.exports.Pre_AuthenticationResponse(
-        req,
-        res
+
+      await module.exports.Pre_AuthenticationResponse(req);
+      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(
+        req
       );
-      //  Authenticate with GSTHero
-      const authRespons =
-        await module.exports.getAuthenticationResponse_GSTHero(req, res);
 
-      // 2. Fetch configuration values from DB
-      const [serverLinkResult, gstinResult, tokenResult, xConnectorResult] =
-        await Promise.all([
-          executeQuery(
-            `SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-            {}
-          ),
-          executeQuery(
-            `SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-            {}
-          ),
-          executeQuery(
-            `SELECT ISNULL(authToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`,
-            {}
-          ),
-          executeQuery(
-            `SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-            {}
-          ),
-        ]);
+      const accessToken = authRespons.access_token;
+      const gstin = authRespons.gstin;
+      const serverLink = authRespons.serverLink;
+      const xConnectorAuthToken =
+        authRespons?.xConnectorResult?.recordset?.[0]?.token;
 
-      const serverLink = serverLinkResult.recordset[0].link;
-      const gstin = gstinResult.recordset[0].gstin;
-      const authToken = `Bearer ${tokenResult.recordset[0].token}`;
-      const xConnectorAuthToken = xConnectorResult.recordset[0].token;
+      if (!accessToken || !gstin || !serverLink || !xConnectorAuthToken) {
+        throw createHttpError(
+          404,
+          "Authentication configuration is incomplete for the given branch",
+          {
+            data: [],
+          }
+        );
+      }
 
       const cancelIRNUrl = `${serverLink}/invoice/cancel`;
-
-      // 3. Make POST request to cancel IRN
       const response = await fetch(cancelIRNUrl, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "X-Connector-Auth-Token": xConnectorAuthToken,
+          gstin,
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: authToken,
-          "X-Connector-Auth-Token": xConnectorAuthToken,
-          gstin: gstin,
           action: "CANCELIRN",
         },
         body: jsonOutput,
       });
+      const cancelIrnResponse = await parseJsonResponse(response);
+      console.log("Cancel IRN response from GSTHero:", cancelIrnResponse);
 
       if (!response.ok) {
-        return res.status(response.status).json({
-          success: false,
-          message: Response.error.map((err) => err.errorMsg).join(", "),
-        });
+        throw createHttpError(
+          response.status || 502,
+          getGstHeroErrorMessage(
+            cancelIrnResponse,
+            "IRN cancellation failed at GSTHero"
+          ),
+          {
+            data: [],
+          }
+        );
       }
-      let result = await response.json();
-      // update invoice Table ( fields are not Proper need to work on it )
-      await executeQuery(
-        `UPDATE tblInvoice set cancelIrnNo=${result.cancelIrnNo} where id=${accInvId}`,
-        {}
-      );
+
+      if (
+        cancelIrnResponse?.error &&
+        Array.isArray(cancelIrnResponse.error) &&
+        cancelIrnResponse.error.length > 0
+      ) {
+        throw createHttpError(
+          400,
+          getGstHeroErrorMessage(
+            cancelIrnResponse,
+            "IRN cancellation failed with errors from GSTHero"
+          ),
+          {
+            data: [],
+          }
+        );
+      }
+
+      const cancelIrnNo =
+        cancelIrnResponse?.cancelIrnNo ||
+        cancelIrnResponse?.CancelIrnNo ||
+        cancelIrnResponse?.cancelIrnNumber ||
+        cancelIrnResponse?.cancelledIrnNo;
+
+      if (cancelIrnNo) {
+        await executeQuery(
+          `UPDATE tblInvoice set cancelIrnNo='${escapeSqlString(
+            cancelIrnNo
+          )}' where id=${invoiceId}`,
+          {}
+        );
+      }
 
       return res.send({
         success: true,
         message: "IRN cancellation successful",
-        data: response.data,
+        isEinvoicing,
+        cancelIrnResponse,
       });
     } catch (error) {
       console.error("Error in CancelanIRN_GSTHero:", error);
-      return res.status(500).send({
-        success: false,
-        message: "Something went wrong during IRN cancellation",
-        data: [],
-        error: error.message,
+      if (res.headersSent) {
+        return;
+      }
+
+      return sendError(res, error, {
+        fallbackMessage: `Error - ${error.message}`,
       });
     }
   },
