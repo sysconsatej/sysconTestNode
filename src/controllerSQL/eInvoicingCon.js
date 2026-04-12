@@ -222,7 +222,7 @@ module.exports = {
           "Content-Type": "application/json",
           action: "GENERATEIRN",
         },
-        body: JSON.stringify(invoiceData.data),
+        body: JSON.stringify(invoiceData),
       });
       const irnResponseData = await parseJsonResponse(irnResponse);
       console.log("IRN generation response from GSTHero:", irnResponseData);
@@ -238,6 +238,20 @@ module.exports = {
             data: [],
           }
         );
+      }
+      if (irnResponseData.error && irnResponseData.error.length > 0) {
+        let errorMessage = getGstHeroErrorMessage(
+          irnResponseData,
+          "IRN generation failed with errors from GSTHero"
+        );
+        throw createHttpError(
+          400,
+          errorMessage,
+          {
+            data: [],
+          }
+        );
+
       }
 
       const { ackDate, ackNo, irn, signedQrCode, signedInvoice } =
