@@ -303,6 +303,8 @@ module.exports = {
         billingPartyId,
         companyId,
         companyBranchId,
+        currencyId,
+        exchangeRate
       } = req.body;
 
       // Call stored procedure with all necessary parameters
@@ -314,6 +316,8 @@ module.exports = {
         billingPartyId,
         companyId,
         companyBranchId,
+        currencyId,
+        exchangeRate
       });
 
       if (data?.length === 0) {
