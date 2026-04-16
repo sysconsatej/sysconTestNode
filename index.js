@@ -171,7 +171,8 @@ const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
 const notifications = require("./src/routesSQL/notification.route");
-const extractPDfDataRoute = require("./src/routes/extractPdfDataRoute.js");
+const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
+const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
 const { handleCrashes } = require("./handleCrash");
 const {
   deleteDeletedAttachments,
@@ -201,7 +202,8 @@ app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
 app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
-app.use("/Sql/api/extract", extractPDfDataRoute);
+app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
+app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 
 // test api made for test adter automating code is updating is working or not
 // app.get("/run-test", (req, res) => {
