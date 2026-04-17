@@ -1,15 +1,14 @@
 const logger = require("../config/loggerService");
-const getClientIp = require("../utils/getClientIp");
 
 const errorHandler = (err, req, res, next) => {
-    const ip = getClientIp(req);
+    const id = req?.userId;
 
     logger.error({
         message: err.message,
         stack: err.stack,
         method: req.method,
         url: req.originalUrl,
-        ip,
+        id,
     });
 
     res.status(err.status || 500).json({
