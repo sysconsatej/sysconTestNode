@@ -173,7 +173,7 @@ const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  
 const notifications = require("./src/routesSQL/notification.route");
 const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
 const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
-const { handleCrashes } = require("./handleCrash");
+// const { handleCrashes } = require("./handleCrash"); // commenting out crash handler for now to avoid process exit on unhandled exceptions, will revisit this later for a more robust solution
 const {
   deleteDeletedAttachments,
   deleteUnsavedAttachments,
@@ -255,6 +255,6 @@ app.use(function (err, req, res, next) {
 
 const PORT = process.env.PORT || 3000;
 console.log(`Server is running on port ${PORT}`.green);
-handleCrashes();
+// handleCrashes();
 
 module.exports = app;
