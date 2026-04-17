@@ -11,17 +11,11 @@ const ai = new GoogleGenAI({
 });
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50 MB per uploaded PDF
-
-// Big PDF handling
-const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024); // 15 MB
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
+const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024);
 const BIG_PDF_PAGE_THRESHOLD = Number(process.env.BIG_PDF_PAGE_THRESHOLD || 25);
 const PDF_CHUNK_PAGE_COUNT = Number(process.env.PDF_CHUNK_PAGE_COUNT || 12);
-
-// Retry / polling handling
-const GEMINI_GENERATE_RETRIES = Number(
-  process.env.GEMINI_GENERATE_RETRIES || 3,
-);
+const GEMINI_GENERATE_RETRIES = Number(process.env.GEMINI_GENERATE_RETRIES || 3);
 const GEMINI_RETRY_BASE_MS = Number(process.env.GEMINI_RETRY_BASE_MS || 3000);
 const GEMINI_FILE_POLL_INTERVAL_MS = Number(
   process.env.GEMINI_FILE_POLL_INTERVAL_MS || 2000,
@@ -32,8 +26,46 @@ const GEMINI_FILE_PROCESSING_TIMEOUT_MS = Number(
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const TARGET_FIELDS = [
+  "consignorOrShipper",
+  "consignee",
+  "notify",
+  "vessel",
+  "voyage",
+  "placeOfReceipt",
+  "portOfLoading",
+  "placeOfDelivery",
+  "portOfDischarge",
+  "marksAndNumbers",
+  "descriptionOfGoods",
+  "weight",
+  "measurement",
+  "grossWeight",
+  "netWeight",
+  "shippedOnBoardDate",
+  "freightPayableAt",
+  "numberOfOriginalMtd",
+  "placeAndDateOfIssue",
+  "forCompanyName",
+  "mtdNo",
+  "reportType",
+];
+
+const NUMBER_WORDS = new Set([
+  "ONE",
+  "TWO",
+  "THREE",
+  "FOUR",
+  "FIVE",
+  "SIX",
+  "SEVEN",
+  "EIGHT",
+  "NINE",
+  "TEN",
+]);
+
 let readingStatus = {
-  status: "idle", // idle | running | completed | failed
+  status: "idle",
   stage: "idle",
   progress: 0,
   message: "No active process",
@@ -85,6 +117,16 @@ function isMeaningfulValue(v) {
     v === undefined ||
     (typeof v === "string" && v.trim() === "")
   );
+}
+
+function normalizeWhitespace(value) {
+  if (!isMeaningfulValue(value)) return null;
+  return String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function stableStringify(value) {
@@ -153,56 +195,16 @@ function mergeExtractionResults(base = {}, incoming = {}) {
   return out;
 }
 
-function normalizeResultShape(data = {}) {
-  return {
-    documentTypeOrDocumentHeading: data.documentTypeOrDocumentHeading ?? null,
-    invoiceType: data.invoiceType ?? null,
-    ProformaInvNo: data.ProformaInvNo ?? null,
-    CustomerCode: data.CustomerCode ?? null,
-    CustomerName: data.CustomerName ?? null,
-    CustomerAddress: data.CustomerAddress ?? null,
-    gstinNo: data.gstinNo ?? null,
-    irnNo: data.irnNo ?? null,
-    stateName: data.stateName ?? null,
-    creditLimit: data.creditLimit ?? null,
-    poNo: data.poNo ?? null,
-    icpCodeBuyer: data.icpCodeBuyer ?? null,
-    icpCodeSeller: data.icpCodeSeller ?? null,
-    invoiceNo: data.invoiceNo ?? null,
-    invoiceDate: data.invoiceDate ?? null,
-    gtiGstin: data.gtiGstin ?? null,
-    panNo: data.panNo ?? null,
-    tanNo: data.tanNo ?? null,
-    VesselCallNo: data.VesselCallNo ?? null,
-    rawVesselOrVoyageText: data.rawVesselOrVoyageText ?? null,
-    rawVesselText: data.rawVesselText ?? null,
-    rawVoyageText: data.rawVoyageText ?? null,
-    vesselName: data.vesselName ?? null,
-    voyageName: data.voyageName ?? null,
-    timeOfArrival: data.timeOfArrival ?? null,
-    timeOfDeparture: data.timeOfDeparture ?? null,
-    trainNo: data.trainNo ?? null,
-    trainArrivalTime: data.trainArrivalTime ?? null,
-    trainDepartureTime: data.trainDepartureTime ?? null,
-    ackNo: data.ackNo ?? null,
-    ackDate: data.ackDate ?? null,
-    activityCode: data.activityCode ?? null,
-    icfHfm: data.icfHfm ?? null,
-    tblCharges: Array.isArray(data.tblCharges) ? data.tblCharges : [],
-    chargesTotal:
-      data.chargesTotal && typeof data.chargesTotal === "object"
-        ? data.chargesTotal
-        : {},
-    tblContainer: Array.isArray(data.tblContainer) ? data.tblContainer : [],
-    containerTotal:
-      data.containerTotal && typeof data.containerTotal === "object"
-        ? data.containerTotal
-        : {},
-  };
-}
-
 function uniqueNonEmpty(values = []) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeResultShape(data = {}) {
+  const out = {};
+  TARGET_FIELDS.forEach((key) => {
+    out[key] = data?.[key] ?? null;
+  });
+  return out;
 }
 
 function buildPdfFilesSummary(workItems = []) {
@@ -223,356 +225,383 @@ function buildPdfFilesSummary(workItems = []) {
     }
 
     const existing = map.get(pdfName);
-
     existing.pages = existing.pages ?? item.totalPages ?? null;
     existing.sizeBytes =
       existing.sizeBytes ?? item.originalSizeBytes ?? item.sizeBytes ?? null;
     existing.wasChunked = existing.wasChunked || !!item.wasChunked;
-    existing.chunkCount = Math.max(
-      existing.chunkCount || 1,
-      item.partCount || 1,
-    );
+    existing.chunkCount = Math.max(existing.chunkCount || 1, item.partCount || 1);
   }
 
   return [...map.values()];
 }
 
-function cleanInvoiceNo(value) {
-  if (!value) return null;
-
-  let s = String(value)
-    .replace(/\u00A0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  s = s.replace(/^[\s:=#._-]+/, "");
-  s = s.replace(/\s*([\/\\-])\s*/g, "$1");
-
-  return s || null;
-}
-
-function looksLikeInvoiceNo(value) {
-  const s = cleanInvoiceNo(value);
-  if (!s) return false;
-
-  if (s.length < 4 || s.length > 60) return false;
-  if (!/[0-9]/.test(s)) return false;
-  if (!/^[A-Za-z0-9\/._\- ]+$/.test(s)) return false;
-  if (/invoice|number|document|bill/i.test(s)) return false;
-
-  return true;
-}
-
-function getAmbiguousGroup(ch) {
-  const c = String(ch || "").toUpperCase();
-
-  if ("I1L|".includes(c)) return "I_GROUP";
-  if ("O0Q".includes(c)) return "O_GROUP";
-  if ("B8".includes(c)) return "B_GROUP";
-  if ("S5".includes(c)) return "S_GROUP";
-  if ("Z2".includes(c)) return "Z_GROUP";
-  if ("G6".includes(c)) return "G_GROUP";
-
-  return c;
-}
-
-function equivalentExceptAmbiguous(a, b) {
-  const x = cleanInvoiceNo(a)?.replace(/\s+/g, "") || "";
-  const y = cleanInvoiceNo(b)?.replace(/\s+/g, "") || "";
-
-  if (!x || !y || x.length !== y.length) return false;
-
-  for (let i = 0; i < x.length; i++) {
-    if (x[i] === y[i]) continue;
-    if (getAmbiguousGroup(x[i]) !== getAmbiguousGroup(y[i])) return false;
-  }
-
-  return true;
-}
-
-function scoreInvoiceCandidate(value, source = "unknown") {
-  const s = cleanInvoiceNo(value);
-  if (!s) return -Infinity;
-
-  let score = 0;
-
-  if (looksLikeInvoiceNo(s)) score += 10;
-  if (/[A-Za-z]/.test(s)) score += 3;
-  if (/\d/.test(s)) score += 3;
-  if (/[\/-]/.test(s)) score += 3;
-  if (/^[A-Za-z][\/-]/.test(s)) score += 5; // important for I/2526/045274
-  if (/^\d+$/.test(s)) score -= 5;
-
-  if (source === "pdf_text") score += 100; // always prefer deterministic text layer
-  if (source === "gemini_main") score += 5;
-  if (source === "gemini_invoice_fallback") score += 3;
-
-  return score;
-}
-
-function chooseBestInvoiceNo(candidates = []) {
-  const prepared = candidates
-    .map((c) => ({
-      value: cleanInvoiceNo(c?.value),
-      source: c?.source || "unknown",
-    }))
-    .filter((c) => c.value);
-
-  if (!prepared.length) return null;
-
-  prepared.sort(
-    (a, b) =>
-      scoreInvoiceCandidate(b.value, b.source) -
-      scoreInvoiceCandidate(a.value, a.source),
-  );
-
-  return prepared[0].value;
-}
-
-async function extractInvoiceNoFromPdfTextBuffer(buffer) {
+async function extractTextFromPdfBuffer(buffer) {
   try {
-    if (!buffer || !Buffer.isBuffer(buffer)) return null;
-
+    if (!buffer || !Buffer.isBuffer(buffer)) return "";
     const parsed = await pdfParse(buffer);
-    const rawText = String(parsed?.text || "");
-    if (!rawText.trim()) return null;
-
-    const lines = rawText
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\u00A0/g, " ").trim())
-      .filter(Boolean);
-
-    const candidates = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Case 1: label and value on same line
-      let m = line.match(
-        /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?\s*[:\-]?\s*(.+)$/i,
-      );
-      if (m?.[1]) {
-        candidates.push(m[1]);
-      }
-
-      // Case 2: label on one line, value on next line
-      if (/^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?$/i.test(line)) {
-        if (lines[i + 1]) candidates.push(lines[i + 1]);
-        if (lines[i + 2] && !looksLikeInvoiceNo(lines[i + 1])) {
-          candidates.push(lines[i + 2]);
-        }
-      }
-    }
-
-    const cleaned = candidates.map(cleanInvoiceNo).filter(looksLikeInvoiceNo);
-
-    if (!cleaned.length) return null;
-
-    cleaned.sort(
-      (a, b) =>
-        scoreInvoiceCandidate(b, "pdf_text") -
-        scoreInvoiceCandidate(a, "pdf_text"),
-    );
-
-    return cleaned[0];
+    return String(parsed?.text || "");
   } catch (error) {
-    console.error("extractInvoiceNoFromPdfTextBuffer failed:", error);
-    return null;
+    console.error("extractTextFromPdfBuffer failed:", error?.message || error);
+    return "";
   }
 }
 
-function cleanInvoiceNoCandidate(value) {
-  if (!value) return null;
-
-  let s = String(value)
+function cleanIdentifier(value) {
+  if (!isMeaningfulValue(value)) return null;
+  return String(value)
     .replace(/\u00A0/g, " ")
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
+    .replace(/^[\s:=#|._-]+/, "")
+    .replace(/\s+/g, " ")
     .trim();
-
-  s = s.replace(/^[\s:=#|._-]+/, "");
-  s = s.replace(/\s+$/g, "");
-  s = s.replace(/\s*([\/\\-])\s*/g, "$1");
-  s = s.replace(/\s{2,}/g, " ");
-
-  return s || null;
 }
 
-function looksLikeInvoiceNo(value) {
-  const s = cleanInvoiceNoCandidate(value);
+function looksLikeMtdNo(value) {
+  const s = cleanIdentifier(value);
   if (!s) return false;
-
-  if (s.length < 4 || s.length > 60) return false;
-  if (/invoice|number|document|bill|tax\s+invoice/i.test(s)) return false;
-  if (!/[0-9]/.test(s)) return false;
-  if (!/^[A-Za-z0-9\/._\- ]+$/.test(s)) return false;
-
-  return true;
+  if (s.length < 6 || s.length > 80) return false;
+  if (/^mtd\s*no/i.test(s)) return false;
+  if (!/[A-Za-z]/.test(s) || !/[0-9]/.test(s)) return false;
+  return /^[A-Za-z0-9/._\- ]+$/.test(s);
 }
 
-function getAmbiguousInvoiceCharGroup(ch) {
-  const c = String(ch || "").toUpperCase();
-
-  if ("I1L|".includes(c)) return "I_GROUP";
-  if ("O0Q".includes(c)) return "O_GROUP";
-  if ("B8".includes(c)) return "B_GROUP";
-  if ("S5".includes(c)) return "S_GROUP";
-  if ("Z2".includes(c)) return "Z_GROUP";
-  if ("G6".includes(c)) return "G_GROUP";
-
-  return c;
+function normalizeLabelToken(value) {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function areEquivalentExceptAmbiguousChars(a, b) {
-  const x = cleanInvoiceNoCandidate(a)?.replace(/\s+/g, "") || "";
-  const y = cleanInvoiceNoCandidate(b)?.replace(/\s+/g, "") || "";
+const FIELD_ALIASES = {
+  consignorOrShipper: [
+    "CONSIGNOR",
+    "SHIPPER",
+    "SHIPPER EXPORTER",
+    "SHIPPER NAME ADDRESS",
+    "SHIPPER NAME AND ADDRESS",
+    "EXPORTER",
+  ],
+  consignee: [
+    "CONSIGNEE",
+    "CONSIGNEE IF TO ORDER SO INDICATE",
+    "TO ORDER",
+  ],
+  notify: [
+    "NOTIFY",
+    "NOTIFY ADDRESS",
+    "NOTIFY PARTY",
+  ],
+  vessel: [
+    "VESSEL",
+    "VESSEL NAME",
+    "MV",
+    "MOTHER VESSEL",
+  ],
+  voyage: [
+    "VOYAGE",
+    "VOYAGE NO",
+    "VOYAGE NUMBER",
+    "VIA",
+    "SERVICE VIA",
+  ],
+  placeOfReceipt: [
+    "PLACE OF RECEIPT",
+    "PLACE DATE OF RECEIPT",
+    "RECEIVED AT",
+  ],
+  portOfLoading: [
+    "PORT OF LOADING",
+    "POL",
+    "PORT OF LOADING TAKING IN CHARGE",
+  ],
+  placeOfDelivery: [
+    "PLACE OF DELIVERY",
+    "FINAL PLACE OF DELIVERY",
+    "FPD",
+  ],
+  portOfDischarge: [
+    "PORT OF DISCHARGE",
+    "POD",
+    "DISCHARGE PORT",
+  ],
+  marksAndNumbers: [
+    "MARKS AND NUMBERS",
+    "MARKS NUMBERS",
+    "MARKS",
+  ],
+  descriptionOfGoods: [
+    "DESCRIPTION OF GOODS",
+    "PARTICULARS FURNISHED BY MERCHANT",
+    "DESCRIPTION",
+    "SAID TO CONTAIN",
+  ],
+  weight: [
+    "WEIGHT",
+    "TOTAL WEIGHT",
+  ],
+  measurement: [
+    "MEASUREMENT",
+    "CBM",
+    "CFT",
+    "TOTAL WEIGHT MEASUREMENT",
+  ],
+  grossWeight: ["GROSS WEIGHT"],
+  netWeight: ["NET WEIGHT"],
+  shippedOnBoardDate: [
+    "SHIPPED ON BOARD DATE",
+    "ON BOARD DATE",
+    "SHIPPED DATE",
+  ],
+  freightPayableAt: [
+    "FREIGHT PAYABLE AT",
+    "FREIGHT PAYABLE",
+    "FREIGHT PAYABLE PLACE",
+  ],
+  numberOfOriginalMtd: [
+    "NUMBER OF ORIGINAL MTD",
+    "NUMBER OF ORIGINAL MTD S",
+    "NO OF ORIGINAL MTD",
+    "NO OF ORIGINAL MTDS",
+  ],
+  placeAndDateOfIssue: [
+    "PLACE DATE OF ISSUE",
+    "PLACE AND DATE OF ISSUE",
+    "PLACE OF ISSUE DATE OF ISSUE",
+  ],
+  forCompanyName: ["FOR"],
+  mtdNo: ["MTD NO"],
+  reportType: ["DRAFT", "FINAL"],
+};
 
-  if (!x || !y || x.length !== y.length) return false;
+const ALL_LABELS = Object.values(FIELD_ALIASES).flat();
 
-  for (let i = 0; i < x.length; i++) {
-    if (x[i] === y[i]) continue;
+function isLabelOnlyValue(field, value) {
+  if (!isMeaningfulValue(value)) return true;
 
-    if (
-      getAmbiguousInvoiceCharGroup(x[i]) !== getAmbiguousInvoiceCharGroup(y[i])
-    ) {
-      return false;
-    }
+  const normalized = normalizeLabelToken(value);
+  if (!normalized) return true;
+
+  const aliases = (FIELD_ALIASES[field] || []).map(normalizeLabelToken);
+
+  if (aliases.includes(normalized)) return true;
+
+  if (field === "vessel" && (normalized === "VESSEL" || normalized === "VESSEL NAME")) {
+    return true;
   }
 
-  return true;
-}
-
-function scoreInvoiceNoCandidate(value, source = "unknown") {
-  const s = cleanInvoiceNoCandidate(value);
-  if (!s) return -Infinity;
-
-  let score = 0;
-
-  if (looksLikeInvoiceNo(s)) score += 8;
-  if (/[A-Za-z]/.test(s)) score += 3;
-  if (/\d/.test(s)) score += 3;
-  if (/[\/-]/.test(s)) score += 3;
-  if (/^[A-Za-z][\/-]/.test(s)) score += 3; // e.g. I/2526/045274
-  if (/^[A-Za-z0-9][A-Za-z0-9\/._\- ]*$/.test(s)) score += 2;
-  if (/^\d+$/.test(s)) score -= 4;
-  if (/invoice|number|document|bill/i.test(s)) score -= 10;
-
-  if (source === "pdf_text") score += 5;
-  if (source === "gemini_invoice_fallback") score += 2;
-
-  return score;
-}
-
-function pickBestInvoiceNo(candidates = []) {
-  const prepared = candidates
-    .map((item) =>
-      typeof item === "string" ? { value: item, source: "unknown" } : item,
-    )
-    .map((item) => ({
-      ...item,
-      cleaned: cleanInvoiceNoCandidate(item.value),
-    }))
-    .filter((item) => item.cleaned);
-
-  if (!prepared.length) return null;
-
-  const strongPdfText = prepared.find(
-    (item) => item.source === "pdf_text" && looksLikeInvoiceNo(item.cleaned),
-  );
-
-  if (strongPdfText) {
-    const corroborated = prepared.some(
-      (item) =>
-        item !== strongPdfText &&
-        areEquivalentExceptAmbiguousChars(item.cleaned, strongPdfText.cleaned),
-    );
-
-    if (corroborated) {
-      return strongPdfText.cleaned;
-    }
+  if (field === "voyage" && (normalized === "VOYAGE" || normalized === "VOYAGE NO")) {
+    return true;
   }
 
-  prepared.sort((a, b) => {
-    return (
-      scoreInvoiceNoCandidate(b.cleaned, b.source) -
-      scoreInvoiceNoCandidate(a.cleaned, a.source)
-    );
+  if (field === "reportType" && !["DRAFT", "FINAL"].includes(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+function cleanBusinessField(field, value) {
+  const normalized = normalizeWhitespace(value);
+  if (!isMeaningfulValue(normalized)) return null;
+  if (isLabelOnlyValue(field, normalized)) return null;
+  return normalized;
+}
+
+function normalizeReportType(value) {
+  const v = normalizeLabelToken(value);
+  if (v.includes("DRAFT")) return "DRAFT";
+  if (v.includes("FINAL")) return "FINAL";
+  return null;
+}
+
+function getLines(rawText = "") {
+  return String(rawText || "")
+    .replace(/\u00A0/g, " ")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function firstNonEmptyMatch(text = "", regexes = []) {
+  for (const regex of regexes) {
+    const match = text.match(regex);
+    const value = normalizeWhitespace(match?.[1] || null);
+    if (value) return value;
+  }
+  return null;
+}
+
+function looksLikeStopLabel(line) {
+  const normalized = normalizeLabelToken(line);
+  if (!normalized) return false;
+
+  return ALL_LABELS.some((alias) => {
+    const a = normalizeLabelToken(alias);
+    return normalized === a || normalized.startsWith(`${a} `);
   });
-
-  return prepared[0]?.cleaned || null;
 }
 
-async function extractInvoiceNoFromPdfTextBuffer(buffer) {
-  try {
-    if (!buffer || !Buffer.isBuffer(buffer)) return null;
+function collectFollowingBlock(lines, startIndex, options = {}) {
+  const { maxLines = 8, allowBlankStops = true } = options;
+  const buffer = [];
 
-    const parsed = await pdfParse(buffer);
-    const rawText = String(parsed?.text || "");
+  for (let i = startIndex + 1; i < lines.length && buffer.length < maxLines; i++) {
+    const line = lines[i];
 
-    if (!rawText.trim()) return null;
-
-    const lines = rawText
-      .split(/\r?\n/)
-      .map((line) =>
-        line
-          .replace(/\u00A0/g, " ")
-          .replace(/\s+/g, " ")
-          .trim(),
-      )
-      .filter(Boolean);
-
-    const labelOnlyPatterns = [
-      /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?$/i,
-      /^(?:bill|document)\s*(?:number|no\.?|#)?$/i,
-    ];
-
-    const sameLinePatterns = [
-      /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)\s*[:\-]?\s*(.+)$/i,
-      /^(?:bill|document)\s*(?:number|no\.?|#)\s*[:\-]?\s*(.+)$/i,
-    ];
-
-    const candidates = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      for (const pattern of sameLinePatterns) {
-        const match = line.match(pattern);
-        if (match?.[1]) {
-          candidates.push(match[1]);
-        }
-      }
-
-      for (const pattern of labelOnlyPatterns) {
-        if (!pattern.test(line)) continue;
-
-        if (i + 1 < lines.length) candidates.push(lines[i + 1]);
-        if (i + 2 < lines.length && !looksLikeInvoiceNo(lines[i + 1])) {
-          candidates.push(lines[i + 2]);
-        }
-      }
+    if (!line) {
+      if (allowBlankStops && buffer.length > 0) break;
+      continue;
     }
 
-    const broadRegex =
-      /(?:tax\s+)?(?:invoice|bill|document)\s*(?:number|no\.?|#)?\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9\/._\- ]{3,60})/gi;
+    if (looksLikeStopLabel(line)) break;
 
-    for (const match of rawText.matchAll(broadRegex)) {
-      if (match?.[1]) candidates.push(match[1]);
-    }
-
-    return pickBestInvoiceNo(
-      candidates.map((value) => ({
-        value,
-        source: "pdf_text",
-      })),
-    );
-  } catch (error) {
-    console.error(
-      "PDF text invoice extraction failed:",
-      error?.message || error,
-    );
-    return null;
+    buffer.push(line);
   }
+
+  return normalizeWhitespace(buffer.join(" "));
+}
+
+function findFieldFromLabeledLines(lines, aliases = [], options = {}) {
+  const { maxLines = 8, allowInlineValue = true } = options;
+  const normalizedAliases = aliases.map(normalizeLabelToken);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const normalizedLine = normalizeLabelToken(line);
+
+    for (const alias of normalizedAliases) {
+      if (
+        allowInlineValue &&
+        normalizedLine.startsWith(alias) &&
+        normalizedLine !== alias
+      ) {
+        const inline = normalizeWhitespace(
+          line
+            .replace(
+              new RegExp(`^${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"),
+              "",
+            )
+            .replace(/^[:\- ]+/, ""),
+        );
+        if (inline) return inline;
+      }
+
+      if (normalizedLine === alias) {
+        const block = collectFollowingBlock(lines, i, { maxLines });
+        if (block) return block;
+      }
+    }
+  }
+
+  return null;
+}
+
+function extractDescriptionBlock(text = "") {
+  return firstNonEmptyMatch(text, [
+    /(?:DESCRIPTION\s+OF\s+GOODS|PARTICULARS\s+FURNISHED\s+BY\s+MERCHANT)\s*[:\n]*([\s\S]{10,2500}?)(?=\b(?:TOTAL\s+WEIGHT|MEASUREMENT|GROSS\s+WEIGHT|NET\s+WEIGHT|NUMBER\s+OF\s+ORIGINAL|FREIGHT\s+PAYABLE\s+AT|PLACE\s*&\s*DATE\s+OF\s+ISSUE|PLACE\s+AND\s+DATE\s+OF\s+ISSUE|SHIPPED\s+ON\s+BOARD\s+DATE)\b)/i,
+  ]);
+}
+
+function extractMarksBlock(text = "") {
+  return firstNonEmptyMatch(text, [
+    /(?:MARKS\s+AND\s+NUMBERS|MARKS\s*&\s*NUMBERS|MARKS)\s*[:\n]*([\s\S]{1,600}?)(?=\b(?:DESCRIPTION\s+OF\s+GOODS|PARTICULARS\s+FURNISHED\s+BY\s+MERCHANT|TOTAL\s+WEIGHT|MEASUREMENT|GROSS\s+WEIGHT|NET\s+WEIGHT)\b)/i,
+  ]);
+}
+
+function extractDeterministicFieldsFromText(rawText = "") {
+  const text = String(rawText || "");
+  const lines = getLines(text);
+
+  const reportType = /\bDRAFT\b/i.test(text)
+    ? "DRAFT"
+    : /\bFINAL\b/i.test(text)
+      ? "FINAL"
+      : null;
+
+  const direct = {
+    mtdNo: firstNonEmptyMatch(text, [
+      /MTD\s*NO\.?\s*:?\s*([A-Za-z0-9/._\- ]{6,80})/i,
+    ]),
+    grossWeight: firstNonEmptyMatch(text, [
+      /GROSS\s+WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
+      /GROSS\s+WEIGHT\s*\n\s*([^\n\r]{2,80})/i,
+    ]),
+    netWeight: firstNonEmptyMatch(text, [
+      /NET\s+WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
+      /NET\s+WEIGHT\s*\n\s*([^\n\r]{2,80})/i,
+    ]),
+    weight: firstNonEmptyMatch(text, [
+      /(?:^|\n)WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
+      /(?:^|\n)TOTAL\s+WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
+    ]),
+    measurement: firstNonEmptyMatch(text, [
+      /MEASUREMENT\s*:?\s*([^\n\r]{2,80})/i,
+      /MEASUREMENT\s*\n\s*([^\n\r]{2,80})/i,
+      /(?:^|\n)([0-9., ]+\s*(?:CBM|CFT))\b/i,
+    ]),
+    freightPayableAt: firstNonEmptyMatch(text, [
+      /FREIGHT\s+PAYABLE\s+AT\s*:?\s*([^\n\r]{2,120})/i,
+      /FREIGHT\s+PAYABLE\s+AT\s*\n\s*([^\n\r]{2,120})/i,
+    ]),
+    numberOfOriginalMtd: firstNonEmptyMatch(text, [
+      /NUMBER\s+OF\s+ORIGINAL\s+MTD\(?S?\)?\s*:?\s*([^\n\r]{1,60})/i,
+      /NUMBER\s+OF\s+ORIGINAL\s+MTD\(?S?\)?\s*\n\s*([^\n\r]{1,60})/i,
+      /NO\.?\s+OF\s+ORIGINAL\s+MTD\s*:?\s*([^\n\r]{1,60})/i,
+    ]),
+    shippedOnBoardDate: firstNonEmptyMatch(text, [
+      /SHIPPED\s+ON\s+BOARD\s+DATE\s*:?\s*([^\n\r]{2,80})/i,
+      /SHIPPED\s+ON\s+BOARD\s+DATE\s*\n\s*([^\n\r]{2,80})/i,
+    ]),
+    placeAndDateOfIssue: firstNonEmptyMatch(text, [
+      /PLACE\s*&\s*DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
+      /PLACE\s+AND\s+DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
+      /PLACE\s*&\s*DATE\s+OF\s+ISSUE\s*\n\s*([^\n\r]{2,160})/i,
+      /PLACE\s+AND\s+DATE\s+OF\s+ISSUE\s*\n\s*([^\n\r]{2,160})/i,
+    ]),
+    forCompanyName: firstNonEmptyMatch(text, [
+      /(?:^|\n)For\s+([A-Za-z0-9&.,'()\/\- ]{3,120})(?:\n|$)/im,
+    ]),
+    marksAndNumbers: extractMarksBlock(text),
+    descriptionOfGoods: extractDescriptionBlock(text),
+  };
+
+  const block = {
+    consignorOrShipper: findFieldFromLabeledLines(lines, FIELD_ALIASES.consignorOrShipper, {
+      maxLines: 7,
+    }),
+    consignee: findFieldFromLabeledLines(lines, FIELD_ALIASES.consignee, {
+      maxLines: 7,
+    }),
+    notify: findFieldFromLabeledLines(lines, FIELD_ALIASES.notify, {
+      maxLines: 7,
+    }),
+    vessel: findFieldFromLabeledLines(lines, FIELD_ALIASES.vessel, {
+      maxLines: 2,
+    }),
+    voyage: findFieldFromLabeledLines(lines, FIELD_ALIASES.voyage, {
+      maxLines: 2,
+    }),
+    placeOfReceipt: findFieldFromLabeledLines(lines, FIELD_ALIASES.placeOfReceipt, {
+      maxLines: 2,
+    }),
+    portOfLoading: findFieldFromLabeledLines(lines, FIELD_ALIASES.portOfLoading, {
+      maxLines: 2,
+    }),
+    placeOfDelivery: findFieldFromLabeledLines(lines, FIELD_ALIASES.placeOfDelivery, {
+      maxLines: 2,
+    }),
+    portOfDischarge: findFieldFromLabeledLines(lines, FIELD_ALIASES.portOfDischarge, {
+      maxLines: 2,
+    }),
+  };
+
+  return {
+    ...block,
+    ...direct,
+    reportType,
+  };
 }
 
 function isPdfFile(file) {
@@ -654,311 +683,140 @@ const S = {
     type: ["string", "null"],
     description,
   }),
-  bool: (description) => ({
-    type: ["boolean", "null"],
-    description,
-  }),
 };
 
 const EXTRACTION_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    documentTypeOrDocumentHeading: S.str(
-      "Main document heading or detected document type. Example: Tax Invoice, Commercial Invoice, Terminal Invoice.",
+    consignorOrShipper: S.str(
+      "Full consignor/shipper block exactly as printed. This may appear under labels such as CONSIGNOR, SHIPPER, SHIPPER/EXPORTER, SHIPPER NAME & ADDRESS, EXPORTER, or similar.",
     ),
-    invoiceType: S.str(
-      "Invoice type if explicitly present. Example: Tax Invoice, Debit Note, Credit Note, Proforma Invoice.",
+    consignee: S.str(
+      "Full consignee block exactly as printed. This may appear under labels such as CONSIGNEE, CONSIGNEE (If TO ORDER so indicate), TO ORDER, or similar.",
     ),
-    CustomerCode: S.str(
-      "Customer code, client code, party code, or buyer code if present.",
+    notify: S.str(
+      "Full notify block exactly as printed. This may appear under labels such as NOTIFY, NOTIFY ADDRESS, NOTIFY PARTY, or similar. Prefer the main notify block, not a 2nd notify line from cargo text.",
     ),
-    ProformaInvNo: S.str("Proforma Inv No if present."), // ProformaInvNo
-    CustomerName: S.str("Customer or buyer name."),
-    CustomerAddress: S.str("Customer or buyer address."),
-    gstinNo: S.str("GSTIN number of the customer or relevant party."),
-    irnNo: S.str("IRN number if present."),
-    stateName: S.str("State name if present."),
-    creditLimit: S.str("Credit limit if present."),
-    poNo: S.str("PO number / purchase order number if present."),
-    icpCodeBuyer: S.str("ICP code of buyer if present."),
-    icpCodeSeller: S.str("ICP code of seller if present."),
-    invoiceNo: S.str(
-      "Invoice number. May appear as Invoice No, Tax Invoice No, Bill No, Document No.",
+    vessel: S.str(
+      "Vessel name exactly as printed. This may appear under labels such as VESSEL, VESSEL NAME, MV, MOTHER VESSEL, or similar. If the field is blank, return null and do not return the label itself.",
     ),
-    invoiceDate: S.str(
-      "Invoice date in YYYY-MM-DD only when clearly derivable.",
+    voyage: S.str(
+      "Voyage value exactly as printed. This may appear under labels such as VOYAGE, VOYAGE NO, VIA, SERVICE/VIA, or similar when it is clearly the voyage/service code.",
     ),
-    gtiGstin: S.str("GTI GSTIN or seller GSTIN if present."),
-    panNo: S.str("PAN number if present."),
-    tanNo: S.str("TAN number if present."),
-    VesselCallNo: S.str("Vessel call number if present."),
-    rawVesselOrVoyageText: S.str(
-      "Raw printed vessel/voyage text exactly as seen in the PDF, especially when combined in one value like 'EVER LIBRA/EVBR2653'.",
+    placeOfReceipt: S.str(
+      "Place of receipt exactly as printed. This may appear under labels such as PLACE OF RECEIPT, PLACE & DATE OF RECEIPT, RECEIVED AT, or similar.",
     ),
-    rawVesselText: S.str(
-      "Raw text exactly under the Vessel label before any cleanup or splitting.",
+    portOfLoading: S.str(
+      "Port of loading exactly as printed. This may appear under labels such as PORT OF LOADING, POL, or similar.",
     ),
-    rawVoyageText: S.str(
-      "Raw text exactly under the Voyage label before any cleanup.",
+    placeOfDelivery: S.str(
+      "Place of delivery exactly as printed. This may appear under labels such as PLACE OF DELIVERY, FINAL PLACE OF DELIVERY, FPD, or similar.",
     ),
-    rawVesselOrVoyageText: S.str(
-      "Raw printed vessel/voyage text exactly as seen in the PDF, especially when vessel and voyage/service/via are combined in one value like 'EVER LIBRA/EVBR2653'.",
+    portOfDischarge: S.str(
+      "Port of discharge exactly as printed. This may appear under labels such as PORT OF DISCHARGE, POD, DISCHARGE PORT, or similar.",
     ),
-    rawVesselText: S.str(
-      "Raw text exactly under labels such as Vessel, Vessel Name, or similar before any cleanup or splitting.",
+    marksAndNumbers: S.str(
+      "Marks and numbers text exactly as printed. This may appear under labels such as MARKS AND NUMBERS, MARKS & NUMBERS, MARKS, or similar.",
     ),
-    rawVoyageText: S.str(
-      "Raw text exactly under labels such as Voyage, Voyage No, VIA, Via, Service, Service/Voyage, or similar before any cleanup.",
+    descriptionOfGoods: S.str(
+      "Description of goods exactly as printed. This may appear under labels such as DESCRIPTION OF GOODS, PARTICULARS FURNISHED BY MERCHANT, DESCRIPTION, SAID TO CONTAIN, or similar cargo description area.",
     ),
-    vesselName: S.str(
-      "Vessel name only. This may appear under labels such as 'Vessel', 'Vessel Name', or similar. If combined text like 'EVER LIBRA/EVBR2653' is present, extract only 'EVER LIBRA' here when clearly separable.",
+    weight: S.str(
+      "Main printed weight value if a generic WEIGHT or TOTAL WEIGHT exists. If only gross and net are clearly printed, return the most representative printed weight field from the body or null.",
     ),
-    voyageName: S.str(
-      "Voyage name/code only. This may appear under labels such as 'Voyage', 'Voyage No', 'VIA', 'Via', 'Service', or similar. If combined text like 'EVER LIBRA/EVBR2653' is present, extract only 'EVBR2653' here when clearly separable. If the PDF has a separate label 'VIA' next to 'VESSEL NAME', treat the VIA value as voyageName.",
+    measurement: S.str(
+      "Measurement exactly as printed, such as CBM/CFT or total measurement.",
     ),
-    timeOfArrival: S.str(
-      "Time/date of arrival in YYYY-MM-DD or datetime only when clearly derivable.",
+    grossWeight: S.str("Gross weight exactly as printed."),
+    netWeight: S.str("Net weight exactly as printed."),
+    shippedOnBoardDate: S.str(
+      "Shipped on board date exactly as printed. If the label exists but the value is blank, return null.",
     ),
-    timeOfDeparture: S.str(
-      "Time/date of departure in YYYY-MM-DD or datetime only when clearly derivable.",
+    freightPayableAt: S.str("Freight payable at exactly as printed."),
+    numberOfOriginalMtd: S.str(
+      "Number of original MTDs exactly as printed. This may appear as NUMBER OF ORIGINAL MTD, NUMBER OF ORIGINAL MTD(S), NO OF ORIGINAL MTD, No. of Original MTD, etc.",
     ),
-    trainNo: S.str("Train number if present."),
-    trainArrivalTime: S.str(
-      "Train arrival time/date if present and clearly derivable.",
+    placeAndDateOfIssue: S.str(
+      "Place and date of issue exactly as printed. If the label exists but the value is blank, return null.",
     ),
-    trainDepartureTime: S.str(
-      "Train departure time/date if present and clearly derivable.",
+    forCompanyName: S.str(
+      "Company name appearing after the word For near the signatory/footer, such as 'For SMARTBOXX CONTAINERS PVT LTD'. Extract only the company name part.",
     ),
-    ackNo: S.str("Acknowledgement number if present."),
-    ackDate: S.str("Acknowledgement date if present."),
-    activityCode: S.str("Activity code if present."),
-    icfHfm: S.str("ICF/HFM value if present."),
-
-    tblCharges: {
-      type: "array",
-      description:
-        "Charge/tariff rows extracted from the invoice table. If the SERVICE column contains grouped section headings, store that heading in serviceGroup and repeat it for each related row.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          sNo: S.str("Serial number of the row."),
-          serviceGroup: S.str(
-            "Grouped section heading shown in the SERVICE column above a set of charge rows. Example: 'STEVEDORING/ TERMINAL HANDLING CHARGES (IMPORT -'. Repeat this same value for each charge row until the next grouped heading appears.",
-          ),
-          service: S.str("Raw SERVICE column value as printed in the PDF."),
-          serviceDescription: S.str(
-            "Actual charge line description. Example: 'CONTAINER LADEN 20\"'. Do not use grouped section headings here unless the PDF truly treats them as a row.",
-          ),
-          sac: S.str("Raw SAC column value as printed in the PDF."),
-          sacCode: S.str("SAC code."),
-          sacPercent: S.str("SAC percentage."),
-          qty: S.str("Raw QTY column value as printed in the PDF."),
-          unitQtyPerDay: S.str("Unit quantity per day."),
-          uom: S.str("Unit of measure. Example: CNT."),
-          rate: S.str("Raw RATE column value as printed in the PDF."),
-          tariffRate: S.str("Tariff rate."),
-          tariffCurrency: S.str("Tariff currency."),
-          exchRate: S.str("Exchange rate."),
-          amountInTariffCurrency: S.str("Amount in tariff currency."),
-          amountInINR: S.str("Amount in INR."),
-          sgst: S.str("SGST amount."),
-          cgst: S.str("CGST amount."),
-          igst: S.str("IGST amount."),
-          tariffCode: S.str(
-            "Tariff code if this column exists in the charges table.",
-          ),
-          tariff: S.str(
-            "Tariff value if this column exists in the charges table.",
-          ),
-          exRate: S.str(
-            "Exchange rate if printed as Ex. Rate in the charges table.",
-          ),
-          exDate: S.str(
-            "Exchange date if printed as Ex. Date in the charges table.",
-          ),
-          amount: S.str(
-            "Amount if printed as a separate amount column in the charges table.",
-          ),
-          containerNo: S.str(
-            "Container number if charges table includes container reference.",
-          ),
-          container: S.str("Container reference if printed as Container."),
-          fe: S.str("Full/Empty indicator if present in the charges table."),
-          size: S.str("Container size if present in the charges table."),
-          iso: S.str("ISO code if present in the charges table."),
-          weight: S.str("Weight if present in the charges table."),
-        },
-        required: [],
-      },
-    },
-
-    chargesTotal: {
-      type: "object",
-      additionalProperties: false,
-      description: "Invoice summary amounts shown in the totals/summary box.",
-      properties: {
-        actual: S.str("Actual amount."),
-        total: S.str("Total amount."),
-        advance: S.str("Advance amount."),
-        balanceInvoice: S.str("Balance invoice amount."),
-      },
-      required: [],
-    },
-
-    tblContainer: {
-      type: "array",
-      description: "Container detail rows extracted from the container table.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          chargeGroup: S.str(
-            "Grouped label shown at the left side of the container table.",
-          ),
-          no: S.str("Serial number of the row."),
-          containerNo: S.str("Container number."),
-          container: S.str("Container reference if printed as Container."),
-          fe: S.str("Full/Empty indicator, usually F or E."),
-          size: S.str("Container size, for example 20 or 40."),
-          iso: S.str("ISO code, for example 22G1."),
-          weight: S.str("Container weight as printed in the PDF."),
-          rate: S.str("Rate as printed in the PDF."),
-          tariffCode: S.str("Tariff Code."),
-          tariff: S.str("Tariff $ / ₹."),
-          exRate: S.str("Ex. Rate."),
-          exDate: S.str("Ex. Date."),
-          amount: S.str("Amount."),
-        },
-        required: [],
-      },
-    },
-
-    containerTotal: {
-      type: "object",
-      additionalProperties: false,
-      description: "Invoice Sub Total after the container table.",
-      properties: {
-        containerSubTotal: S.str("Sub Total."),
-      },
-      required: [],
-    },
-  },
-  required: [],
-};
-
-const CONTAINER_ONLY_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    tblContainer: EXTRACTION_SCHEMA.properties.tblContainer,
-    containerTotal: EXTRACTION_SCHEMA.properties.containerTotal,
-  },
-  required: [],
-};
-
-const INVOICE_NO_ONLY_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    invoiceNo: S.str(
-      "Invoice number exactly as printed in the PDF, preserving letters, numbers, slashes, hyphens, spaces, prefixes, and suffixes.",
+    mtdNo: S.str("MTD number exactly as printed."),
+    reportType: S.str(
+      "Return DRAFT when the document explicitly indicates draft, FINAL when it explicitly indicates final or finalised, otherwise null.",
     ),
   },
   required: [],
 };
+
+const FALLBACK_SCHEMA = EXTRACTION_SCHEMA;
 
 function buildTaskPrompt(fileNames = []) {
   return `
-You are a high-accuracy invoice and logistics PDF extraction engine.
+You are a high-accuracy BL / MTD PDF extraction engine.
 
 Extract data from the provided PDF files and return ONLY valid JSON matching the schema.
 
-Rules:
-1. Do not guess values.
-2. If a value is not clearly present, return null.
-3. Map labels intelligently. For example:
-   - invoiceNo may appear as Invoice No, Tax Invoice No, Bill No, Document No
-   - invoiceDate may appear as Invoice Date, Bill Date, Document Date
-   - CustomerCode may appear as Customer Code, Client Code, Party Code
-   - CustomerName may appear as Buyer Name, Customer Name, Party Name
-   - gstinNo may appear as GSTIN, GST No, GSTIN/UIN
-   - irnNo may appear as IRN, Invoice Reference Number
-   - poNo may appear as PO No, Purchase Order No
-   - VesselCallNo may appear as Vessel Call No, Call No
-   - vesselName may appear as Vessel, Vessel Name
-   - vesselName may appear as Vessel, Vessel Name, MV, Mother Vessel
-   - voyageName may appear as Voyage, Voyage No, Voyage Code, VIA, Via, Service, Service/Voyage
-   - ackNo may appear as Ack No, Acknowledgement No
-   - ackDate may appear as Ack Date, Acknowledgement Date
-   - tariffCode may appear as Tariff Code, TariffCode
-   - tariff may appear as Tariff
-   - exRate may appear as Ex. Rate, Exchange Rate, Ex Rate
-   - exDate may appear as Ex. Date, Exchange Date, Ex Date
-   - amount may appear as Amount
-   - containerNo may appear as Container No, Container Number, Cntr No
-   - container may appear as Container
-   - fe may appear as F/E, Full/Empty, Full Empty
-   - iso may appear as ISO, ISO Code
-   - rate may appear as Rate, Tariff Rate
-   - weight may appear as Weight, Gross Weight, Net Weight if only one weight column is present
+The same business field can appear under different labels in different PDFs.
+You must extract the correct business field even when label wording differs.
 
-4. Preserve identifier values exactly as printed in the document.
-   - Do not change letters into numbers or numbers into letters.
-   - Do not auto-correct or normalize alphanumeric identifiers.
-   - This applies especially to invoiceNo, ackNo, irnNo, containerNo, CustomerCode, VesselCallNo, vesselName, voyageName, tariffCode, GSTIN, PAN, TAN, trainNo, and similar identifiers.
-   - Preserve prefixes, suffixes, slashes, hyphens, spaces, and mixed alphanumeric patterns exactly as printed when they are visible.
+Business field mapping rules:
+1. consignorOrShipper:
+   - Can appear as CONSIGNOR, SHIPPER, SHIPPER/EXPORTER, SHIPPER NAME & ADDRESS, EXPORTER, etc.
+2. consignee:
+   - Can appear as CONSIGNEE, CONSIGNEE (IF TO ORDER SO INDICATE), TO ORDER party block, etc.
+3. notify:
+   - Can appear as NOTIFY, NOTIFY ADDRESS, NOTIFY PARTY, 2ND NOTIFY PARTY, etc.
+   - Prefer the main notify block only.
+4. vessel:
+   - Can appear as VESSEL, VESSEL NAME, MV, MOTHER VESSEL, etc.
+   - If blank, return null and do not return the label text.
+5. voyage:
+   - Can appear as VOYAGE, VOYAGE NO, VIA, SERVICE/VIA, etc. when clearly the voyage/service code.
+6. placeOfReceipt:
+   - Can appear as PLACE OF RECEIPT, PLACE & DATE OF RECEIPT, RECEIVED AT, etc.
+7. portOfLoading:
+   - Can appear as PORT OF LOADING, POL, etc.
+8. placeOfDelivery:
+   - Can appear as PLACE OF DELIVERY, FINAL PLACE OF DELIVERY, FPD, etc.
+9. portOfDischarge:
+   - Can appear as PORT OF DISCHARGE, POD, DISCHARGE PORT, etc.
+10. marksAndNumbers:
+   - Can appear as MARKS AND NUMBERS, MARKS & NUMBERS, MARKS, etc.
+11. descriptionOfGoods:
+   - Can appear as DESCRIPTION OF GOODS, PARTICULARS FURNISHED BY MERCHANT, DESCRIPTION, SAID TO CONTAIN, cargo description block, etc.
+12. weight:
+   - Extract a generic weight if a generic weight field exists.
+13. measurement:
+   - Extract CBM / CFT / measurement field when printed.
+14. shippedOnBoardDate:
+   - Can appear as SHIPPED ON BOARD DATE, ON BOARD DATE, SHIPPED DATE, etc.
+15. freightPayableAt:
+   - Can appear as FREIGHT PAYABLE AT, FREIGHT PAYABLE PLACE, etc.
+16. numberOfOriginalMtd:
+   - Can appear as NUMBER OF ORIGINAL MTD, NUMBER OF ORIGINAL MTD(S), NO OF ORIGINAL MTD, etc.
+17. placeAndDateOfIssue:
+   - Can appear as PLACE & DATE OF ISSUE, PLACE AND DATE OF ISSUE, etc.
+18. forCompanyName:
+   - Extract the company name after the word 'For' in the footer/signatory area.
+19. mtdNo:
+   - Extract MTD No exactly as printed.
+20. reportType:
+   - Return DRAFT if the document explicitly says DRAFT.
+   - Return FINAL if the document explicitly says FINAL.
+   - Otherwise return null.
 
-5. For visually ambiguous characters in identifiers, be very careful.
-   - Characters such as I and 1, O and 0, B and 8, S and 5, Z and 2, G and 6 can look similar in PDFs.
-   - Do not replace one with the other unless the document clearly shows it.
-   - Prefer the exact printed text over pattern-based correction.
-   - If the identifier is visible, extract it exactly as shown in the PDF.
-
-6. Extract all visible rows from the charges table into "tblCharges".
-7. Preserve raw printed charge-table columns where available:
-   - SERVICE -> service
-   - SAC -> sac
-   - QTY -> qty
-   - UOM -> uom
-   - RATE -> rate
-   - AMOUNT(INR) -> amountInINR
-
-8. Also map normalized values where clearly possible:
-   - serviceDescription from the actual charge line text
-   - sacCode from SAC
-   - unitQtyPerDay from QTY
-   - tariffRate from RATE when RATE is the relevant rate field
-
-9. IMPORTANT FOR GROUPED SERVICE HEADINGS:
-   - Some charge tables contain section/group headings inside the SERVICE column.
-   - Example: "STEVEDORING/ TERMINAL HANDLING CHARGES (IMPORT -"
-   - These headings are not normal charge rows when they do not have their own qty/rate/amount values.
-   - Store such headings in "serviceGroup".
-   - Repeat the same "serviceGroup" value for each following charge row until the next grouped heading appears.
-   - The actual service rows such as "CONTAINER LADEN 20\\"" and "CONTAINER LADEN 40\\"" must remain in "service" and/or "serviceDescription".
-   - Do NOT place grouped service headings into tblContainer.
-
-10. If the charges table contains columns such as Tariff Code, Container, Tariff, Ex. Rate, Ex. Date, or Amount, map them into the corresponding fields in "tblCharges".
-
-11. Extract the totals/summary box into "chargesTotal":
-   - Actual -> actual
-   - Total -> total
-   - Advance -> advance
-   - Balance Invoice -> balanceInvoice
-
-12. Extract all visible rows from the container details table into "tblContainer".
-13. In "tblContainer", keep one object per visible row. Do not merge rows.
-14. If the same left-side grouped description applies to multiple rows, repeat it in each row as chargeGroup.
-15. If the container table includes extra columns such as Tariff Code, Tariff, Ex. Rate, Ex. Date, Amount, Rate, Weight, ISO, or Container No, map them into the matching fields in "tblContainer".
-16. Keep monetary values, codes, dates, and table values exactly as printed in the PDF unless clearly normalizing a date is possible.
-17. Return dates in YYYY-MM-DD only when clearly derivable from the document. Otherwise keep the original printed value.
-18. Do not invent missing rows, totals, or container values.
-19. SPECIAL RULE FOR VESSEL / VIA LAYOUT:
-   - If the PDF shows a field labeled 'VESSEL NAME', map it to vesselName.
-   - If the PDF shows a field labeled 'VIA', map it to voyageName.
-   - Do not treat 'VIA' as a route description when it is clearly paired with vessel details and contains a voyage/service code.
+General rules:
+- Do not guess.
+- Preserve business values exactly as printed.
+- Do not convert letters to numbers or numbers to letters.
+- If the field label exists but the value is blank, return null.
+- Never return just the label as the value.
+- If layout is irregular, infer the field from nearby label-value relationship and business meaning.
+- Combine multi-line address/value blocks into a clean single string with spaces.
+- Return ONLY JSON matching the schema.
 
 File names:
 ${fileNames.join(", ") || "N/A"}
@@ -976,83 +834,28 @@ ${basePrompt}
 IMPORTANT CHUNK RULES:
 - You are receiving only part ${workItem.partIndex} of ${workItem.partCount} of the same PDF document.
 - Extract ONLY what is visible in this chunk.
-- If a header field, summary total, charge row, or container row is not visible in this chunk, return null or [] for this chunk.
-- Do not invent values from other unseen pages.
-- Do not assume earlier or later pages.
-- The final application will merge chunk outputs together.
+- If a field is not visible in this chunk, return null for that chunk.
+- Do not assume values from unseen pages.
+- The application will merge chunk outputs later.
 `;
 }
 
-function buildContainerOnlyPrompt(workItem) {
+function buildFallbackPrompt(workItem) {
   const fileName = workItem.originalFileName || workItem.displayName || "N/A";
 
   return `
-You are a high-accuracy PDF extraction engine.
+You are a high-accuracy BL / MTD PDF extraction engine.
 
-Your task is to extract ONLY the container table and container subtotal from this PDF.
-
-Return ONLY valid JSON matching the schema.
-
-Rules:
-1. Focus only on the container details section/table.
-2. Extract all visible rows from the container details table into "tblContainer".
-3. Keep one object per visible row. Do not merge rows.
-4. If the same grouped description applies to multiple rows, repeat it in each row as chargeGroup.
-5. Map these fields when visible:
-   - no
-   - containerNo
-   - container
-   - fe
-   - size
-   - iso
-   - weight
-   - rate
-   - tariffCode
-   - tariff
-   - exRate
-   - exDate
-   - amount
-6. Extract subtotal after the container table into:
-   - containerTotal.containerSubTotal
-7. Do not extract charges table rows into tblContainer.
-8. Do not guess values.
-9. If container table is truly not present, return an empty array.
-
-File name:
-${fileName}
-`;
-}
-
-function buildInvoiceNoOnlyPrompt(workItem) {
-  const fileName = workItem.originalFileName || workItem.displayName || "N/A";
-
-  return `
-You are a high-accuracy PDF extraction engine.
-
-Your task is to extract ONLY the invoice number from this PDF.
-
-Return ONLY valid JSON matching the schema.
+Extract the same target business fields again, carefully.
+This is a fallback extraction pass.
 
 Rules:
-1. Extract only the value for invoiceNo.
-2. invoiceNo may appear as:
-   - Invoice No
-   - Invoice Number
-   - Tax Invoice No
-   - Bill No
-   - Document No
-3. Preserve the invoice number exactly as printed in the PDF.
-4. Do not change letters into numbers or numbers into letters.
-5. Be very careful with visually similar characters such as:
-   - I and 1
-   - O and 0
-   - B and 8
-   - S and 5
-   - Z and 2
-   - G and 6
-6. Preserve slashes, hyphens, spaces, prefixes, and suffixes exactly as printed.
-7. Do not auto-correct, normalize, or infer the invoice number.
-8. If the invoice number is not clearly visible, return null.
+- Return only valid JSON matching the schema.
+- Do not guess.
+- Never return the label itself as the value.
+- If a field is blank, return null.
+- Prefer the main notify block, not a 2nd notify line from cargo text.
+- Preserve exact business text and identifiers.
 
 File name:
 ${fileName}
@@ -1063,7 +866,6 @@ function getUploadedFiles(req) {
   if (!req.files || typeof req.files !== "object") return [];
 
   const files = [];
-
   for (const value of Object.values(req.files)) {
     if (Array.isArray(value)) {
       files.push(...value);
@@ -1096,7 +898,6 @@ async function ensureUploadInput(file) {
   }
 
   const buffer = await getFileBuffer(file);
-
   if (!buffer) {
     throw new Error(
       `Could not read uploaded file buffer for ${file?.name || "unknown file"}`,
@@ -1105,7 +906,6 @@ async function ensureUploadInput(file) {
 
   const tempName = `${Date.now()}-${crypto.randomUUID()}-${file?.name || "upload.pdf"}`;
   const tempPath = path.join(os.tmpdir(), tempName);
-
   await fs.writeFile(tempPath, buffer);
 
   return {
@@ -1134,11 +934,7 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
 
   const totalPages = srcPdf.getPageCount();
   const partCount = Math.ceil(totalPages / chunkPageCount);
-  const safeBaseName = String(originalName || "upload.pdf").replace(
-    /\.pdf$/i,
-    "",
-  );
-
+  const safeBaseName = String(originalName || "upload.pdf").replace(/\.pdf$/i, "");
   const items = [];
 
   for (let start = 0; start < totalPages; start += chunkPageCount) {
@@ -1155,8 +951,8 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
 
     const bytes = await chunkPdf.save();
     const chunkBuffer = Buffer.from(bytes);
-    const textInvoiceCandidate =
-      await extractInvoiceNoFromPdfTextBuffer(chunkBuffer);
+    const rawText = await extractTextFromPdfBuffer(chunkBuffer);
+    const deterministicFields = extractDeterministicFieldsFromText(rawText);
     const partIndex = Math.floor(start / chunkPageCount) + 1;
     const displayName = `${safeBaseName}__part_${partIndex}_of_${partCount}.pdf`;
     const tempPath = path.join(
@@ -1164,7 +960,7 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
       `${Date.now()}-${crypto.randomUUID()}-${displayName}`,
     );
 
-    await fs.writeFile(tempPath, Buffer.from(bytes));
+    await fs.writeFile(tempPath, chunkBuffer);
 
     items.push({
       originalFileName: originalName || "upload.pdf",
@@ -1182,8 +978,9 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
       endPage: end,
       totalPages,
       sizeBytes: chunkBuffer.length,
-      textInvoiceCandidate,
       originalSizeBytes: buffer.length,
+      rawText,
+      deterministicFields,
     });
   }
 
@@ -1196,11 +993,13 @@ async function buildWorkItems(files) {
   for (const file of files) {
     const displayName = file?.name || "upload.pdf";
     const buffer = await getFileBuffer(file);
-    const textInvoiceCandidate =
-      await extractInvoiceNoFromPdfTextBuffer(buffer);
+
     if (!buffer) {
       throw new Error(`Could not read uploaded file: ${displayName}`);
     }
+
+    const rawText = await extractTextFromPdfBuffer(buffer);
+    const deterministicFields = extractDeterministicFieldsFromText(rawText);
 
     let pageCount = null;
     try {
@@ -1238,7 +1037,8 @@ async function buildWorkItems(files) {
       totalPages: pageCount || null,
       sizeBytes: buffer.length,
       originalSizeBytes: buffer.length,
-      textInvoiceCandidate,
+      rawText,
+      deterministicFields,
     });
   }
 
@@ -1254,10 +1054,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
     setReadingStatus({
       status: "running",
       stage: "reading_local_file",
-      progress: Math.min(
-        10 + Math.floor((index / Math.max(totalItems, 1)) * 25),
-        35,
-      ),
+      progress: Math.min(10 + Math.floor((index / Math.max(totalItems, 1)) * 25), 35),
       currentFileIndex: index + 1,
       totalFiles: totalItems,
       currentFileName: displayName,
@@ -1270,10 +1067,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
         setReadingStatus({
           status: "running",
           stage: "uploading_to_gemini",
-          progress: Math.min(
-            20 + Math.floor((index / Math.max(totalItems, 1)) * 25),
-            45,
-          ),
+          progress: Math.min(20 + Math.floor((index / Math.max(totalItems, 1)) * 25), 45),
           currentFileIndex: index + 1,
           totalFiles: totalItems,
           currentFileName: displayName,
@@ -1308,12 +1102,9 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
     uploadedName = uploaded.name;
 
     const startedAt = Date.now();
-
     let fetchedFile = await withRetry(
       async () => await ai.files.get({ name: uploaded.name }),
-      {
-        label: `get uploaded file ${displayName}`,
-      },
+      { label: `get uploaded file ${displayName}` },
     );
 
     let pollCounter = 0;
@@ -1329,10 +1120,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
 
       const loopProgressBase =
         45 + Math.floor((index / Math.max(totalItems, 1)) * 15);
-      const loopProgress = Math.min(
-        loopProgressBase + Math.min(pollCounter * 2, 12),
-        70,
-      );
+      const loopProgress = Math.min(loopProgressBase + Math.min(pollCounter * 2, 12), 70);
 
       setReadingStatus({
         status: "running",
@@ -1350,9 +1138,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
 
       fetchedFile = await withRetry(
         async () => await ai.files.get({ name: uploaded.name }),
-        {
-          label: `poll file ${displayName}`,
-        },
+        { label: `poll file ${displayName}` },
       );
 
       pollCounter += 1;
@@ -1374,10 +1160,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
       error: null,
     });
 
-    return {
-      fetchedFile,
-      uploadedName,
-    };
+    return { fetchedFile, uploadedName };
   } catch (error) {
     if (uploadedName) {
       try {
@@ -1398,57 +1181,47 @@ async function deleteGeminiFiles(fileNames = []) {
   }
 }
 
-async function extractContainerFallbackFromGemini(
-  fetchedFile,
-  workItem,
-  index,
-  totalItems,
-) {
+async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItems) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
 
   const response = await withRetry(
     async () => {
       setReadingStatus({
         status: "running",
-        stage: "extracting_container_fallback",
-        progress: Math.min(
-          82 + Math.floor((index / Math.max(totalItems, 1)) * 10),
-          96,
-        ),
+        stage: "extracting_fallback",
+        progress: Math.min(84 + Math.floor((index / Math.max(totalItems, 1)) * 8), 97),
         currentFileIndex: index + 1,
         totalFiles: totalItems,
         currentFileName: displayName,
-        message: `Retrying container extraction for ${displayName}`,
+        message: `Retrying extraction for ${displayName}`,
         error: null,
       });
 
-      const contents = [
-        buildContainerOnlyPrompt(workItem),
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
-      ];
-
       return await ai.models.generateContent({
         model: MODEL,
-        contents,
+        contents: [
+          buildFallbackPrompt(workItem),
+          createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+        ],
         config: {
           temperature: 0,
           systemInstruction:
-            "You are a strict JSON extraction engine. Prefer empty array over guessing. Follow the schema exactly.",
+            "You are a strict JSON extraction engine. Preserve business values exactly as printed. Never return label text as the value.",
           responseMimeType: "application/json",
-          responseJsonSchema: CONTAINER_ONLY_SCHEMA,
+          responseJsonSchema: FALLBACK_SCHEMA,
         },
       });
     },
     {
-      label: `container fallback ${displayName}`,
+      label: `fallback ${displayName}`,
       onRetry: (error, attempt, delayMs) => {
         setReadingStatus({
           status: "running",
-          stage: "retrying_container_fallback",
+          stage: "retrying_fallback",
           currentFileIndex: index + 1,
           totalFiles: totalItems,
           currentFileName: displayName,
-          message: `Retrying container fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
+          message: `Retrying fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
           error: error?.message || String(error),
         });
       },
@@ -1459,100 +1232,126 @@ async function extractContainerFallbackFromGemini(
   try {
     parsed = JSON.parse(response.text);
   } catch (jsonError) {
-    console.error("Gemini raw container fallback response:", response.text);
-    throw new Error(
-      `Gemini returned invalid container fallback JSON for ${displayName}`,
-    );
+    console.error("Gemini raw fallback response:", response.text);
+    throw new Error(`Gemini returned invalid fallback JSON for ${displayName}`);
   }
 
-  // extractContainerFallbackFromGemini
   return {
-    tblContainer: Array.isArray(parsed?.tblContainer)
-      ? parsed.tblContainer
-      : [],
-    containerTotal:
-      parsed?.containerTotal && typeof parsed.containerTotal === "object"
-        ? parsed.containerTotal
-        : {},
+    data: normalizeResultShape(parsed),
     usageMetadata: response?.usageMetadata || {},
   };
 }
 
-async function extractInvoiceNoFallbackFromGemini(
-  fetchedFile,
-  workItem,
-  index,
-  totalItems,
-) {
-  const displayName = workItem.displayName || `file-${index + 1}.pdf`;
+function pickBestValue(candidates = [], validator = () => true) {
+  const prepared = candidates
+    .map((item) =>
+      typeof item === "string" ? { value: item, source: "unknown" } : item,
+    )
+    .map((item) => ({
+      ...item,
+      cleaned: normalizeWhitespace(item.value),
+    }))
+    .filter((item) => item.cleaned && validator(item.cleaned));
 
-  const response = await withRetry(
-    async () => {
-      setReadingStatus({
-        status: "running",
-        stage: "extracting_invoice_no_fallback",
-        progress: Math.min(
-          84 + Math.floor((index / Math.max(totalItems, 1)) * 8),
-          97,
-        ),
-        currentFileIndex: index + 1,
-        totalFiles: totalItems,
-        currentFileName: displayName,
-        message: `Retrying invoice number extraction for ${displayName}`,
-        error: null,
-      });
+  if (!prepared.length) return null;
 
-      const contents = [
-        buildInvoiceNoOnlyPrompt(workItem),
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
-      ];
+  prepared.sort((a, b) => {
+    const score = (item) => {
+      let total = 0;
+      if (item.source === "pdf_text") total += 100;
+      if (item.source === "gemini_fallback") total += 25;
+      if (item.source === "gemini_main") total += 10;
+      if (/[A-Za-z]/.test(item.cleaned)) total += 3;
+      if (/\d/.test(item.cleaned)) total += 3;
+      if (/[\/\-]/.test(item.cleaned)) total += 2;
+      return total;
+    };
 
-      return await ai.models.generateContent({
-        model: MODEL,
-        contents,
-        config: {
-          temperature: 0,
-          systemInstruction:
-            "You are a strict JSON extraction engine. Preserve identifier text exactly as printed.",
-          responseMimeType: "application/json",
-          responseJsonSchema: INVOICE_NO_ONLY_SCHEMA,
-        },
-      });
-    },
-    {
-      label: `invoiceNo fallback ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_invoice_no_fallback",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying invoice number fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
-    },
-  );
+    return score(b) - score(a);
+  });
 
-  let parsed;
-  try {
-    parsed = JSON.parse(response.text);
-  } catch (jsonError) {
-    console.error("Gemini raw invoiceNo fallback response:", response.text);
-    throw new Error(
-      `Gemini returned invalid invoiceNo fallback JSON for ${displayName}`,
-    );
+  return prepared[0].cleaned;
+}
+
+function sanitizeResult(data = {}) {
+  const out = normalizeResultShape(data);
+
+  TARGET_FIELDS.forEach((field) => {
+    if (field === "reportType") {
+      out[field] = normalizeReportType(out[field]);
+      return;
+    }
+
+    if (field === "mtdNo") {
+      out[field] = looksLikeMtdNo(out[field]) ? cleanIdentifier(out[field]) : null;
+      return;
+    }
+
+    out[field] = cleanBusinessField(field, out[field]);
+  });
+
+  if (!out.weight) {
+    out.weight = out.grossWeight || out.netWeight || null;
   }
 
-  // extractInvoiceNoFallbackFromGemini
-  return {
-    invoiceNo:
-      parsed?.invoiceNo && typeof parsed.invoiceNo === "string"
-        ? parsed.invoiceNo.trim()
-        : null,
-    usageMetadata: response?.usageMetadata || {},
-  };
+  if (
+    !out.numberOfOriginalMtd &&
+    out.freightPayableAt &&
+    NUMBER_WORDS.has(String(out.freightPayableAt).toUpperCase())
+  ) {
+    out.numberOfOriginalMtd = out.freightPayableAt;
+    out.freightPayableAt = null;
+  }
+
+  if (
+    !out.placeAndDateOfIssue &&
+    out.numberOfOriginalMtd &&
+    !NUMBER_WORDS.has(String(out.numberOfOriginalMtd).toUpperCase()) &&
+    /[A-Za-z]/.test(String(out.numberOfOriginalMtd)) &&
+    out.freightPayableAt &&
+    NUMBER_WORDS.has(String(out.freightPayableAt).toUpperCase())
+  ) {
+    out.placeAndDateOfIssue = out.numberOfOriginalMtd;
+    out.numberOfOriginalMtd = out.freightPayableAt;
+    out.freightPayableAt = null;
+  }
+
+  return out;
+}
+
+function applyDeterministicFallback(main = {}, deterministic = {}, fallback = {}) {
+  const out = {};
+
+  TARGET_FIELDS.forEach((field) => {
+    if (field === "mtdNo") {
+      out.mtdNo = pickBestValue(
+        [
+          { value: deterministic?.mtdNo, source: "pdf_text" },
+          { value: fallback?.mtdNo, source: "gemini_fallback" },
+          { value: main?.mtdNo, source: "gemini_main" },
+        ],
+        looksLikeMtdNo,
+      );
+      return;
+    }
+
+    if (field === "reportType") {
+      out.reportType =
+        normalizeReportType(main?.reportType) ||
+        normalizeReportType(fallback?.reportType) ||
+        normalizeReportType(deterministic?.reportType) ||
+        null;
+      return;
+    }
+
+    out[field] =
+      cleanBusinessField(field, main?.[field]) ||
+      cleanBusinessField(field, fallback?.[field]) ||
+      cleanBusinessField(field, deterministic?.[field]) ||
+      null;
+  });
+
+  return sanitizeResult(out);
 }
 
 function mergePromptTokensDetails(usageMetadataList = []) {
@@ -1564,7 +1363,6 @@ function mergePromptTokensDetails(usageMetadataList = []) {
     for (const detail of details) {
       const modality = detail?.modality || "UNKNOWN";
       const tokenCount = Number(detail?.tokenCount || 0);
-
       totals.set(modality, (totals.get(modality) || 0) + tokenCount);
     }
   }
@@ -1575,10 +1373,54 @@ function mergePromptTokensDetails(usageMetadataList = []) {
   }));
 }
 
+const GEMINI_PRICING = {
+  "gemini-2.5-flash": {
+    standard: { inputPer1M: 0.3, outputPer1M: 2.5 },
+    batch: { inputPer1M: 0.15, outputPer1M: 1.25 },
+  },
+  "gemini-2.5-flash-lite": {
+    standard: { inputPer1M: 0.1, outputPer1M: 0.4 },
+    batch: { inputPer1M: 0.05, outputPer1M: 0.2 },
+  },
+};
+
+function roundUSD(v) {
+  return Number((v || 0).toFixed(8));
+}
+
+function getBillableCostFromUsage({
+  usageMetadata = {},
+  model = "gemini-2.5-flash",
+  mode = "standard",
+}) {
+  const pricing = GEMINI_PRICING[model]?.[mode];
+  if (!pricing) {
+    throw new Error(`Pricing not configured for model=${model}, mode=${mode}`);
+  }
+
+  const promptTokenCount = Number(usageMetadata.promptTokenCount || 0);
+  const candidatesTokenCount = Number(usageMetadata.candidatesTokenCount || 0);
+  const thoughtsTokenCount = Number(usageMetadata.thoughtsTokenCount || 0);
+
+  const inputTokens = promptTokenCount;
+  const outputTokens = candidatesTokenCount + thoughtsTokenCount;
+  const inputCostUSD = (inputTokens / 1_000_000) * pricing.inputPer1M;
+  const outputCostUSD = (outputTokens / 1_000_000) * pricing.outputPer1M;
+
+  return {
+    inputTokens,
+    outputTokens,
+    thoughtsTokenCount,
+    inputRatePer1M: pricing.inputPer1M,
+    outputRatePer1M: pricing.outputPer1M,
+    inputCostUSD: roundUSD(inputCostUSD),
+    outputCostUSD: roundUSD(outputCostUSD),
+    totalCostUSD: roundUSD(inputCostUSD + outputCostUSD),
+  };
+}
+
 function buildUsageMetadata(usageMetadataList = []) {
-  const pricingMode = (
-    process.env.GEMINI_PRICING_MODE || "standard"
-  ).toLowerCase();
+  const pricingMode = (process.env.GEMINI_PRICING_MODE || "standard").toLowerCase();
 
   if (!usageMetadataList.length) {
     const emptyUsage = {
@@ -1604,7 +1446,6 @@ function buildUsageMetadata(usageMetadataList = []) {
     };
   }
 
-  // If only one file/chunk was processed, return flat shape
   if (usageMetadataList.length === 1) {
     const item = usageMetadataList[0];
     const meta = item?.usageMetadata || {};
@@ -1640,8 +1481,7 @@ function buildUsageMetadata(usageMetadataList = []) {
       0,
     ),
     candidatesTokenCount: usageMetadataList.reduce(
-      (sum, item) =>
-        sum + Number(item?.usageMetadata?.candidatesTokenCount || 0),
+      (sum, item) => sum + Number(item?.usageMetadata?.candidatesTokenCount || 0),
       0,
     ),
     totalTokenCount: usageMetadataList.reduce(
@@ -1672,41 +1512,8 @@ function buildUsageMetadata(usageMetadataList = []) {
   };
 }
 
-function normalizeVesselVoyageFields(data = {}) {
-  const out = { ...data };
-
-  const rawVessel = String(out.rawVesselText || "").trim();
-  const rawVoyage = String(out.rawVoyageText || "").trim();
-  const vesselName = String(out.vesselName || "").trim();
-  const voyageName = String(out.voyageName || "").trim();
-  const combined = String(out.rawVesselOrVoyageText || "").trim();
-
-  if (!out.vesselName && rawVessel) {
-    out.vesselName = rawVessel;
-  }
-
-  if (!out.voyageName && rawVoyage) {
-    out.voyageName = rawVoyage;
-  }
-
-  if ((!out.vesselName || !out.voyageName) && combined.includes("/")) {
-    const [left, right] = combined.split("/").map((s) => s.trim());
-
-    if (!out.vesselName && left) out.vesselName = left;
-    if (!out.voyageName && right) out.voyageName = right;
-  }
-
-  return out;
-}
-
-async function extractSingleChunkFromGemini(
-  fetchedFile,
-  workItem,
-  index,
-  totalItems,
-) {
+async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalItems) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
-
   const prompt = workItem.wasChunked
     ? buildChunkTaskPrompt(workItem)
     : buildTaskPrompt([workItem.originalFileName || workItem.displayName]);
@@ -1716,29 +1523,21 @@ async function extractSingleChunkFromGemini(
       setReadingStatus({
         status: "running",
         stage: "generating_content",
-        progress: Math.min(
-          75 + Math.floor((index / Math.max(totalItems, 1)) * 18),
-          94,
-        ),
+        progress: Math.min(75 + Math.floor((index / Math.max(totalItems, 1)) * 18), 94),
         currentFileIndex: index + 1,
         totalFiles: totalItems,
         currentFileName: displayName,
-        message: `Extracting data from ${displayName}`,
+        message: `Extracting BL data from ${displayName}`,
         error: null,
       });
 
-      const contents = [
-        prompt,
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
-      ];
-
       return await ai.models.generateContent({
         model: MODEL,
-        contents,
+        contents: [prompt, createPartFromUri(fetchedFile.uri, fetchedFile.mimeType)],
         config: {
           temperature: 0,
           systemInstruction:
-            "You are a strict JSON extraction engine. Prefer null over guessing. Follow the schema exactly.",
+            "You are a strict JSON extraction engine. Prefer null over guessing. Never return label text as a value. Follow the schema exactly.",
           responseMimeType: "application/json",
           responseJsonSchema: EXTRACTION_SCHEMA,
         },
@@ -1761,7 +1560,6 @@ async function extractSingleChunkFromGemini(
   );
 
   let parsed;
-
   try {
     parsed = JSON.parse(response.text);
   } catch (jsonError) {
@@ -1769,73 +1567,27 @@ async function extractSingleChunkFromGemini(
     throw new Error(`Gemini returned invalid JSON for ${displayName}`);
   }
 
-  parsed = normalizeResultShape(parsed);
-  parsed = normalizeVesselVoyageFields(parsed);
-
+  parsed = sanitizeResult(normalizeResultShape(parsed));
   const usageEntries = [response?.usageMetadata || {}];
 
-  // Focused fallback for invoice number
-  let invoiceFallback = null;
-
+  let fallbackResult = null;
   try {
-    invoiceFallback = await extractInvoiceNoFallbackFromGemini(
+    fallbackResult = await extractFallbackFromGemini(
       fetchedFile,
       workItem,
       index,
       totalItems,
     );
-
-    usageEntries.push(invoiceFallback?.usageMetadata || {});
-  } catch (invoiceFallbackError) {
-    console.error(
-      `InvoiceNo fallback failed for ${displayName}:`,
-      invoiceFallbackError,
-    );
+    usageEntries.push(fallbackResult?.usageMetadata || {});
+  } catch (fallbackError) {
+    console.error(`Fallback extraction failed for ${displayName}:`, fallbackError);
   }
 
-  parsed.invoiceNo = pickBestInvoiceNo([
-    { value: workItem.textInvoiceCandidate, source: "pdf_text" },
-    { value: invoiceFallback?.invoiceNo, source: "gemini_invoice_fallback" },
-    { value: parsed.invoiceNo, source: "gemini_main" },
-  ]);
-
-  // Focused fallback for container table
-  if (!Array.isArray(parsed.tblContainer) || parsed.tblContainer.length === 0) {
-    try {
-      const fallback = await extractContainerFallbackFromGemini(
-        fetchedFile,
-        workItem,
-        index,
-        totalItems,
-      );
-
-      usageEntries.push(fallback?.usageMetadata || {});
-
-      if (
-        Array.isArray(fallback.tblContainer) &&
-        fallback.tblContainer.length
-      ) {
-        parsed.tblContainer = dedupeObjectArray([
-          ...(parsed.tblContainer || []),
-          ...fallback.tblContainer,
-        ]);
-      }
-
-      if (
-        (!parsed.containerTotal ||
-          Object.keys(parsed.containerTotal).length === 0) &&
-        fallback.containerTotal &&
-        typeof fallback.containerTotal === "object"
-      ) {
-        parsed.containerTotal = fallback.containerTotal;
-      }
-    } catch (fallbackError) {
-      console.error(
-        `Container fallback failed for ${displayName}:`,
-        fallbackError,
-      );
-    }
-  }
+  const finalParsed = applyDeterministicFallback(
+    parsed,
+    workItem.deterministicFields || {},
+    fallbackResult?.data || {},
+  );
 
   const mergedUsageMetadata = {
     promptTokenCount: usageEntries.reduce(
@@ -1860,57 +1612,8 @@ async function extractSingleChunkFromGemini(
   };
 
   return {
-    parsed,
+    parsed: finalParsed,
     usageMetadata: mergedUsageMetadata,
-  };
-}
-
-// Gemini pricing details as of June 2026, subject to change. Always refer to official documentation for the latest pricing.
-const GEMINI_PRICING = {
-  "gemini-2.5-flash": {
-    standard: { inputPer1M: 0.3, outputPer1M: 2.5 },
-    batch: { inputPer1M: 0.15, outputPer1M: 1.25 },
-  },
-  "gemini-2.5-flash-lite": {
-    standard: { inputPer1M: 0.1, outputPer1M: 0.4 },
-    batch: { inputPer1M: 0.05, outputPer1M: 0.2 },
-  },
-};
-
-function roundUSD(v) {
-  return Number((v || 0).toFixed(8));
-}
-
-function getBillableCostFromUsage({
-  usageMetadata = {},
-  model = "gemini-2.5-flash",
-  mode = "standard",
-}) {
-  const pricing = GEMINI_PRICING[model]?.[mode];
-  if (!pricing) {
-    throw new Error(`Pricing not configured for model=${model}, mode=${mode}`);
-  }
-
-  const promptTokenCount = Number(usageMetadata.promptTokenCount || 0);
-  const candidatesTokenCount = Number(usageMetadata.candidatesTokenCount || 0);
-  const thoughtsTokenCount = Number(usageMetadata.thoughtsTokenCount || 0);
-
-  const inputTokens = promptTokenCount;
-  const outputTokens = candidatesTokenCount + thoughtsTokenCount;
-
-  const inputCostUSD = (inputTokens / 1_000_000) * pricing.inputPer1M;
-
-  const outputCostUSD = (outputTokens / 1_000_000) * pricing.outputPer1M;
-
-  return {
-    inputTokens,
-    outputTokens,
-    thoughtsTokenCount,
-    inputRatePer1M: pricing.inputPer1M,
-    outputRatePer1M: pricing.outputPer1M,
-    inputCostUSD: roundUSD(inputCostUSD),
-    outputCostUSD: roundUSD(outputCostUSD),
-    totalCostUSD: roundUSD(inputCostUSD + outputCostUSD),
   };
 }
 
@@ -1937,13 +1640,11 @@ module.exports = {
       if (!files.length) {
         return res.status(400).json({
           success: false,
-          error:
-            "No PDF files received. Send file(s) in form-data using key 'file'.",
+          error: "No PDF files received. Send file(s) in form-data using key 'file'.",
         });
       }
 
       const invalidFile = files.find((f) => !isPdfFile(f));
-
       if (invalidFile) {
         return res.status(400).json({
           success: false,
@@ -1953,10 +1654,7 @@ module.exports = {
         });
       }
 
-      const oversizeFile = files.find(
-        (f) => Number(f?.size || 0) > MAX_PDF_BYTES,
-      );
-
+      const oversizeFile = files.find((f) => Number(f?.size || 0) > MAX_PDF_BYTES);
       if (oversizeFile) {
         return res.status(400).json({
           success: false,
@@ -1967,7 +1665,6 @@ module.exports = {
       }
 
       resetReadingStatus();
-
       setReadingStatus({
         status: "running",
         stage: "queued",
@@ -1976,14 +1673,14 @@ module.exports = {
         currentFileIndex: null,
         currentFileName: null,
         fileState: null,
-        message: "PDF extraction started",
+        message: "BL PDF extraction started",
         data: null,
         error: null,
       });
 
       res.status(202).json({
         success: true,
-        message: "PDF extraction started",
+        message: "BL PDF extraction started",
         readingStatus,
       });
 
@@ -1996,7 +1693,7 @@ module.exports = {
             stage: "validating",
             progress: 5,
             totalFiles: files.length,
-            message: "Validating uploaded PDF files",
+            message: "Validating uploaded BL PDF files",
             error: null,
           });
 
@@ -2027,13 +1724,12 @@ module.exports = {
 
             uploadedGeminiNames.push(uploadedName);
 
-            const { parsed, usageMetadata } =
-              await extractSingleChunkFromGemini(
-                fetchedFile,
-                workItem,
-                i,
-                workItems.length,
-              );
+            const { parsed, usageMetadata } = await extractSingleChunkFromGemini(
+              fetchedFile,
+              workItem,
+              i,
+              workItems.length,
+            );
 
             mergedResult = mergeExtractionResults(mergedResult, parsed);
 
@@ -2052,7 +1748,7 @@ module.exports = {
             });
           }
 
-          mergedResult = normalizeResultShape(mergedResult);
+          mergedResult = sanitizeResult(normalizeResultShape(mergedResult));
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
           setReadingStatus({
@@ -2063,7 +1759,7 @@ module.exports = {
             totalFiles: workItems.length,
             currentFileName: null,
             fileState: null,
-            message: "PDF data extracted successfully",
+            message: "BL PDF data extracted successfully",
             data: {
               ...mergedResult,
               pdfFiles: buildPdfFilesSummary(workItems),
@@ -2081,7 +1777,7 @@ module.exports = {
             error: null,
           });
         } catch (error) {
-          console.error("Error extracting PDF data:", error);
+          console.error("Error extracting BL PDF data:", error);
 
           setReadingStatus({
             status: "failed",
@@ -2089,8 +1785,8 @@ module.exports = {
             progress: 100,
             currentFileName: null,
             fileState: null,
-            message: error.message || "Failed to extract PDF data",
-            error: error.message || "Failed to extract PDF data",
+            message: error.message || "Failed to extract BL PDF data",
+            error: error.message || "Failed to extract BL PDF data",
             data: null,
           });
         } finally {
@@ -2098,7 +1794,7 @@ module.exports = {
         }
       })();
     } catch (error) {
-      console.error("Error starting PDF extraction:", error);
+      console.error("Error starting BL PDF extraction:", error);
 
       setReadingStatus({
         status: "failed",
@@ -2106,17 +1802,18 @@ module.exports = {
         progress: 100,
         currentFileName: null,
         fileState: null,
-        message: error.message || "Failed to start PDF extraction",
-        error: error.message || "Failed to start PDF extraction",
+        message: error.message || "Failed to start BL PDF extraction",
+        error: error.message || "Failed to start BL PDF extraction",
         data: null,
       });
 
       return res.status(500).json({
         success: false,
-        error: error.message || "Failed to start PDF extraction",
+        error: error.message || "Failed to start BL PDF extraction",
       });
     }
   },
+
   getBlPdfExtractionStatus: async (req, res) => {
     try {
       return res.status(200).json({
@@ -2124,7 +1821,7 @@ module.exports = {
         readingStatus,
       });
     } catch (error) {
-      console.error("Error getting PDF extraction status:", error);
+      console.error("Error getting BL PDF extraction status:", error);
       return res.status(500).json({
         success: false,
         error: error.message || "Failed to get reading status",
@@ -2132,4 +1829,3 @@ module.exports = {
     }
   },
 };
-// today back Up
