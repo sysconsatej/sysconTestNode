@@ -1643,25 +1643,27 @@ module.exports = {
   getChargeForTariff: async (req, res) => {
     try {
       let {
-        labourRate,
-        agentId,
-        depotId,
+        //labourRate,
+       // agentId,
         repairLocationId,
         repairTypeId,
         componentId,
-        damageId,
+        dimension,
+        depotId,
+       // damageId,
         clientId
 
       } = req.body;
 
-      let data = await executeStoredProcedure("getChargeForTariffData", {
-        labourRate,
-        agentId,
-        depotId,
+      let data = await executeStoredProcedure("getChargesFromTariff", {
+        //labourRate,
+        //agentId,
         repairLocationId,
         repairTypeId,
         componentId,
-        damageId,
+        dimension,
+        depotId,
+        //damageId,
         clientId
       });
 
