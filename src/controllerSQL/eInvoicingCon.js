@@ -294,15 +294,27 @@ module.exports = {
 
       const { ackDate, ackNo, irn, signedQrCode, signedInvoice } =
         getIrnDetailsFromResponse(irnResponseData);
-      const updateQuery = `UPDATE tblInvoice set ackDate='${escapeSqlString(
-        ackDate
-      )}', ackNo='${escapeSqlString(ackNo)}', irn='${escapeSqlString(
-        irn
-      )}', signedQrCode='${escapeSqlString(
-        signedQrCode
-      )}', signedInvoice='${escapeSqlString(
-        signedInvoice
-      )}' where id=${invoiceId}`;
+      const updateFields = [
+        `ackDate='${escapeSqlString(ackDate)}'`,
+        `ackNo='${escapeSqlString(ackNo)}'`,
+        `irn='${escapeSqlString(irn)}'`,
+      ];
+
+      if (signedQrCode) {
+        updateFields.push(
+          `signedQrCode='${escapeSqlString(signedQrCode)}'`
+        );
+      }
+
+      if (signedInvoice) {
+        updateFields.push(
+          `signedInvoice='${escapeSqlString(signedInvoice)}'`
+        );
+      }
+
+      const updateQuery = `UPDATE tblInvoice set ${updateFields.join(
+        ", "
+      )} where id=${invoiceId}`;
       await executeQuery(updateQuery, {});
 
       // Step 6: Return response
