@@ -14,7 +14,7 @@ const sqllConnection = require("./src/config/sqlConfig");
 const flash = require("connect-flash");
 const cors = require("cors");
 const promClient = require("prom-client");
-const limiter = require("./src/middlewares/rateLimiter");
+// const limiter = require("./src/middlewares/rateLimiter");
 const httpLogger = require("./src/middlewares/requestLogger");
 const responseTimeLogger = require("./src/middlewares/responseTimeLogger");
 const errorHandler = require("./src/middlewares/errorHandler");
@@ -79,7 +79,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(httpLogger);
 app.use(responseTimeLogger);
-app.use(limiter);
+// app.use(limiter);
 
 
 const BalanceRouter = require("./src/routes/Balancereport");
