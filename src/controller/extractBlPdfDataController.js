@@ -27,9 +27,12 @@ const GEMINI_FILE_PROCESSING_TIMEOUT_MS = Number(
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const TARGET_FIELDS = [
-  "consignorOrShipper",
-  "consignee",
-  "notify",
+  "consignorOrShipperName",
+  "consignorOrShipperAddress",
+  "consigneeName",
+  "consigneeAddress",
+  "notifyName",
+  "notifyAddress",
   "vessel",
   "voyage",
   "placeOfReceipt",
@@ -38,6 +41,8 @@ const TARGET_FIELDS = [
   "portOfDischarge",
   "marksAndNumbers",
   "descriptionOfGoods",
+  "marksAndNoAttach",
+  "goodAndDescriptionAttach",
   "weight",
   "measurement",
   "grossWeight",
@@ -49,7 +54,151 @@ const TARGET_FIELDS = [
   "forCompanyName",
   "mtdNo",
   "reportType",
+  "tblContainer",
 ];
+
+const FIELD_ALIASES = {
+  consignorOrShipperName: [
+    "CONSIGNOR",
+    "CONSIGNOR SHIPPER",
+    "SHIPPER",
+    "SHIPPER EXPORTER",
+    "SHIPPER NAME ADDRESS",
+    "SHIPPER NAME AND ADDRESS",
+    "EXPORTER",
+    "CONSIGNOR/SHIPPER",
+  ],
+  consigneeName: [
+    "CONSIGNEE",
+    "CONSIGNEE IF TO ORDER SO INDICATE",
+    "TO ORDER",
+  ],
+  notifyName: [
+    "NOTIFY",
+    "NOTIFY ADDRESS",
+    "NOTIFY PARTY",
+  ],
+  vessel: [
+    "VESSEL",
+    "VESSEL NAME",
+    "OCEAN VESSEL",
+    "MOTHER VESSEL",
+  ],
+  voyage: [
+    "VOYAGE",
+    "VOYAGE NO",
+    "VOYAGE NUMBER",
+    "VIA",
+    "SERVICE VIA",
+  ],
+  placeOfReceipt: [
+    "PLACE OF RECEIPT",
+    "PLACE DATE OF RECEIPT",
+    "RECEIVED AT",
+  ],
+  portOfLoading: [
+    "PORT OF LOADING",
+    "PORT OF LADING",
+    "POL",
+  ],
+  placeOfDelivery: [
+    "PLACE OF DELIVERY",
+    "FINAL PLACE OF DELIVERY",
+    "FPD",
+  ],
+  portOfDischarge: [
+    "PORT OF DISCHARGE",
+    "DISCHARGE PORT",
+    "POD",
+  ],
+  marksAndNumbers: [
+    "MARKS AND NUMBERS",
+    "MARKS AND NUMBER",
+    "MARKS NUMBER",
+    "MARKS",
+  ],
+  descriptionOfGoods: [
+    "DESCRIPTION OF GOODS",
+    "DESCRIPTION OF PACKAGES AND GOODS",
+    "GENERAL DESCRIPTION OF GOODS",
+    "PARTICULARS FURNISHED BY MERCHANT",
+    "SAID TO CONTAIN",
+    "NO OF PKGS CNTRS DESCRIPTION OF PACKAGES AND GOODS",
+  ],
+  marksAndNoAttach: [
+    "MARKS AND NO S",
+    "MARKS AND NO",
+    "MARKS NO S",
+    "MARKS NO",
+    "MARKS AND NUMBERS",
+  ],
+  goodAndDescriptionAttach: [
+    "NO OF PKGS KINDS OF PKGS GENERAL DESCRIPTION OF GOODS",
+    "NO OF PKGS KINDS OF PKGS DESCRIPTION OF GOODS",
+    "GENERAL DESCRIPTION OF GOODS",
+    "DESCRIPTION OF GOODS",
+    "DESCRIPTION OF PACKAGES AND GOODS",
+  ],
+  weight: [
+    "WEIGHT",
+    "TOTAL WEIGHT",
+  ],
+  measurement: [
+    "MEASUREMENT",
+    "TOTAL WEIGHT MEASUREMENT",
+    "CBM",
+    "CFT",
+  ],
+  grossWeight: [
+    "GROSS WEIGHT",
+    "GR WT",
+  ],
+  netWeight: [
+    "NET WEIGHT",
+    "NT WT",
+  ],
+  shippedOnBoardDate: [
+    "SHIPPED ON BOARD DATE",
+    "ON BOARD DATE",
+    "SHIPPED DATE",
+  ],
+  freightPayableAt: [
+    "FREIGHT PAYABLE AT",
+    "FREIGHT PAYABLE LOCATION",
+    "FREIGHT PAYABLE PLACE",
+  ],
+  numberOfOriginalMtd: [
+    "NUMBER OF ORIGINAL MTD",
+    "NUMBER OF ORIGINAL MTD S",
+    "NO OF ORIGINAL MTD",
+    "NO OF ORIGINAL MTDS",
+    "NO OF ORIGINAL MTD S",
+  ],
+  placeAndDateOfIssue: [
+    "PLACE DATE OF ISSUE",
+    "PLACE AND DATE OF ISSUE",
+    "PLACE OF ISSUE DATE OF ISSUE",
+  ],
+  forCompanyName: [
+    "FOR",
+    "SIGNED FOR",
+  ],
+  mtdNo: [
+    "MTD NO",
+    "BILL OF LADING NUMBER",
+    "BL NUMBER",
+  ],
+};
+
+const TABLE_HEADER_ALIASES = {
+  containerNo: ["CONTAINER NO", "CONTAINERNO", "TANK NOS", "TANK NO", "TANK NOS."],
+  type: ["TYPE"],
+  customeSealNo: ["C SEAL NO", "CUSTOM SEAL NO", "C. SEAL NO", "CUSTOMESEALNO"],
+  agentSealNo: ["S SEAL NO", "AGENT SEAL NO", "S. SEAL NO", "AGENTSEALNO"],
+  ntWt: ["NT WT", "NT. WT", "NET WT"],
+  tarWt: ["TARE WEIGHT", "TAREWT", "TAR WT"],
+  grossWt: ["GR WT", "GR. WT", "GROSS WT"],
+};
 
 const NUMBER_WORDS = new Set([
   "ONE",
@@ -63,6 +212,17 @@ const NUMBER_WORDS = new Set([
   "NINE",
   "TEN",
 ]);
+
+const STOP_SECTION_WORDS = [
+  "EXCESS VALUE DECLARATION",
+  "TOTAL FREIGHT",
+  "PARTICULAR ABOVE FURNISHED",
+  "FREIGHT CHARGES AMOUNT",
+  "FREIGHT PAYABLE LOCATION",
+  "OTHER PARTICULARS",
+  "SIGNED FOR",
+  "AUTHORISED SIGNATORY",
+];
 
 let readingStatus = {
   status: "idle",
@@ -105,9 +265,7 @@ function resetReadingStatus() {
 function safeFileState(state) {
   if (!state) return "UNKNOWN";
   if (typeof state === "string") return state.toUpperCase();
-  if (typeof state === "object" && state.name) {
-    return String(state.name).toUpperCase();
-  }
+  if (typeof state === "object" && state.name) return String(state.name).toUpperCase();
   return String(state).toUpperCase();
 }
 
@@ -129,25 +287,50 @@ function normalizeWhitespace(value) {
     .trim();
 }
 
+function normalizeLabelToken(value) {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanIdentifier(value) {
+  if (!isMeaningfulValue(value)) return null;
+  return String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/^[\s:=#|._-]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function looksLikeMtdNo(value) {
+  const s = cleanIdentifier(value);
+  if (!s) return false;
+  if (s.length < 6 || s.length > 80) return false;
+  if (/^mtd\s*no/i.test(s)) return false;
+  if (!/[A-Za-z]/.test(s) || !/[0-9]/.test(s)) return false;
+  return /^[A-Za-z0-9/._\- ]+$/.test(s);
+}
+
 function stableStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(",")}]`;
   }
-
   if (value && typeof value === "object") {
     const keys = Object.keys(value).sort();
     return `{${keys
       .map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`)
       .join(",")}}`;
   }
-
   return JSON.stringify(value);
 }
 
 function dedupeObjectArray(arr = []) {
   const seen = new Set();
   const out = [];
-
   for (const item of arr) {
     const key = stableStringify(item);
     if (!seen.has(key)) {
@@ -155,19 +338,16 @@ function dedupeObjectArray(arr = []) {
       out.push(item);
     }
   }
-
   return out;
 }
 
 function mergeFlatObject(base = {}, incoming = {}) {
   const out = { ...base };
-
   for (const [key, value] of Object.entries(incoming || {})) {
     if (!isMeaningfulValue(out[key]) && isMeaningfulValue(value)) {
       out[key] = value;
     }
   }
-
   return out;
 }
 
@@ -199,12 +379,49 @@ function uniqueNonEmpty(values = []) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function normalizeContainerRow(row = {}) {
+  return {
+    containerNo: row.containerNo ?? null,
+    type: row.type ?? null,
+    customeSealNo: row.customeSealNo ?? null,
+    agentSealNo: row.agentSealNo ?? null,
+    ntWt: row.ntWt ?? null,
+    tarWt: row.tarWt ?? null,
+    grossWt: row.grossWt ?? null,
+  };
+}
+
 function normalizeResultShape(data = {}) {
-  const out = {};
-  TARGET_FIELDS.forEach((key) => {
-    out[key] = data?.[key] ?? null;
-  });
-  return out;
+  return {
+    consignorOrShipperName: data.consignorOrShipperName ?? null,
+    consignorOrShipperAddress: data.consignorOrShipperAddress ?? null,
+    consigneeName: data.consigneeName ?? null,
+    consigneeAddress: data.consigneeAddress ?? null,
+    notifyName: data.notifyName ?? null,
+    notifyAddress: data.notifyAddress ?? null,
+    vessel: data.vessel ?? null,
+    voyage: data.voyage ?? null,
+    placeOfReceipt: data.placeOfReceipt ?? null,
+    portOfLoading: data.portOfLoading ?? null,
+    placeOfDelivery: data.placeOfDelivery ?? null,
+    portOfDischarge: data.portOfDischarge ?? null,
+    marksAndNumbers: data.marksAndNumbers ?? null,
+    descriptionOfGoods: data.descriptionOfGoods ?? null,
+    marksAndNoAttach: data.marksAndNoAttach ?? null,
+    goodAndDescriptionAttach: data.goodAndDescriptionAttach ?? null,
+    weight: data.weight ?? null,
+    measurement: data.measurement ?? null,
+    grossWeight: data.grossWeight ?? null,
+    netWeight: data.netWeight ?? null,
+    shippedOnBoardDate: data.shippedOnBoardDate ?? null,
+    freightPayableAt: data.freightPayableAt ?? null,
+    numberOfOriginalMtd: data.numberOfOriginalMtd ?? null,
+    placeAndDateOfIssue: data.placeAndDateOfIssue ?? null,
+    forCompanyName: data.forCompanyName ?? null,
+    mtdNo: data.mtdNo ?? null,
+    reportType: data.reportType ?? null,
+    tblContainer: Array.isArray(data.tblContainer) ? data.tblContainer : [],
+  };
 }
 
 function buildPdfFilesSummary(workItems = []) {
@@ -246,176 +463,6 @@ async function extractTextFromPdfBuffer(buffer) {
   }
 }
 
-function cleanIdentifier(value) {
-  if (!isMeaningfulValue(value)) return null;
-  return String(value)
-    .replace(/\u00A0/g, " ")
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/^[\s:=#|._-]+/, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function looksLikeMtdNo(value) {
-  const s = cleanIdentifier(value);
-  if (!s) return false;
-  if (s.length < 6 || s.length > 80) return false;
-  if (/^mtd\s*no/i.test(s)) return false;
-  if (!/[A-Za-z]/.test(s) || !/[0-9]/.test(s)) return false;
-  return /^[A-Za-z0-9/._\- ]+$/.test(s);
-}
-
-function normalizeLabelToken(value) {
-  return String(value || "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const FIELD_ALIASES = {
-  consignorOrShipper: [
-    "CONSIGNOR",
-    "SHIPPER",
-    "SHIPPER EXPORTER",
-    "SHIPPER NAME ADDRESS",
-    "SHIPPER NAME AND ADDRESS",
-    "EXPORTER",
-  ],
-  consignee: [
-    "CONSIGNEE",
-    "CONSIGNEE IF TO ORDER SO INDICATE",
-    "TO ORDER",
-  ],
-  notify: [
-    "NOTIFY",
-    "NOTIFY ADDRESS",
-    "NOTIFY PARTY",
-  ],
-  vessel: [
-    "VESSEL",
-    "VESSEL NAME",
-    "MV",
-    "MOTHER VESSEL",
-  ],
-  voyage: [
-    "VOYAGE",
-    "VOYAGE NO",
-    "VOYAGE NUMBER",
-    "VIA",
-    "SERVICE VIA",
-  ],
-  placeOfReceipt: [
-    "PLACE OF RECEIPT",
-    "PLACE DATE OF RECEIPT",
-    "RECEIVED AT",
-  ],
-  portOfLoading: [
-    "PORT OF LOADING",
-    "POL",
-    "PORT OF LOADING TAKING IN CHARGE",
-  ],
-  placeOfDelivery: [
-    "PLACE OF DELIVERY",
-    "FINAL PLACE OF DELIVERY",
-    "FPD",
-  ],
-  portOfDischarge: [
-    "PORT OF DISCHARGE",
-    "POD",
-    "DISCHARGE PORT",
-  ],
-  marksAndNumbers: [
-    "MARKS AND NUMBERS",
-    "MARKS NUMBERS",
-    "MARKS",
-  ],
-  descriptionOfGoods: [
-    "DESCRIPTION OF GOODS",
-    "PARTICULARS FURNISHED BY MERCHANT",
-    "DESCRIPTION",
-    "SAID TO CONTAIN",
-  ],
-  weight: [
-    "WEIGHT",
-    "TOTAL WEIGHT",
-  ],
-  measurement: [
-    "MEASUREMENT",
-    "CBM",
-    "CFT",
-    "TOTAL WEIGHT MEASUREMENT",
-  ],
-  grossWeight: ["GROSS WEIGHT"],
-  netWeight: ["NET WEIGHT"],
-  shippedOnBoardDate: [
-    "SHIPPED ON BOARD DATE",
-    "ON BOARD DATE",
-    "SHIPPED DATE",
-  ],
-  freightPayableAt: [
-    "FREIGHT PAYABLE AT",
-    "FREIGHT PAYABLE",
-    "FREIGHT PAYABLE PLACE",
-  ],
-  numberOfOriginalMtd: [
-    "NUMBER OF ORIGINAL MTD",
-    "NUMBER OF ORIGINAL MTD S",
-    "NO OF ORIGINAL MTD",
-    "NO OF ORIGINAL MTDS",
-  ],
-  placeAndDateOfIssue: [
-    "PLACE DATE OF ISSUE",
-    "PLACE AND DATE OF ISSUE",
-    "PLACE OF ISSUE DATE OF ISSUE",
-  ],
-  forCompanyName: ["FOR"],
-  mtdNo: ["MTD NO"],
-  reportType: ["DRAFT", "FINAL"],
-};
-
-const ALL_LABELS = Object.values(FIELD_ALIASES).flat();
-
-function isLabelOnlyValue(field, value) {
-  if (!isMeaningfulValue(value)) return true;
-
-  const normalized = normalizeLabelToken(value);
-  if (!normalized) return true;
-
-  const aliases = (FIELD_ALIASES[field] || []).map(normalizeLabelToken);
-
-  if (aliases.includes(normalized)) return true;
-
-  if (field === "vessel" && (normalized === "VESSEL" || normalized === "VESSEL NAME")) {
-    return true;
-  }
-
-  if (field === "voyage" && (normalized === "VOYAGE" || normalized === "VOYAGE NO")) {
-    return true;
-  }
-
-  if (field === "reportType" && !["DRAFT", "FINAL"].includes(normalized)) {
-    return true;
-  }
-
-  return false;
-}
-
-function cleanBusinessField(field, value) {
-  const normalized = normalizeWhitespace(value);
-  if (!isMeaningfulValue(normalized)) return null;
-  if (isLabelOnlyValue(field, normalized)) return null;
-  return normalized;
-}
-
-function normalizeReportType(value) {
-  const v = normalizeLabelToken(value);
-  if (v.includes("DRAFT")) return "DRAFT";
-  if (v.includes("FINAL")) return "FINAL";
-  return null;
-}
-
 function getLines(rawText = "") {
   return String(rawText || "")
     .replace(/\u00A0/g, " ")
@@ -433,6 +480,8 @@ function firstNonEmptyMatch(text = "", regexes = []) {
   return null;
 }
 
+const ALL_LABELS = Object.values(FIELD_ALIASES).flat();
+
 function looksLikeStopLabel(line) {
   const normalized = normalizeLabelToken(line);
   if (!normalized) return false;
@@ -444,23 +493,31 @@ function looksLikeStopLabel(line) {
 }
 
 function collectFollowingBlock(lines, startIndex, options = {}) {
-  const { maxLines = 8, allowBlankStops = true } = options;
+  const { maxLines = 8 } = options;
   const buffer = [];
 
   for (let i = startIndex + 1; i < lines.length && buffer.length < maxLines; i++) {
     const line = lines[i];
-
-    if (!line) {
-      if (allowBlankStops && buffer.length > 0) break;
-      continue;
-    }
-
+    if (!line) continue;
     if (looksLikeStopLabel(line)) break;
-
     buffer.push(line);
   }
 
   return normalizeWhitespace(buffer.join(" "));
+}
+
+function collectFollowingBlockLines(lines, startIndex, options = {}) {
+  const { maxLines = 8 } = options;
+  const buffer = [];
+
+  for (let i = startIndex + 1; i < lines.length && buffer.length < maxLines; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    if (looksLikeStopLabel(line)) break;
+    buffer.push(line);
+  }
+
+  return buffer;
 }
 
 function findFieldFromLabeledLines(lines, aliases = [], options = {}) {
@@ -498,16 +555,249 @@ function findFieldFromLabeledLines(lines, aliases = [], options = {}) {
   return null;
 }
 
-function extractDescriptionBlock(text = "") {
-  return firstNonEmptyMatch(text, [
-    /(?:DESCRIPTION\s+OF\s+GOODS|PARTICULARS\s+FURNISHED\s+BY\s+MERCHANT)\s*[:\n]*([\s\S]{10,2500}?)(?=\b(?:TOTAL\s+WEIGHT|MEASUREMENT|GROSS\s+WEIGHT|NET\s+WEIGHT|NUMBER\s+OF\s+ORIGINAL|FREIGHT\s+PAYABLE\s+AT|PLACE\s*&\s*DATE\s+OF\s+ISSUE|PLACE\s+AND\s+DATE\s+OF\s+ISSUE|SHIPPED\s+ON\s+BOARD\s+DATE)\b)/i,
-  ]);
+function findPartyBlockLines(lines, aliases = [], options = {}) {
+  const { maxLines = 8, allowInlineValue = true } = options;
+  const normalizedAliases = aliases.map(normalizeLabelToken);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const normalizedLine = normalizeLabelToken(line);
+
+    for (const alias of normalizedAliases) {
+      if (
+        allowInlineValue &&
+        normalizedLine.startsWith(alias) &&
+        normalizedLine !== alias
+      ) {
+        const inline = normalizeWhitespace(
+          line
+            .replace(
+              new RegExp(`^${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"),
+              "",
+            )
+            .replace(/^[:\- ]+/, ""),
+        );
+
+        const nextLines = collectFollowingBlockLines(lines, i, { maxLines });
+        return [inline, ...nextLines].filter(Boolean);
+      }
+
+      if (normalizedLine === alias) {
+        return collectFollowingBlockLines(lines, i, { maxLines });
+      }
+    }
+  }
+
+  return [];
+}
+
+function splitPartyBlockLines(blockLines = []) {
+  const lines = (Array.isArray(blockLines) ? blockLines : [])
+    .map((line) => normalizeWhitespace(line))
+    .filter(Boolean);
+
+  if (!lines.length) {
+    return {
+      name: null,
+      address: null,
+    };
+  }
+
+  return {
+    name: lines[0] || null,
+    address: normalizeWhitespace(lines.slice(1).join(" ")) || null,
+  };
 }
 
 function extractMarksBlock(text = "") {
   return firstNonEmptyMatch(text, [
-    /(?:MARKS\s+AND\s+NUMBERS|MARKS\s*&\s*NUMBERS|MARKS)\s*[:\n]*([\s\S]{1,600}?)(?=\b(?:DESCRIPTION\s+OF\s+GOODS|PARTICULARS\s+FURNISHED\s+BY\s+MERCHANT|TOTAL\s+WEIGHT|MEASUREMENT|GROSS\s+WEIGHT|NET\s+WEIGHT)\b)/i,
+    /(?:MARKS\s+AND\s+NUMBERS|MARKS\s*&\s*NUMBERS|MARKS\s+AND\s+NUMBER|MARKS)\s*[:\n]*([\s\S]{1,800}?)(?=\b(?:DESCRIPTION\s+OF\s+GOODS|DESCRIPTION\s+OF\s+PACKAGES\s+AND\s+GOODS|GENERAL\s+DESCRIPTION\s+OF\s+GOODS|TOTAL\s+WEIGHT|MEASUREMENT|GROSS\s+WEIGHT|NET\s+WEIGHT|TANK\s+NOS|CONTAINER\s+NO)\b)/i,
   ]);
+}
+
+function extractDescriptionBlock(text = "") {
+  return firstNonEmptyMatch(text, [
+    /(?:DESCRIPTION\s+OF\s+GOODS|DESCRIPTION\s+OF\s+PACKAGES\s+AND\s+GOODS|GENERAL\s+DESCRIPTION\s+OF\s+GOODS|PARTICULARS\s+FURNISHED\s+BY\s+MERCHANT)\s*[:\n]*([\s\S]{10,2800}?)(?=\b(?:TOTAL\s+WEIGHT|MEASUREMENT|GROSS\s+WEIGHT|NET\s+WEIGHT|NUMBER\s+OF\s+ORIGINAL|FREIGHT\s+PAYABLE\s+AT|FREIGHT\s+PAYABLE\s+LOCATION|PLACE\s*&\s*DATE\s+OF\s+ISSUE|PLACE\s+AND\s+DATE\s+OF\s+ISSUE|SHIPPED\s+ON\s+BOARD\s+DATE|TANK\s+NOS|CONTAINER\s+NO)\b)/i,
+  ]);
+}
+
+function getAttachedSheetText(rawText = "") {
+  const text = String(rawText || "");
+  const idx = text.toUpperCase().indexOf("ATTACHED SHEET");
+  if (idx === -1) return "";
+  return text.slice(idx);
+}
+
+function extractAttachFieldsFromText(rawText = "") {
+  const attachText = getAttachedSheetText(rawText);
+  if (!attachText) {
+    return {
+      marksAndNoAttach: null,
+      goodAndDescriptionAttach: null,
+    };
+  }
+
+  const lines = getLines(attachText);
+
+  let startIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const n = normalizeLabelToken(lines[i]);
+    if (
+      n.includes("MARKS AND NO") &&
+      (n.includes("GENERAL DESCRIPTION OF GOODS") || n.includes("DESCRIPTION OF GOODS"))
+    ) {
+      startIdx = i;
+      break;
+    }
+  }
+
+  if (startIdx === -1) {
+    startIdx = lines.findIndex((line) =>
+      normalizeLabelToken(line).includes("MARKS AND NO"),
+    );
+  }
+
+  let blockLines = [];
+  if (startIdx !== -1) {
+    for (let j = startIdx + 1; j < lines.length; j++) {
+      const n = normalizeLabelToken(lines[j]);
+      if (n.includes("TANK NOS") || n.includes("CONTAINER NO")) break;
+      if (STOP_SECTION_WORDS.some((word) => n.startsWith(word))) break;
+      blockLines.push(lines[j]);
+    }
+  }
+
+  const blockText = normalizeWhitespace(blockLines.join(" "));
+
+  return {
+    marksAndNoAttach: blockText || null,
+    goodAndDescriptionAttach: blockText || null,
+  };
+}
+
+function looksLikeContainerHeader(line = "") {
+  const n = normalizeLabelToken(line);
+
+  const containerAliasFound = TABLE_HEADER_ALIASES.containerNo
+    .map(normalizeLabelToken)
+    .some((alias) => n.includes(alias));
+
+  const typeFound = TABLE_HEADER_ALIASES.type
+    .map(normalizeLabelToken)
+    .some((alias) => n.includes(alias));
+
+  const grossFound = TABLE_HEADER_ALIASES.grossWt
+    .map(normalizeLabelToken)
+    .some((alias) => n.includes(alias));
+
+  return containerAliasFound && typeFound && grossFound;
+}
+
+function isContainerTableStopLine(line = "") {
+  const n = normalizeLabelToken(line);
+  return STOP_SECTION_WORDS.some((word) => n.startsWith(word));
+}
+
+function parseWeightToken(tokens, endIndex) {
+  if (endIndex < 0) return { value: null, used: 0 };
+
+  const last = tokens[endIndex] || "";
+  const prev = tokens[endIndex - 1] || "";
+
+  if (/^(KGS?|KG|MTS?|MT)$/i.test(last) && prev) {
+    return { value: `${prev} ${last}`, used: 2 };
+  }
+
+  return { value: last || null, used: 1 };
+}
+
+function parseContainerRow(line = "") {
+  const raw = normalizeWhitespace(line);
+  if (!raw) return null;
+
+  const tokens = raw.split(/\s+/);
+  if (tokens.length < 5) return null;
+
+  const containerNo = tokens[0];
+  if (!/^[A-Z0-9]{6,15}$/i.test(containerNo)) return null;
+
+  let idx = tokens.length - 1;
+
+  const gross = parseWeightToken(tokens, idx);
+  idx -= gross.used;
+
+  const tarWt = idx >= 0 ? tokens[idx] : null;
+  idx -= 1;
+
+  const ntWt = idx >= 0 ? tokens[idx] : null;
+  idx -= 1;
+
+  const middle = tokens.slice(1, idx + 1);
+
+  let customeSealNo = null;
+  let agentSealNo = null;
+  let type = null;
+
+  const middleText = middle.join(" ").toUpperCase();
+
+  if (middle.length >= 4 && middleText.includes("ISO")) {
+    customeSealNo = middle[middle.length - 1] || null;
+    type = middle.slice(0, -1).join(" ");
+  } else if (middle.length >= 5) {
+    const maybeLast = middle[middle.length - 1];
+    const maybeSecondLast = middle[middle.length - 2];
+    const looksLikeSeal = (v) => /^[A-Z0-9\-\/]{2,20}$/i.test(v);
+
+    if (looksLikeSeal(maybeLast) && looksLikeSeal(maybeSecondLast)) {
+      customeSealNo = maybeSecondLast;
+      agentSealNo = maybeLast;
+      type = middle.slice(0, -2).join(" ");
+    } else {
+      type = middle.join(" ");
+    }
+  } else {
+    type = middle.join(" ");
+  }
+
+  const parsed = {
+    containerNo: normalizeWhitespace(containerNo),
+    type: normalizeWhitespace(type),
+    customeSealNo: normalizeWhitespace(customeSealNo),
+    agentSealNo: normalizeWhitespace(agentSealNo),
+    ntWt: normalizeWhitespace(ntWt),
+    tarWt: normalizeWhitespace(tarWt),
+    grossWt: normalizeWhitespace(gross.value),
+  };
+
+  if (!parsed.containerNo || !parsed.grossWt) return null;
+  return parsed;
+}
+
+function extractContainerTableFromText(rawText = "") {
+  const lines = getLines(rawText);
+  const rows = [];
+  let inTable = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (!inTable && looksLikeContainerHeader(line)) {
+      inTable = true;
+      continue;
+    }
+
+    if (!inTable) continue;
+
+    if (isContainerTableStopLine(line) || line.toUpperCase().includes("ATTACHED SHEET")) {
+      inTable = false;
+      continue;
+    }
+
+    const row = parseContainerRow(line);
+    if (row) rows.push(row);
+  }
+
+  return dedupeObjectArray(rows.map(normalizeContainerRow));
 }
 
 function extractDeterministicFieldsFromText(rawText = "") {
@@ -520,17 +810,46 @@ function extractDeterministicFieldsFromText(rawText = "") {
       ? "FINAL"
       : null;
 
+  const consignorParty = splitPartyBlockLines(
+    findPartyBlockLines(lines, FIELD_ALIASES.consignorOrShipperName, {
+      maxLines: 8,
+    }),
+  );
+
+  const consigneeParty = splitPartyBlockLines(
+    findPartyBlockLines(lines, FIELD_ALIASES.consigneeName, {
+      maxLines: 8,
+    }),
+  );
+
+  const notifyParty = splitPartyBlockLines(
+    findPartyBlockLines(lines, FIELD_ALIASES.notifyName, {
+      maxLines: 8,
+    }),
+  );
+
   const direct = {
+    consignorOrShipperName: consignorParty.name,
+    consignorOrShipperAddress: consignorParty.address,
+
+    consigneeName: consigneeParty.name,
+    consigneeAddress: consigneeParty.address,
+
+    notifyName: notifyParty.name,
+    notifyAddress: notifyParty.address,
+
     mtdNo: firstNonEmptyMatch(text, [
       /MTD\s*NO\.?\s*:?\s*([A-Za-z0-9/._\- ]{6,80})/i,
+      /BILL\s+OF\s+LADING\s+NUMBER\s*:?\s*([A-Za-z0-9/._\- ]{6,80})/i,
+      /BL\s+NUMBER\s*:?\s*([A-Za-z0-9/._\- ]{6,80})/i,
     ]),
     grossWeight: firstNonEmptyMatch(text, [
       /GROSS\s+WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
-      /GROSS\s+WEIGHT\s*\n\s*([^\n\r]{2,80})/i,
+      /GR\s+WT\.?\s*:?\s*([^\n\r]{2,80})/i,
     ]),
     netWeight: firstNonEmptyMatch(text, [
       /NET\s+WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
-      /NET\s+WEIGHT\s*\n\s*([^\n\r]{2,80})/i,
+      /NT\s+WT\.?\s*:?\s*([^\n\r]{2,80})/i,
     ]),
     weight: firstNonEmptyMatch(text, [
       /(?:^|\n)WEIGHT\s*:?\s*([^\n\r]{2,80})/i,
@@ -538,45 +857,34 @@ function extractDeterministicFieldsFromText(rawText = "") {
     ]),
     measurement: firstNonEmptyMatch(text, [
       /MEASUREMENT\s*:?\s*([^\n\r]{2,80})/i,
-      /MEASUREMENT\s*\n\s*([^\n\r]{2,80})/i,
       /(?:^|\n)([0-9., ]+\s*(?:CBM|CFT))\b/i,
     ]),
     freightPayableAt: firstNonEmptyMatch(text, [
       /FREIGHT\s+PAYABLE\s+AT\s*:?\s*([^\n\r]{2,120})/i,
-      /FREIGHT\s+PAYABLE\s+AT\s*\n\s*([^\n\r]{2,120})/i,
+      /FREIGHT\s+PAYABLE\s+LOCATION\s*:?\s*([^\n\r]{2,120})/i,
     ]),
     numberOfOriginalMtd: firstNonEmptyMatch(text, [
       /NUMBER\s+OF\s+ORIGINAL\s+MTD\(?S?\)?\s*:?\s*([^\n\r]{1,60})/i,
-      /NUMBER\s+OF\s+ORIGINAL\s+MTD\(?S?\)?\s*\n\s*([^\n\r]{1,60})/i,
-      /NO\.?\s+OF\s+ORIGINAL\s+MTD\s*:?\s*([^\n\r]{1,60})/i,
+      /NO\.?\s+OF\s+ORIGINAL\s+MTD\(?S?\)?\s*:?\s*([^\n\r]{1,60})/i,
     ]),
     shippedOnBoardDate: firstNonEmptyMatch(text, [
       /SHIPPED\s+ON\s+BOARD\s+DATE\s*:?\s*([^\n\r]{2,80})/i,
-      /SHIPPED\s+ON\s+BOARD\s+DATE\s*\n\s*([^\n\r]{2,80})/i,
     ]),
     placeAndDateOfIssue: firstNonEmptyMatch(text, [
       /PLACE\s*&\s*DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
       /PLACE\s+AND\s+DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
-      /PLACE\s*&\s*DATE\s+OF\s+ISSUE\s*\n\s*([^\n\r]{2,160})/i,
-      /PLACE\s+AND\s+DATE\s+OF\s+ISSUE\s*\n\s*([^\n\r]{2,160})/i,
     ]),
     forCompanyName: firstNonEmptyMatch(text, [
       /(?:^|\n)For\s+([A-Za-z0-9&.,'()\/\- ]{3,120})(?:\n|$)/im,
+      /SIGNED\s+FOR\s+([A-Za-z0-9&.,'()\/\- ]{3,120})(?:\n|$)/im,
     ]),
     marksAndNumbers: extractMarksBlock(text),
     descriptionOfGoods: extractDescriptionBlock(text),
   };
 
+  const attach = extractAttachFieldsFromText(text);
+
   const block = {
-    consignorOrShipper: findFieldFromLabeledLines(lines, FIELD_ALIASES.consignorOrShipper, {
-      maxLines: 7,
-    }),
-    consignee: findFieldFromLabeledLines(lines, FIELD_ALIASES.consignee, {
-      maxLines: 7,
-    }),
-    notify: findFieldFromLabeledLines(lines, FIELD_ALIASES.notify, {
-      maxLines: 7,
-    }),
     vessel: findFieldFromLabeledLines(lines, FIELD_ALIASES.vessel, {
       maxLines: 2,
     }),
@@ -597,21 +905,189 @@ function extractDeterministicFieldsFromText(rawText = "") {
     }),
   };
 
+  if (!block.vessel || !block.voyage) {
+    const vv = firstNonEmptyMatch(text, [
+      /OCEAN\s+VESSEL\s+VOYAGE\s+NUMBER\s*([\s\S]{1,80}?)\s*(?:PORT\s+OF\s+DISCHARGE|PLACE\s+OF\s+RECEIPT)/i,
+    ]);
+    if (vv && vv.includes("/")) {
+      const parts = vv.split("/").map((x) => normalizeWhitespace(x));
+      if (!block.vessel) block.vessel = parts[0] || null;
+      if (!block.voyage) block.voyage = parts[1] || null;
+    }
+  }
+
   return {
-    ...block,
     ...direct,
+    ...block,
+    ...attach,
+    tblContainer: extractContainerTableFromText(text),
     reportType,
   };
+}
+
+function sanitizeContainerRows(rows = []) {
+  const cleaned = [];
+  for (const row of rows || []) {
+    const r = normalizeContainerRow(row);
+    r.containerNo = normalizeWhitespace(r.containerNo);
+    r.type = normalizeWhitespace(r.type);
+    r.customeSealNo = normalizeWhitespace(r.customeSealNo);
+    r.agentSealNo = normalizeWhitespace(r.agentSealNo);
+    r.ntWt = normalizeWhitespace(r.ntWt);
+    r.tarWt = normalizeWhitespace(r.tarWt);
+    r.grossWt = normalizeWhitespace(r.grossWt);
+
+    if (!r.containerNo && !r.grossWt && !r.ntWt) continue;
+    cleaned.push(r);
+  }
+  return dedupeObjectArray(cleaned);
+}
+
+function isLabelOnlyValue(field, value) {
+  if (!isMeaningfulValue(value)) return true;
+
+  const normalized = normalizeLabelToken(value);
+  if (!normalized) return true;
+
+  const aliases = (FIELD_ALIASES[field] || []).map(normalizeLabelToken);
+  if (aliases.includes(normalized)) return true;
+
+  if (field === "reportType" && !["DRAFT", "FINAL"].includes(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+function cleanBusinessField(field, value) {
+  const normalized = normalizeWhitespace(value);
+  if (!isMeaningfulValue(normalized)) return null;
+  if (isLabelOnlyValue(field, normalized)) return null;
+  return normalized;
+}
+
+function normalizeReportType(value) {
+  const v = normalizeLabelToken(value);
+  if (v.includes("DRAFT")) return "DRAFT";
+  if (v.includes("FINAL")) return "FINAL";
+  return null;
+}
+
+function sanitizeResult(data = {}) {
+  const out = normalizeResultShape(data);
+
+  TARGET_FIELDS.forEach((field) => {
+    if (field === "tblContainer") return;
+
+    if (field === "reportType") {
+      out[field] = normalizeReportType(out[field]);
+      return;
+    }
+
+    if (field === "mtdNo") {
+      out[field] = looksLikeMtdNo(out[field]) ? cleanIdentifier(out[field]) : null;
+      return;
+    }
+
+    out[field] = cleanBusinessField(field, out[field]);
+  });
+
+  out.tblContainer = sanitizeContainerRows(out.tblContainer);
+
+  if (!out.weight) {
+    out.weight = out.grossWeight || out.netWeight || null;
+  }
+
+  if (
+    !out.numberOfOriginalMtd &&
+    out.freightPayableAt &&
+    NUMBER_WORDS.has(String(out.freightPayableAt).toUpperCase())
+  ) {
+    out.numberOfOriginalMtd = out.freightPayableAt;
+    out.freightPayableAt = null;
+  }
+
+  return out;
+}
+
+function pickBestValue(candidates = [], validator = () => true) {
+  const prepared = candidates
+    .map((item) => (typeof item === "string" ? { value: item, source: "unknown" } : item))
+    .map((item) => ({
+      ...item,
+      cleaned: normalizeWhitespace(item.value),
+    }))
+    .filter((item) => item.cleaned && validator(item.cleaned));
+
+  if (!prepared.length) return null;
+
+  prepared.sort((a, b) => {
+    const score = (item) => {
+      let total = 0;
+      if (item.source === "pdf_text") total += 100;
+      if (item.source === "gemini_fallback") total += 25;
+      if (item.source === "gemini_main") total += 10;
+      if (/[A-Za-z]/.test(item.cleaned)) total += 3;
+      if (/\d/.test(item.cleaned)) total += 3;
+      if (/[\/\-]/.test(item.cleaned)) total += 2;
+      return total;
+    };
+    return score(b) - score(a);
+  });
+
+  return prepared[0].cleaned;
+}
+
+function applyDeterministicFallback(main = {}, deterministic = {}, fallback = {}) {
+  const out = {};
+
+  Object.keys(normalizeResultShape({})).forEach((field) => {
+    if (field === "tblContainer") {
+      out.tblContainer = sanitizeContainerRows([
+        ...(Array.isArray(main?.tblContainer) ? main.tblContainer : []),
+        ...(Array.isArray(fallback?.tblContainer) ? fallback.tblContainer : []),
+        ...(Array.isArray(deterministic?.tblContainer) ? deterministic.tblContainer : []),
+      ]);
+      return;
+    }
+
+    if (field === "mtdNo") {
+      out.mtdNo = pickBestValue(
+        [
+          { value: deterministic?.mtdNo, source: "pdf_text" },
+          { value: fallback?.mtdNo, source: "gemini_fallback" },
+          { value: main?.mtdNo, source: "gemini_main" },
+        ],
+        looksLikeMtdNo,
+      );
+      return;
+    }
+
+    if (field === "reportType") {
+      out.reportType =
+        normalizeReportType(main?.reportType) ||
+        normalizeReportType(fallback?.reportType) ||
+        normalizeReportType(deterministic?.reportType) ||
+        null;
+      return;
+    }
+
+    out[field] =
+      cleanBusinessField(field, main?.[field]) ||
+      cleanBusinessField(field, fallback?.[field]) ||
+      cleanBusinessField(field, deterministic?.[field]) ||
+      null;
+  });
+
+  return sanitizeResult(out);
 }
 
 function isPdfFile(file) {
   const mime = String(file?.mimetype || "").toLowerCase();
   const name = String(file?.name || "").toLowerCase();
-
   if (mime === "application/pdf") return true;
   if (mime === "application/octet-stream" && name.endsWith(".pdf")) return true;
   if (!mime && name.endsWith(".pdf")) return true;
-
   return false;
 }
 
@@ -685,138 +1161,87 @@ const S = {
   }),
 };
 
-const EXTRACTION_SCHEMA = {
+const CONTAINER_ITEM_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    consignorOrShipper: S.str(
-      "Full consignor/shipper block exactly as printed. This may appear under labels such as CONSIGNOR, SHIPPER, SHIPPER/EXPORTER, SHIPPER NAME & ADDRESS, EXPORTER, or similar.",
-    ),
-    consignee: S.str(
-      "Full consignee block exactly as printed. This may appear under labels such as CONSIGNEE, CONSIGNEE (If TO ORDER so indicate), TO ORDER, or similar.",
-    ),
-    notify: S.str(
-      "Full notify block exactly as printed. This may appear under labels such as NOTIFY, NOTIFY ADDRESS, NOTIFY PARTY, or similar. Prefer the main notify block, not a 2nd notify line from cargo text.",
-    ),
-    vessel: S.str(
-      "Vessel name exactly as printed. This may appear under labels such as VESSEL, VESSEL NAME, MV, MOTHER VESSEL, or similar. If the field is blank, return null and do not return the label itself.",
-    ),
-    voyage: S.str(
-      "Voyage value exactly as printed. This may appear under labels such as VOYAGE, VOYAGE NO, VIA, SERVICE/VIA, or similar when it is clearly the voyage/service code.",
-    ),
-    placeOfReceipt: S.str(
-      "Place of receipt exactly as printed. This may appear under labels such as PLACE OF RECEIPT, PLACE & DATE OF RECEIPT, RECEIVED AT, or similar.",
-    ),
-    portOfLoading: S.str(
-      "Port of loading exactly as printed. This may appear under labels such as PORT OF LOADING, POL, or similar.",
-    ),
-    placeOfDelivery: S.str(
-      "Place of delivery exactly as printed. This may appear under labels such as PLACE OF DELIVERY, FINAL PLACE OF DELIVERY, FPD, or similar.",
-    ),
-    portOfDischarge: S.str(
-      "Port of discharge exactly as printed. This may appear under labels such as PORT OF DISCHARGE, POD, DISCHARGE PORT, or similar.",
-    ),
-    marksAndNumbers: S.str(
-      "Marks and numbers text exactly as printed. This may appear under labels such as MARKS AND NUMBERS, MARKS & NUMBERS, MARKS, or similar.",
-    ),
-    descriptionOfGoods: S.str(
-      "Description of goods exactly as printed. This may appear under labels such as DESCRIPTION OF GOODS, PARTICULARS FURNISHED BY MERCHANT, DESCRIPTION, SAID TO CONTAIN, or similar cargo description area.",
-    ),
-    weight: S.str(
-      "Main printed weight value if a generic WEIGHT or TOTAL WEIGHT exists. If only gross and net are clearly printed, return the most representative printed weight field from the body or null.",
-    ),
-    measurement: S.str(
-      "Measurement exactly as printed, such as CBM/CFT or total measurement.",
-    ),
-    grossWeight: S.str("Gross weight exactly as printed."),
-    netWeight: S.str("Net weight exactly as printed."),
-    shippedOnBoardDate: S.str(
-      "Shipped on board date exactly as printed. If the label exists but the value is blank, return null.",
-    ),
-    freightPayableAt: S.str("Freight payable at exactly as printed."),
-    numberOfOriginalMtd: S.str(
-      "Number of original MTDs exactly as printed. This may appear as NUMBER OF ORIGINAL MTD, NUMBER OF ORIGINAL MTD(S), NO OF ORIGINAL MTD, No. of Original MTD, etc.",
-    ),
-    placeAndDateOfIssue: S.str(
-      "Place and date of issue exactly as printed. If the label exists but the value is blank, return null.",
-    ),
-    forCompanyName: S.str(
-      "Company name appearing after the word For near the signatory/footer, such as 'For SMARTBOXX CONTAINERS PVT LTD'. Extract only the company name part.",
-    ),
-    mtdNo: S.str("MTD number exactly as printed."),
-    reportType: S.str(
-      "Return DRAFT when the document explicitly indicates draft, FINAL when it explicitly indicates final or finalised, otherwise null.",
-    ),
+    containerNo: S.str("Container No or Tank NOS."),
+    type: S.str("TYPE."),
+    customeSealNo: S.str("C. SEAL NO or custom seal number."),
+    agentSealNo: S.str("S. SEAL NO or agent seal number."),
+    ntWt: S.str("NT. WT / Net Weight."),
+    tarWt: S.str("Tare Weight."),
+    grossWt: S.str("GR. WT / Gross Weight."),
   },
   required: [],
 };
 
-const FALLBACK_SCHEMA = EXTRACTION_SCHEMA;
+const EXTRACTION_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    consignorOrShipperName: S.str(
+      "Consignor/Shipper company name only, usually the first line of the consignor/shipper block.",
+    ),
+    consignorOrShipperAddress: S.str(
+      "Address part of consignor/shipper block, excluding the first company-name line.",
+    ),
+    consigneeName: S.str(
+      "Consignee company name only, usually the first line of the consignee block.",
+    ),
+    consigneeAddress: S.str(
+      "Address part of consignee block, excluding the first company-name line.",
+    ),
+    notifyName: S.str(
+      "Notify company name only, usually the first line of the notify block.",
+    ),
+    notifyAddress: S.str(
+      "Address part of notify block, excluding the first company-name line.",
+    ),
+    vessel: S.str("Vessel value."),
+    voyage: S.str("Voyage value."),
+    placeOfReceipt: S.str("Place of receipt."),
+    portOfLoading: S.str("Port of loading."),
+    placeOfDelivery: S.str("Place of delivery."),
+    portOfDischarge: S.str("Port of discharge."),
+    marksAndNumbers: S.str("Main marks and numbers block."),
+    descriptionOfGoods: S.str("Main goods description block."),
+    marksAndNoAttach: S.str("Attached sheet marks and numbers block."),
+    goodAndDescriptionAttach: S.str("Attached sheet goods description block."),
+    weight: S.str("Weight."),
+    measurement: S.str("Measurement."),
+    grossWeight: S.str("Gross weight."),
+    netWeight: S.str("Net weight."),
+    shippedOnBoardDate: S.str("Shipped on board date."),
+    freightPayableAt: S.str("Freight payable at."),
+    numberOfOriginalMtd: S.str("Number of original MTD."),
+    placeAndDateOfIssue: S.str("Place and date of issue."),
+    forCompanyName: S.str("Company name after 'For' or 'Signed for'."),
+    mtdNo: S.str("MTD number / BL number."),
+    reportType: S.str("DRAFT or FINAL."),
+    tblContainer: {
+      type: "array",
+      items: CONTAINER_ITEM_SCHEMA,
+    },
+  },
+  required: [],
+};
 
 function buildTaskPrompt(fileNames = []) {
   return `
 You are a high-accuracy BL / MTD PDF extraction engine.
 
-Extract data from the provided PDF files and return ONLY valid JSON matching the schema.
+Return ONLY valid JSON matching the schema.
 
-The same business field can appear under different labels in different PDFs.
-You must extract the correct business field even when label wording differs.
-
-Business field mapping rules:
-1. consignorOrShipper:
-   - Can appear as CONSIGNOR, SHIPPER, SHIPPER/EXPORTER, SHIPPER NAME & ADDRESS, EXPORTER, etc.
-2. consignee:
-   - Can appear as CONSIGNEE, CONSIGNEE (IF TO ORDER SO INDICATE), TO ORDER party block, etc.
-3. notify:
-   - Can appear as NOTIFY, NOTIFY ADDRESS, NOTIFY PARTY, 2ND NOTIFY PARTY, etc.
-   - Prefer the main notify block only.
-4. vessel:
-   - Can appear as VESSEL, VESSEL NAME, MV, MOTHER VESSEL, etc.
-   - If blank, return null and do not return the label text.
-5. voyage:
-   - Can appear as VOYAGE, VOYAGE NO, VIA, SERVICE/VIA, etc. when clearly the voyage/service code.
-6. placeOfReceipt:
-   - Can appear as PLACE OF RECEIPT, PLACE & DATE OF RECEIPT, RECEIVED AT, etc.
-7. portOfLoading:
-   - Can appear as PORT OF LOADING, POL, etc.
-8. placeOfDelivery:
-   - Can appear as PLACE OF DELIVERY, FINAL PLACE OF DELIVERY, FPD, etc.
-9. portOfDischarge:
-   - Can appear as PORT OF DISCHARGE, POD, DISCHARGE PORT, etc.
-10. marksAndNumbers:
-   - Can appear as MARKS AND NUMBERS, MARKS & NUMBERS, MARKS, etc.
-11. descriptionOfGoods:
-   - Can appear as DESCRIPTION OF GOODS, PARTICULARS FURNISHED BY MERCHANT, DESCRIPTION, SAID TO CONTAIN, cargo description block, etc.
-12. weight:
-   - Extract a generic weight if a generic weight field exists.
-13. measurement:
-   - Extract CBM / CFT / measurement field when printed.
-14. shippedOnBoardDate:
-   - Can appear as SHIPPED ON BOARD DATE, ON BOARD DATE, SHIPPED DATE, etc.
-15. freightPayableAt:
-   - Can appear as FREIGHT PAYABLE AT, FREIGHT PAYABLE PLACE, etc.
-16. numberOfOriginalMtd:
-   - Can appear as NUMBER OF ORIGINAL MTD, NUMBER OF ORIGINAL MTD(S), NO OF ORIGINAL MTD, etc.
-17. placeAndDateOfIssue:
-   - Can appear as PLACE & DATE OF ISSUE, PLACE AND DATE OF ISSUE, etc.
-18. forCompanyName:
-   - Extract the company name after the word 'For' in the footer/signatory area.
-19. mtdNo:
-   - Extract MTD No exactly as printed.
-20. reportType:
-   - Return DRAFT if the document explicitly says DRAFT.
-   - Return FINAL if the document explicitly says FINAL.
-   - Otherwise return null.
-
-General rules:
-- Do not guess.
-- Preserve business values exactly as printed.
-- Do not convert letters to numbers or numbers to letters.
-- If the field label exists but the value is blank, return null.
-- Never return just the label as the value.
-- If layout is irregular, infer the field from nearby label-value relationship and business meaning.
-- Combine multi-line address/value blocks into a clean single string with spaces.
-- Return ONLY JSON matching the schema.
+Important:
+- Different PDFs use different labels.
+- Extract attached-sheet values separately.
+- Do not merge attached-sheet data into the main body fields.
+- tblContainer must include rows from table headers like Tank NOS / TYPE / C. SEAL NO / S. SEAL NO / NT. WT / Tare Weight / GR. WT.
+- consignorOrShipperName / consigneeName / notifyName must contain only the company name.
+- consignorOrShipperAddress / consigneeAddress / notifyAddress must contain the remaining address lines.
+- If a field is blank, return null.
+- Never return the label text as the value.
 
 File names:
 ${fileNames.join(", ") || "N/A"}
@@ -824,41 +1249,27 @@ ${fileNames.join(", ") || "N/A"}
 }
 
 function buildChunkTaskPrompt(workItem) {
-  const basePrompt = buildTaskPrompt([
-    workItem.originalFileName || workItem.displayName,
-  ]);
-
   return `
-${basePrompt}
+${buildTaskPrompt([workItem.originalFileName || workItem.displayName])}
 
-IMPORTANT CHUNK RULES:
-- You are receiving only part ${workItem.partIndex} of ${workItem.partCount} of the same PDF document.
-- Extract ONLY what is visible in this chunk.
-- If a field is not visible in this chunk, return null for that chunk.
-- Do not assume values from unseen pages.
-- The application will merge chunk outputs later.
+This is chunk ${workItem.partIndex} of ${workItem.partCount}.
+Extract only what is visible in this chunk.
 `;
 }
 
 function buildFallbackPrompt(workItem) {
-  const fileName = workItem.originalFileName || workItem.displayName || "N/A";
-
   return `
-You are a high-accuracy BL / MTD PDF extraction engine.
+${buildTaskPrompt([workItem.originalFileName || workItem.displayName])}
 
-Extract the same target business fields again, carefully.
-This is a fallback extraction pass.
-
-Rules:
-- Return only valid JSON matching the schema.
-- Do not guess.
-- Never return the label itself as the value.
-- If a field is blank, return null.
-- Prefer the main notify block, not a 2nd notify line from cargo text.
-- Preserve exact business text and identifiers.
-
-File name:
-${fileName}
+This is a fallback pass.
+Focus especially on:
+- consignorOrShipperName / consignorOrShipperAddress
+- consigneeName / consigneeAddress
+- notifyName / notifyAddress
+- marksAndNoAttach
+- goodAndDescriptionAttach
+- tblContainer
+- vessel / voyage
 `;
 }
 
@@ -867,13 +1278,9 @@ function getUploadedFiles(req) {
 
   const files = [];
   for (const value of Object.values(req.files)) {
-    if (Array.isArray(value)) {
-      files.push(...value);
-    } else if (value) {
-      files.push(value);
-    }
+    if (Array.isArray(value)) files.push(...value);
+    else if (value) files.push(value);
   }
-
   return files;
 }
 
@@ -881,11 +1288,9 @@ async function getFileBuffer(file) {
   if (file?.data && Buffer.isBuffer(file.data)) {
     return file.data;
   }
-
   if (file?.tempFilePath) {
     return await fs.readFile(file.tempFilePath);
   }
-
   return null;
 }
 
@@ -913,7 +1318,7 @@ async function ensureUploadInput(file) {
     cleanup: async () => {
       try {
         await fs.unlink(tempPath);
-      } catch (e) {}
+      } catch (_) {}
     },
   };
 }
@@ -942,9 +1347,7 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
     const chunkPdf = await PDFDocument.create();
     const pageIndexes = [];
 
-    for (let i = start; i < end; i++) {
-      pageIndexes.push(i);
-    }
+    for (let i = start; i < end; i++) pageIndexes.push(i);
 
     const copiedPages = await chunkPdf.copyPages(srcPdf, pageIndexes);
     copiedPages.forEach((page) => chunkPdf.addPage(page));
@@ -969,7 +1372,7 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
       cleanup: async () => {
         try {
           await fs.unlink(tempPath);
-        } catch (e) {}
+        } catch (_) {}
       },
       wasChunked: true,
       partIndex,
@@ -993,7 +1396,6 @@ async function buildWorkItems(files) {
   for (const file of files) {
     const displayName = file?.name || "upload.pdf";
     const buffer = await getFileBuffer(file);
-
     if (!buffer) {
       throw new Error(`Could not read uploaded file: ${displayName}`);
     }
@@ -1004,7 +1406,7 @@ async function buildWorkItems(files) {
     let pageCount = null;
     try {
       pageCount = await getPdfPageCount(buffer);
-    } catch (e) {
+    } catch (_) {
       pageCount = null;
     }
 
@@ -1085,17 +1487,6 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
       },
       {
         label: `upload ${displayName}`,
-        onRetry: (error, attempt, delayMs) => {
-          setReadingStatus({
-            status: "running",
-            stage: "retrying_upload",
-            currentFileIndex: index + 1,
-            totalFiles: totalItems,
-            currentFileName: displayName,
-            message: `Retrying upload for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-            error: error?.message || String(error),
-          });
-        },
       },
     );
 
@@ -1107,25 +1498,15 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
       { label: `get uploaded file ${displayName}` },
     );
 
-    let pollCounter = 0;
-
     while (safeFileState(fetchedFile.state) === "PROCESSING") {
       if (Date.now() - startedAt > GEMINI_FILE_PROCESSING_TIMEOUT_MS) {
-        throw new Error(
-          `Gemini file processing timed out for ${displayName} after ${Math.round(
-            GEMINI_FILE_PROCESSING_TIMEOUT_MS / 1000,
-          )} seconds`,
-        );
+        throw new Error(`Gemini file processing timed out for ${displayName}`);
       }
-
-      const loopProgressBase =
-        45 + Math.floor((index / Math.max(totalItems, 1)) * 15);
-      const loopProgress = Math.min(loopProgressBase + Math.min(pollCounter * 2, 12), 70);
 
       setReadingStatus({
         status: "running",
         stage: "gemini_processing_file",
-        progress: loopProgress,
+        progress: Math.min(60, 45 + Math.floor((index / Math.max(totalItems, 1)) * 15)),
         currentFileIndex: index + 1,
         totalFiles: totalItems,
         currentFileName: displayName,
@@ -1140,8 +1521,6 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
         async () => await ai.files.get({ name: uploaded.name }),
         { label: `poll file ${displayName}` },
       );
-
-      pollCounter += 1;
     }
 
     if (safeFileState(fetchedFile.state) === "FAILED") {
@@ -1151,7 +1530,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
     setReadingStatus({
       status: "running",
       stage: "gemini_file_ready",
-      progress: Math.min(60 + Math.floor(((index + 1) / totalItems) * 10), 75),
+      progress: Math.min(75, 60 + Math.floor(((index + 1) / totalItems) * 10)),
       currentFileIndex: index + 1,
       totalFiles: totalItems,
       currentFileName: displayName,
@@ -1161,13 +1540,6 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
     });
 
     return { fetchedFile, uploadedName };
-  } catch (error) {
-    if (uploadedName) {
-      try {
-        await ai.files.delete({ name: uploadedName });
-      } catch (e) {}
-    }
-    throw error;
   } finally {
     await cleanupLocalFile();
   }
@@ -1177,7 +1549,7 @@ async function deleteGeminiFiles(fileNames = []) {
   for (const name of fileNames) {
     try {
       await ai.files.delete({ name });
-    } catch (e) {}
+    } catch (_) {}
   }
 }
 
@@ -1189,7 +1561,7 @@ async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItem
       setReadingStatus({
         status: "running",
         stage: "extracting_fallback",
-        progress: Math.min(84 + Math.floor((index / Math.max(totalItems, 1)) * 8), 97),
+        progress: Math.min(92, 84 + Math.floor((index / Math.max(totalItems, 1)) * 8)),
         currentFileIndex: index + 1,
         totalFiles: totalItems,
         currentFileName: displayName,
@@ -1208,30 +1580,19 @@ async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItem
           systemInstruction:
             "You are a strict JSON extraction engine. Preserve business values exactly as printed. Never return label text as the value.",
           responseMimeType: "application/json",
-          responseJsonSchema: FALLBACK_SCHEMA,
+          responseJsonSchema: EXTRACTION_SCHEMA,
         },
       });
     },
     {
       label: `fallback ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_fallback",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
     },
   );
 
   let parsed;
   try {
     parsed = JSON.parse(response.text);
-  } catch (jsonError) {
+  } catch (error) {
     console.error("Gemini raw fallback response:", response.text);
     throw new Error(`Gemini returned invalid fallback JSON for ${displayName}`);
   }
@@ -1242,124 +1603,11 @@ async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItem
   };
 }
 
-function pickBestValue(candidates = [], validator = () => true) {
-  const prepared = candidates
-    .map((item) =>
-      typeof item === "string" ? { value: item, source: "unknown" } : item,
-    )
-    .map((item) => ({
-      ...item,
-      cleaned: normalizeWhitespace(item.value),
-    }))
-    .filter((item) => item.cleaned && validator(item.cleaned));
-
-  if (!prepared.length) return null;
-
-  prepared.sort((a, b) => {
-    const score = (item) => {
-      let total = 0;
-      if (item.source === "pdf_text") total += 100;
-      if (item.source === "gemini_fallback") total += 25;
-      if (item.source === "gemini_main") total += 10;
-      if (/[A-Za-z]/.test(item.cleaned)) total += 3;
-      if (/\d/.test(item.cleaned)) total += 3;
-      if (/[\/\-]/.test(item.cleaned)) total += 2;
-      return total;
-    };
-
-    return score(b) - score(a);
-  });
-
-  return prepared[0].cleaned;
-}
-
-function sanitizeResult(data = {}) {
-  const out = normalizeResultShape(data);
-
-  TARGET_FIELDS.forEach((field) => {
-    if (field === "reportType") {
-      out[field] = normalizeReportType(out[field]);
-      return;
-    }
-
-    if (field === "mtdNo") {
-      out[field] = looksLikeMtdNo(out[field]) ? cleanIdentifier(out[field]) : null;
-      return;
-    }
-
-    out[field] = cleanBusinessField(field, out[field]);
-  });
-
-  if (!out.weight) {
-    out.weight = out.grossWeight || out.netWeight || null;
-  }
-
-  if (
-    !out.numberOfOriginalMtd &&
-    out.freightPayableAt &&
-    NUMBER_WORDS.has(String(out.freightPayableAt).toUpperCase())
-  ) {
-    out.numberOfOriginalMtd = out.freightPayableAt;
-    out.freightPayableAt = null;
-  }
-
-  if (
-    !out.placeAndDateOfIssue &&
-    out.numberOfOriginalMtd &&
-    !NUMBER_WORDS.has(String(out.numberOfOriginalMtd).toUpperCase()) &&
-    /[A-Za-z]/.test(String(out.numberOfOriginalMtd)) &&
-    out.freightPayableAt &&
-    NUMBER_WORDS.has(String(out.freightPayableAt).toUpperCase())
-  ) {
-    out.placeAndDateOfIssue = out.numberOfOriginalMtd;
-    out.numberOfOriginalMtd = out.freightPayableAt;
-    out.freightPayableAt = null;
-  }
-
-  return out;
-}
-
-function applyDeterministicFallback(main = {}, deterministic = {}, fallback = {}) {
-  const out = {};
-
-  TARGET_FIELDS.forEach((field) => {
-    if (field === "mtdNo") {
-      out.mtdNo = pickBestValue(
-        [
-          { value: deterministic?.mtdNo, source: "pdf_text" },
-          { value: fallback?.mtdNo, source: "gemini_fallback" },
-          { value: main?.mtdNo, source: "gemini_main" },
-        ],
-        looksLikeMtdNo,
-      );
-      return;
-    }
-
-    if (field === "reportType") {
-      out.reportType =
-        normalizeReportType(main?.reportType) ||
-        normalizeReportType(fallback?.reportType) ||
-        normalizeReportType(deterministic?.reportType) ||
-        null;
-      return;
-    }
-
-    out[field] =
-      cleanBusinessField(field, main?.[field]) ||
-      cleanBusinessField(field, fallback?.[field]) ||
-      cleanBusinessField(field, deterministic?.[field]) ||
-      null;
-  });
-
-  return sanitizeResult(out);
-}
-
 function mergePromptTokensDetails(usageMetadataList = []) {
   const totals = new Map();
 
   for (const item of usageMetadataList) {
     const details = item?.usageMetadata?.promptTokensDetails || [];
-
     for (const detail of details) {
       const modality = detail?.modality || "UNKNOWN";
       const tokenCount = Number(detail?.tokenCount || 0);
@@ -1376,11 +1624,9 @@ function mergePromptTokensDetails(usageMetadataList = []) {
 const GEMINI_PRICING = {
   "gemini-2.5-flash": {
     standard: { inputPer1M: 0.3, outputPer1M: 2.5 },
-    batch: { inputPer1M: 0.15, outputPer1M: 1.25 },
   },
   "gemini-2.5-flash-lite": {
     standard: { inputPer1M: 0.1, outputPer1M: 0.4 },
-    batch: { inputPer1M: 0.05, outputPer1M: 0.2 },
   },
 };
 
@@ -1395,7 +1641,16 @@ function getBillableCostFromUsage({
 }) {
   const pricing = GEMINI_PRICING[model]?.[mode];
   if (!pricing) {
-    throw new Error(`Pricing not configured for model=${model}, mode=${mode}`);
+    return {
+      inputTokens: 0,
+      outputTokens: 0,
+      thoughtsTokenCount: 0,
+      inputRatePer1M: 0,
+      outputRatePer1M: 0,
+      inputCostUSD: 0,
+      outputCostUSD: 0,
+      totalCostUSD: 0,
+    };
   }
 
   const promptTokenCount = Number(usageMetadata.promptTokenCount || 0);
@@ -1440,35 +1695,6 @@ function buildUsageMetadata(usageMetadataList = []) {
       ...emptyUsage,
       tokensAmount: getBillableCostFromUsage({
         usageMetadata: emptyUsage,
-        model: MODEL,
-        mode: pricingMode,
-      }),
-    };
-  }
-
-  if (usageMetadataList.length === 1) {
-    const item = usageMetadataList[0];
-    const meta = item?.usageMetadata || {};
-
-    const singleUsage = {
-      promptTokenCount: Number(meta.promptTokenCount || 0),
-      candidatesTokenCount: Number(meta.candidatesTokenCount || 0),
-      totalTokenCount: Number(meta.totalTokenCount || 0),
-      promptTokensDetails: Array.isArray(meta.promptTokensDetails)
-        ? meta.promptTokensDetails
-        : [],
-      thoughtsTokenCount: Number(meta.thoughtsTokenCount || 0),
-      pdfName: item.originalFileName || item.file || null,
-      startPage: item.startPage ?? null,
-      endPage: item.endPage ?? null,
-      totalPages: item.totalPages ?? null,
-      wasChunked: !!item.wasChunked,
-    };
-
-    return {
-      ...singleUsage,
-      tokensAmount: getBillableCostFromUsage({
-        usageMetadata: singleUsage,
         model: MODEL,
         mode: pricingMode,
       }),
@@ -1523,7 +1749,7 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
       setReadingStatus({
         status: "running",
         stage: "generating_content",
-        progress: Math.min(75 + Math.floor((index / Math.max(totalItems, 1)) * 18), 94),
+        progress: Math.min(90, 75 + Math.floor((index / Math.max(totalItems, 1)) * 18)),
         currentFileIndex: index + 1,
         totalFiles: totalItems,
         currentFileName: displayName,
@@ -1545,24 +1771,13 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
     },
     {
       label: `generate content ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_generate_content",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying extraction for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
     },
   );
 
   let parsed;
   try {
     parsed = JSON.parse(response.text);
-  } catch (jsonError) {
+  } catch (error) {
     console.error("Gemini raw response:", response.text);
     throw new Error(`Gemini returned invalid JSON for ${displayName}`);
   }
@@ -1648,9 +1863,7 @@ module.exports = {
       if (invalidFile) {
         return res.status(400).json({
           success: false,
-          error: `Only PDF files are allowed. Invalid file: ${
-            invalidFile.name || "unknown"
-          }`,
+          error: `Only PDF files are allowed. Invalid file: ${invalidFile.name || "unknown"}`,
         });
       }
 
@@ -1658,9 +1871,7 @@ module.exports = {
       if (oversizeFile) {
         return res.status(400).json({
           success: false,
-          error: `PDF file is too large. Max 50 MB per PDF. Invalid file: ${
-            oversizeFile.name || "unknown"
-          }`,
+          error: `PDF file is too large. Max 50 MB per PDF. Invalid file: ${oversizeFile.name || "unknown"}`,
         });
       }
 
@@ -1715,7 +1926,6 @@ module.exports = {
 
           for (let i = 0; i < workItems.length; i++) {
             const workItem = workItems[i];
-
             const { fetchedFile, uploadedName } = await uploadAndWaitForFile(
               workItem,
               i,
@@ -1736,7 +1946,6 @@ module.exports = {
             usageMetadataList.push({
               file: workItem.displayName,
               originalFileName: workItem.originalFileName,
-              pdfName: workItem.originalFileName,
               pdfPages: workItem.totalPages,
               partIndex: workItem.partIndex,
               partCount: workItem.partCount,

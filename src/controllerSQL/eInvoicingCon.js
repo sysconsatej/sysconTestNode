@@ -89,7 +89,7 @@ function escapeSqlString(value) {
 }
 
 async function parseJsonResponse(response) {
-  const rawBody = await response.text();
+  const rawBody = await response.json();
 
   if (!rawBody) {
     return null;
@@ -127,6 +127,43 @@ function getGstHeroErrorMessage(responseData, fallbackMessage) {
     responseData?.message ||
     fallbackMessage
   );
+}
+
+function isDuplicateIrnResponse(responseData) {
+  if (!responseData || !Array.isArray(responseData.error)) {
+    return false;
+  }
+
+  const hasDuplicateErrorCode = responseData.error.some(
+    (item) => String(item?.errorCodes || item?.errorCode || "") === "2150"
+  );
+  const infoCode = String(responseData?.info?.[0]?.InfCd || "").toUpperCase();
+
+  return hasDuplicateErrorCode || infoCode === "DUPIRN";
+}
+
+function getIrnDetailsFromResponse(responseData) {
+  const duplicateIrnDesc = responseData?.info?.[0]?.Desc || {};
+
+  return {
+    ackDate:
+      responseData?.ackDate ||
+      responseData?.AckDt ||
+      duplicateIrnDesc?.AckDt ||
+      duplicateIrnDesc?.ackDate,
+    ackNo:
+      responseData?.ackNo ||
+      responseData?.AckNo ||
+      duplicateIrnDesc?.AckNo ||
+      duplicateIrnDesc?.ackNo,
+    irn:
+      responseData?.irn ||
+      responseData?.Irn ||
+      duplicateIrnDesc?.Irn ||
+      duplicateIrnDesc?.irn,
+    signedQrCode: responseData?.signedQrCode || responseData?.SignedQRCode,
+    signedInvoice: responseData?.signedInvoice || responseData?.SignedInvoice,
+  };
 }
 
 function sendError(res, error, options = {}) {
@@ -225,7 +262,7 @@ module.exports = {
         body: JSON.stringify(invoiceData),
       });
       const irnResponseData = await parseJsonResponse(irnResponse);
-      console.log("IRN generation response from GSTHero:", irnResponseData);
+      console.log("IRN generation response from GSTHero:", JSON.stringify(irnResponseData));
 
       if (!irnResponse.ok) {
         throw createHttpError(
@@ -240,18 +277,19 @@ module.exports = {
         );
       }
       if (irnResponseData.error && irnResponseData.error.length > 0) {
-        let errorMessage = getGstHeroErrorMessage(
-          irnResponseData,
-          "IRN generation failed with errors from GSTHero"
-        );
-        throw createHttpError(
-          400,
-          errorMessage,
-          {
-            data: [],
-          }
-        );
-
+        if (!isDuplicateIrnResponse(irnResponseData)) {
+          let errorMessage = getGstHeroErrorMessage(
+            irnResponseData,
+            "IRN generation failed with errors from GSTHero"
+          );
+          throw createHttpError(
+            400,
+            errorMessage,
+            {
+              data: [],
+            }
+          );
+        }
       }
       const {
         AckDt,
@@ -286,7 +324,9 @@ module.exports = {
       // Step 6: Return response
       return res.send({
         success: true,
-        message: "IRN generation completed",
+        message: isDuplicateIrnResponse(irnResponseData)
+          ? "Duplicate IRN found and invoice updated"
+          : "IRN generation completed",
         isEinvoicing,
         irnResponse: irnResponseData,
       });

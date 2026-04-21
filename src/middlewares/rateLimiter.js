@@ -3,7 +3,7 @@ const logger = require("../config/loggerService");
 
 const limiter = rateLimit({
   windowMs: 30 * 60 * 1000,
-  max: 10000,
+  max: 100000,
 
   handler: (req, res) => {
     logger.warn("Rate limit exceeded", {

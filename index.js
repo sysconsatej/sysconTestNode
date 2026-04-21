@@ -7,14 +7,14 @@ const cookieParser = require("cookie-parser");
 var logger = require("morgan");
 // var { errorLogger } = require("./src/helper/loggerService");
 var bodyParser = require("body-parser");
-var session = require("express-session");
+// var session = require("express-session");
 var status = require("express-status-monitor");
 const cron = require("node-cron");
 const sqllConnection = require("./src/config/sqlConfig");
 const flash = require("connect-flash");
 const cors = require("cors");
 const promClient = require("prom-client");
-const limiter = require("./src/middlewares/rateLimiter");
+// const limiter = require("./src/middlewares/rateLimiter");
 const httpLogger = require("./src/middlewares/requestLogger");
 const responseTimeLogger = require("./src/middlewares/responseTimeLogger");
 const errorHandler = require("./src/middlewares/errorHandler");
@@ -54,16 +54,16 @@ app.use(
 );
 app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser());
-app.use(session({ secret: "123", resave: false, saveUninitialized: false }));
+// app.use(session({ secret: "123", resave: false, saveUninitialized: false }));
 
-app.use(flash());
-const sessionFlash = function (req, res, next) {
-  res.locals.currentUser = req.user;
-  res.locals.error = req.flash("error");
-  res.locals.success = req.flash("success");
-  next();
-};
-app.use(sessionFlash);
+// app.use(flash());
+// const sessionFlash = function (req, res, next) {
+//   res.locals.currentUser = req.user;
+//   res.locals.error = req.flash("error");
+//   res.locals.success = req.flash("success");
+//   next();
+// };
+// app.use(sessionFlash);
 app.use(status());
 app.set("views", path.join(__dirname, "views"));
 app.engine("html", require("ejs").renderFile);
@@ -79,7 +79,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(httpLogger);
 app.use(responseTimeLogger);
-app.use(limiter);
+// app.use(limiter);
 
 
 const BalanceRouter = require("./src/routes/Balancereport");
