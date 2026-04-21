@@ -253,19 +253,35 @@ module.exports = {
         );
 
       }
+      const {
+        AckDt,
+        AckNo,
+        Irn,
+        SignedQRCode,
+        SignedInvoice,
+      } = irnResponseData || {};
 
-      const { ackDate, ackNo, irn, signedQrCode, signedInvoice } =
-        irnResponseData || {};
-      const updateQuery = `UPDATE tblInvoice set ackDate='${escapeSqlString(
-        ackDate
-      )}', ackNo='${escapeSqlString(ackNo)}', irn='${escapeSqlString(
-        irn
-      )}', signedQrCode='${escapeSqlString(
-        signedQrCode
-      )}', signedInvoice='${escapeSqlString(
-        signedInvoice
-      )}' where id=${invoiceId}`;
+      const updateQuery = ` UPDATE tblInvoice SET ackDate='${escapeSqlString(AckDt || "")}',
+    ackNo='${escapeSqlString(AckNo || "")}',
+    irn='${escapeSqlString(Irn || "")}',
+    signedQrCode='${escapeSqlString(SignedQRCode || "")}',
+    signedInvoice='${escapeSqlString(SignedInvoice || "")}'
+  WHERE id=${invoiceId}`;
+
       await executeQuery(updateQuery, {});
+
+      // const { ackDate, ackNo, irn, signedQrCode, signedInvoice } =
+      //   irnResponseData || {};
+      // const updateQuery = `UPDATE tblInvoice set ackDate='${escapeSqlString(
+      //   AckDt
+      // )}', ackNo='${escapeSqlString(AckNo)}', irn='${escapeSqlString(
+      //   Irn
+      // )}', signedQrCode='${escapeSqlString(
+      //   SignedQRCode
+      // )}', signedInvoice='${escapeSqlString(
+      //   SignedInvoice 
+      // )}' where id=${invoiceId}`;
+      // await executeQuery(updateQuery, {});
 
       // Step 6: Return response
       return res.send({
