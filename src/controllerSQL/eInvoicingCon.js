@@ -212,14 +212,14 @@ module.exports = {
       const result = await executeNonJSONStoredProcedure("isEinvoicing", {
         invoiceId,
       });
-      const isEinvoicing = result?.recordset[0]?.isenvoicing || "n";
+      const isEinvoicing = result?.recordset?.[0]?.isenvoicing || "n";
 
       console.log("E-invoicing result:", result);
 
       if (isEinvoicing !== "y") {
         return res.send({
           success: true,
-          message: "Innvoice Save successfully but not eligible for e-invoicing",
+          message: "Invoice saved successfully but not eligible for e-invoicing",
           isEinvoicing,
         });
       }
@@ -228,16 +228,23 @@ module.exports = {
       await module.exports.Pre_AuthenticationResponse(req);
 
       // Step 3: Authenticate with GSTHero
-      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(
-        req
-      );
-      const accessToken = authRespons.access_token;
-      const gstin = authRespons.gstin;
-      const serverLink = authRespons.serverLink;
+      const authRespons =
+        await module.exports.getAuthenticationResponse_GSTHero(req);
+
+      const accessToken = authRespons?.access_token;
+      const gstin = authRespons?.gstin;
+      const serverLink = authRespons?.serverLink;
+      const connectorToken = authRespons?.xConnectorResult;
+
+      if (!accessToken || !gstin || !serverLink || !connectorToken) {
+        throw createHttpError(400, "GSTHero authentication details are missing", {
+          data: authRespons,
+        });
+      }
 
       // Step 4: Fetch invoice data
       const invoiceData = await executeStoredProcedure("einvoicingGSTHero", {
-        invoiceId
+        invoiceId,
       });
 
       if (!invoiceData || invoiceData.length === 0) {
@@ -247,22 +254,63 @@ module.exports = {
           data: [],
         });
       }
+
       console.log("Fetched invoice data for IRN generation:", invoiceData);
+
       // Step 5: Send data to generate IRN
       const irnEndpoint = `${serverLink}/invoice`;
+
       const irnResponse = await fetch(irnEndpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'X-Connector-Auth-Token': authRespons.xConnectorResult,
+          "X-Connector-Auth-Token": connectorToken,
           gstin,
           "Content-Type": "application/json",
           action: "GENERATEIRN",
         },
         body: JSON.stringify(invoiceData),
       });
-      const irnResponseData = await parseJsonResponse(irnResponse);
-      console.log("IRN generation response from GSTHero:", JSON.stringify(irnResponseData));
+
+      const irnResponseRaw = await parseJsonResponse(irnResponse);
+
+      console.log("IRN generation raw response from GSTHero:", irnResponseRaw);
+      console.log("Type of IRN response:", typeof irnResponseRaw);
+      console.log("Is array:", Array.isArray(irnResponseRaw));
+
+      let irnResponseData = irnResponseRaw;
+
+      if (typeof irnResponseData === "string") {
+        try {
+          irnResponseData = JSON.parse(irnResponseData);
+        } catch (e) {
+          console.log("Failed to parse IRN response string:", e.message);
+        }
+      }
+
+      if (Array.isArray(irnResponseData)) {
+        irnResponseData = irnResponseData[0] || {};
+      }
+
+      if (irnResponseData?.data) {
+        irnResponseData = irnResponseData.data;
+        if (Array.isArray(irnResponseData)) {
+          irnResponseData = irnResponseData[0] || {};
+        }
+      }
+
+      if (irnResponseData?.result) {
+        irnResponseData = irnResponseData.result;
+        if (Array.isArray(irnResponseData)) {
+          irnResponseData = irnResponseData[0] || {};
+        }
+      }
+
+      console.log("Normalized IRN response:", irnResponseData);
+      console.log(
+        "Normalized IRN response keys:",
+        Object.keys(irnResponseData || {})
+      );
 
       if (!irnResponse.ok) {
         throw createHttpError(
@@ -271,57 +319,55 @@ module.exports = {
             irnResponseData,
             "IRN generation failed at GSTHero"
           ),
-          {
-            data: [],
-          }
+          { data: [] }
         );
       }
-      if (irnResponseData.error && irnResponseData.error.length > 0) {
+
+      if (irnResponseData?.error && irnResponseData.error.length > 0) {
         if (!isDuplicateIrnResponse(irnResponseData)) {
-          let errorMessage = getGstHeroErrorMessage(
+          const errorMessage = getGstHeroErrorMessage(
             irnResponseData,
             "IRN generation failed with errors from GSTHero"
           );
-          throw createHttpError(
-            400,
-            errorMessage,
-            {
-              data: [],
-            }
-          );
+          throw createHttpError(400, errorMessage, { data: [] });
         }
       }
-      const {
+
+      const AckDt = irnResponseData?.AckDt || null;
+      const AckNo = irnResponseData?.AckNo || null;
+      const Irn = irnResponseData?.Irn || null;
+      const SignedQRCode = irnResponseData?.SignedQRCode || null;
+      const SignedInvoice = irnResponseData?.SignedInvoice || null;
+
+      console.log("Extracted IRN values:", {
         AckDt,
         AckNo,
         Irn,
-        SignedQRCode,
-        SignedInvoice,
-      } = irnResponseData || {};
+        SignedQRCode: !!SignedQRCode,
+        SignedInvoice: !!SignedInvoice,
+      });
 
-      const updateQuery = ` UPDATE tblInvoice SET ackDate='${escapeSqlString(AckDt || "")}',
-    ackNo='${escapeSqlString(AckNo || "")}',
-    irn='${escapeSqlString(Irn || "")}',
-    signedQrCode='${escapeSqlString(SignedQRCode || "")}',
-    signedInvoice='${escapeSqlString(SignedInvoice || "")}'
-  WHERE id=${invoiceId}`;
+      if (!AckDt && !AckNo && !Irn && !SignedQRCode && !SignedInvoice) {
+        throw createHttpError(
+          400,
+          "IRN response received, but required fields could not be extracted",
+          { data: irnResponseData }
+        );
+      }
+
+      const updateQuery =
+        "UPDATE tblInvoice SET " +
+        "ackDate = " + (AckDt ? `'${escapeSqlString(AckDt)}'` : "NULL") + "," +
+        "ackNo = " + (AckNo ? `'${escapeSqlString(String(AckNo))}'` : "NULL") + "," +
+        " irn = " + (Irn ? `'${escapeSqlString(Irn)}'` : "NULL") + "," +
+        " signedQrCode = " + (SignedQRCode ? `'${escapeSqlString(SignedQRCode)}'` : "NULL") + "," +
+        " signedInvoice = " + (SignedInvoice ? `'${escapeSqlString(SignedInvoice)}'` : "NULL") +
+        " WHERE id = " + invoiceId;
+
+      console.log(updateQuery);
 
       await executeQuery(updateQuery, {});
 
-      // const { ackDate, ackNo, irn, signedQrCode, signedInvoice } =
-      //   irnResponseData || {};
-      // const updateQuery = `UPDATE tblInvoice set ackDate='${escapeSqlString(
-      //   AckDt
-      // )}', ackNo='${escapeSqlString(AckNo)}', irn='${escapeSqlString(
-      //   Irn
-      // )}', signedQrCode='${escapeSqlString(
-      //   SignedQRCode
-      // )}', signedInvoice='${escapeSqlString(
-      //   SignedInvoice 
-      // )}' where id=${invoiceId}`;
-      // await executeQuery(updateQuery, {});
-
-      // Step 6: Return response
       return res.send({
         success: true,
         message: isDuplicateIrnResponse(irnResponseData)
@@ -332,6 +378,7 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error in isEInvoicing:", error);
+
       if (res.headersSent) {
         return;
       }
@@ -342,7 +389,6 @@ module.exports = {
     }
   },
 
-  // Optional: Keep this route for independent IRN generation
   generateIRN: async (req, res) => {
     try {
       const { invoiceId } = req.body;
