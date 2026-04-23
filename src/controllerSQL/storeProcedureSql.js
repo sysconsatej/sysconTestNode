@@ -303,6 +303,8 @@ module.exports = {
         billingPartyId,
         companyId,
         companyBranchId,
+        currencyId,
+        exchangeRate
       } = req.body;
 
       // Call stored procedure with all necessary parameters
@@ -314,6 +316,8 @@ module.exports = {
         billingPartyId,
         companyId,
         companyBranchId,
+        currencyId,
+        exchangeRate
       });
 
       if (data?.length === 0) {
@@ -1639,25 +1643,27 @@ module.exports = {
   getChargeForTariff: async (req, res) => {
     try {
       let {
-        labourRate,
-        agentId,
-        depotId,
+        //labourRate,
+       // agentId,
         repairLocationId,
         repairTypeId,
         componentId,
-        damageId,
+        dimension,
+        depotId,
+       // damageId,
         clientId
 
       } = req.body;
 
-      let data = await executeStoredProcedure("getChargeForTariffData", {
-        labourRate,
-        agentId,
-        depotId,
+      let data = await executeStoredProcedure("getChargesFromTariff", {
+        //labourRate,
+        //agentId,
         repairLocationId,
         repairTypeId,
         componentId,
-        damageId,
+        dimension,
+        depotId,
+        //damageId,
         clientId
       });
 
