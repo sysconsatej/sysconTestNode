@@ -355,16 +355,20 @@ module.exports = {
         );
       }
 
+      const irnResponseJson =
+        irnResponseData && Object.keys(irnResponseData).length > 0
+          ? `'${escapeSqlString(JSON.stringify(irnResponseData))}'`
+          : "NULL";
+
       const updateQuery =
         "UPDATE tblInvoice SET " +
         "ackDate = " + (AckDt ? `'${escapeSqlString(AckDt)}'` : "NULL") + "," +
         "ackNo = " + (AckNo ? `'${escapeSqlString(String(AckNo))}'` : "NULL") + "," +
-        " irn = " + (Irn ? `'${escapeSqlString(Irn)}'` : "NULL") + "," +
-        " signedQrCode = " + (SignedQRCode ? `'${escapeSqlString(SignedQRCode)}'` : "NULL") + "," +
-        " signedInvoice = " + (SignedInvoice ? `'${escapeSqlString(SignedInvoice)}'` : "NULL") +
-        " WHERE id = " + invoiceId;
-
-      console.log(updateQuery);
+        "irn = " + (Irn ? `'${escapeSqlString(Irn)}'` : "NULL") + "," +
+        "signedQrCode = " + (SignedQRCode ? `'${escapeSqlString(SignedQRCode)}'` : "NULL") + "," +
+        "signedInvoice = " + (SignedInvoice ? `'${escapeSqlString(SignedInvoice)}'` : "NULL") + "," +
+        "irnResponse = " + irnResponseJson + " " +
+        "WHERE id = " + invoiceId;
 
       await executeQuery(updateQuery, {});
 
