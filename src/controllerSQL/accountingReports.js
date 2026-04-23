@@ -35,6 +35,7 @@ module.exports = {
       clientId,
       tbGroupId,
       suppressZero,
+      glId,
     } = req.body;
 
     if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
@@ -54,6 +55,7 @@ module.exports = {
         .input("clientId", sql.Int, clientId)
         .input("tbGroupId", sql.Int, tbGroupId)
         .input("suppressZero", sql.Int, suppressZero)
+        .input("glId", sql.Int, glId)
         .execute("trialBalanceApi");
 
       // Check if the result contains the expected JSON key
