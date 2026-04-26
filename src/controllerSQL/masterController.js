@@ -247,12 +247,26 @@ module.exports = {
             data: [],
           });
         }
+        console.log("deleteCheck => ", {
+          tableName: req.body.tableName,
+          recordID: req.body.id,
+          clientId: req.body.clientId,
+          updatedBy: req.userId.toString(),
+          deletedNo: req.body.id,
+          reasonId: req.body.reason,
+          remarks: req.body.remark,
+
+          // updatedDate:req.body.updatedDate
+        });
         let data = await executeNonJSONStoredProcedure("spDeleteRecord", {
           tableName: req.body.tableName,
           recordID: req.body.id,
           clientId: req.body.clientId,
-          updatedBy: req.body.updatedBy,
+          updatedBy: req.userId,
           deletedNo: req.body.id,
+          reasonId: req.body.reason,
+          remarks: req.body.remark,
+
           // updatedDate:req.body.updatedDate
         });
         res.send({
