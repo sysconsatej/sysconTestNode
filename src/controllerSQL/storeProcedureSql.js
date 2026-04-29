@@ -116,7 +116,8 @@ module.exports = {
         billingPartyBranch,
         billingPartyState,
         totalAmountHc,
-        voucherTypeId
+        voucherTypeId,
+        isTaxApplicable
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -140,7 +141,8 @@ module.exports = {
         SelectedParentInvId: SelectedParentInvId,
         departmentId: departmentId,
         placeOfSupply_state: placeOfSupply_state,
-        voucherTypeId: voucherTypeId
+        voucherTypeId: voucherTypeId,
+        isTaxApplicable:isTaxApplicable
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
