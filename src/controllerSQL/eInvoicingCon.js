@@ -777,9 +777,9 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
   CancelanIRN_GSTHero: async (req, res) => {
     try {
-      const { invoiceId } = req.body;
+      const { invoiceId, reasonId } = req.body;
 
-      requireFields(req.body, ["invoiceId", "companyId", "loginBranch"]);
+      requireFields(req.body, ["invoiceId", "companyId", "loginBranch", "reasonId"]);
 
       const result = await executeNonJSONStoredProcedure("isEinvoicing", {
         invoiceId,
@@ -789,13 +789,13 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
       console.log("Cancel IRN e-invoicing result:", result);
 
-      // if (isEinvoicing !== "y") {
-      //   return res.send({
-      //     success: true,
-      //     message: "Innvoice Deleted successfully but not eligible for e-invoicing",
-      //     isEinvoicing,
-      //   });
-      // }
+      if (isEinvoicing !== "y") {
+        return res.send({
+          success: true,
+          message: "Innvoice Deleted successfully but not eligible for e-invoicing",
+          isEinvoicing,
+        });
+      }
 
       // const irnResult = await executeQuery(
       //   `
@@ -816,9 +816,12 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       //   });
       // }
 
+      const reason = await executeQuery(`SELECT name , code from tblMasterData where masterListName = 'tblReason' and id=${req.body.reasonId}`,{});
+      console.log("Fetched reason for cancellation:", reason);
+      const reasonCode = reason?.recordset?.[0]?.code;
       const jsonResult = await executeQuery(
         `
-        EXEC irn_cancellation_gsthero @account_invoice_id = ${invoiceId}
+        EXEC irnCancellationGsthero @invoiceId = ${invoiceId}
       `,
         {}
       );
@@ -826,6 +829,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       const jsonOutput = jsonResult.recordset
         .map((row) => Object.values(row)[0])
         .join("");
+        
 
       if (!jsonOutput) {
         throw createHttpError(
@@ -859,6 +863,15 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       }
 
       const cancelIRNUrl = `${serverLink}/invoice/cancel`;
+      // return res.send({
+      //   success: true,
+      //   message: "IRN cancellation request sent successfully",
+      //   jsonOutput: JSON.parse(jsonOutput),
+      //   cancelIRNUrl,
+      //   reason,
+      //   reasonCode,
+      // });
+
       const response = await fetch(cancelIRNUrl, {
         method: "POST",
         headers: {
@@ -908,13 +921,19 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         cancelIrnResponse?.cancelIrnNo ||
         cancelIrnResponse?.CancelIrnNo ||
         cancelIrnResponse?.cancelIrnNumber ||
-        cancelIrnResponse?.cancelledIrnNo;
+        cancelIrnResponse?.cancelledIrnNo ||
+        cancelIrnResponse?.Irn;
+      const cancelDate =
+        cancelIrnResponse?.cancelDate ||
+        cancelIrnResponse?.CancelDate ||
+        cancelIrnResponse?.cancelledDate ||
+        cancelIrnResponse?.CancelDt;
 
       if (cancelIrnNo) {
         await executeQuery(
           `UPDATE tblInvoice set cancelIrnNo='${escapeSqlString(
             cancelIrnNo
-          )}' where id=${invoiceId}`,
+          )}', cancelDate='${escapeSqlString(cancelDate)}' where id=${invoiceId}`,
           {}
         );
       }
