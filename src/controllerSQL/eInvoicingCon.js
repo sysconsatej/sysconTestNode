@@ -777,7 +777,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
   CancelanIRN_GSTHero: async (req, res) => {
     try {
-      const { invoiceId, reasonId } = req.body;
+      const { invoiceId, reasonId, remark } = req.body;
 
       requireFields(req.body, ["invoiceId", "companyId", "loginBranch", "reasonId"]);
 
@@ -797,26 +797,26 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         });
       }
 
-      // const irnResult = await executeQuery(
-      //   `
-      //   EXEC CheckIRNStatus @InvoiceId = ${invoiceId};
-      // `,
-      //   {}
-      // );
+      const irnResult = await executeQuery(
+        `
+        EXEC CheckIRNStatus @InvoiceId = ${invoiceId};
+      `,
+        {}
+      );
 
-      // const isIRNGenerated = String(
-      //   irnResult?.recordset?.[0]?.isIRN || ""
-      // ).toLowerCase();
+      const isIRNGenerated = String(
+        irnResult?.recordset?.[0]?.isIRN || ""
+      ).toLowerCase();
 
-      // if (isIRNGenerated !== "true") {
-      //   return res.send({
-      //     success: false,
-      //     message: "IRN is not generated yet",
-      //     data: [],
-      //   });
-      // }
+      if (isIRNGenerated !== "true") {
+        return res.send({
+          success: false,
+          message: "IRN is not generated yet",
+          data: [],
+        });
+      }
 
-      const reason = await executeQuery(`SELECT name , code from tblMasterData where masterListName = 'tblReason' and id=${req.body.reasonId}`,{});
+      const reason = await executeQuery(`SELECT name , code from tblMasterData where masterListName = 'tblReason' and id=${req.body.reasonId}`, {});
       console.log("Fetched reason for cancellation:", reason);
       const reasonCode = reason?.recordset?.[0]?.code;
       const jsonResult = await executeQuery(
@@ -826,10 +826,11 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         {}
       );
 
-      const jsonOutput = jsonResult.recordset
+      let jsonOutput = jsonResult.recordset
         .map((row) => Object.values(row)[0])
         .join("");
-        
+
+
 
       if (!jsonOutput) {
         throw createHttpError(
@@ -840,6 +841,11 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           }
         );
       }
+      jsonOutput = JSON.parse(jsonOutput);
+      jsonOutput.Data.CnlRsn = reasonCode;
+      jsonOutput.Data.CnlRem = remark;
+
+      jsonOutput = JSON.stringify(jsonOutput);
 
       await module.exports.Pre_AuthenticationResponse(req);
       const authRespons = await module.exports.getAuthenticationResponse_GSTHero(
@@ -885,7 +891,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         body: jsonOutput,
       });
       const cancelIrnResponse = await parseJsonResponse(response);
-      console.log("Cancel IRN response from GSTHero:", cancelIrnResponse);
+      console.log("Cancel IRN response from GSTHero:", JSON.stringify(cancelIrnResponse));
 
       if (!response.ok) {
         throw createHttpError(
@@ -917,17 +923,9 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         );
       }
 
-      const cancelIrnNo =
-        cancelIrnResponse?.cancelIrnNo ||
-        cancelIrnResponse?.CancelIrnNo ||
-        cancelIrnResponse?.cancelIrnNumber ||
-        cancelIrnResponse?.cancelledIrnNo ||
-        cancelIrnResponse?.Irn;
-      const cancelDate =
-        cancelIrnResponse?.cancelDate ||
-        cancelIrnResponse?.CancelDate ||
-        cancelIrnResponse?.cancelledDate ||
-        cancelIrnResponse?.CancelDt;
+      const cancelIrnNo = cancelIrnResponse?.data?.Irn
+      const cancelDate = cancelIrnResponse?.data?.CancelDate
+
 
       if (cancelIrnNo) {
         await executeQuery(
