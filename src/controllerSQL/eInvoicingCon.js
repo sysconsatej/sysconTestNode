@@ -1089,7 +1089,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
 
       await executeQuery(
         `UPDATE tblCompanyBranchParameter
-         SET authToken = '${escapeSqlString(access_token)}', added_by = '999'
+         SET authToken = '${escapeSqlString(access_token)}'
          WHERE companyBranchId = ${Number(branchId)}`,
         {}
       );
