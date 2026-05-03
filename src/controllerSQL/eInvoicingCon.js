@@ -103,6 +103,43 @@ async function parseJsonResponse(response) {
   }
 }
 
+function getMalaysiaSubmissionErrors(result) {
+  const extractMessages = (details) =>
+    Array.isArray(details)
+      ? details.map((item) => item?.message).filter(Boolean)
+      : [];
+
+  const fromRejected =
+    result?.rejectedDocuments?.flatMap((doc) =>
+      extractMessages(doc?.error?.details)
+    ) ?? [];
+  if (fromRejected.length) {
+    return fromRejected.join(", ");
+  }
+
+  const fromTopLevelError = extractMessages(result?.error?.details);
+  if (fromTopLevelError.length) {
+    return fromTopLevelError.join(", ");
+  }
+
+  const fromTopLevelDetails = extractMessages(result?.details);
+  if (fromTopLevelDetails.length) {
+    return fromTopLevelDetails.join(", ");
+  }
+
+  if (typeof result?.error?.message === "string" && result.error.message.trim()) {
+    return result.error.message.trim();
+  }
+  if (typeof result?.message === "string" && result.message.trim()) {
+    return result.message.trim();
+  }
+  if (typeof result?.error === "string" && result.error.trim()) {
+    return result.error.trim();
+  }
+
+  return "";
+}
+
 function getGstHeroErrorMessage(responseData, fallbackMessage) {
   if (
     responseData &&
@@ -1114,6 +1151,176 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
     }
   },
 
+  documentSubmission_Malaysia: async ({
+    accInvId,
+    einvoiceServerLink,
+    accessToken,
+  }) => {
+    const invNoResult = await executeQuery(
+      `SELECT ISNULL(CAST(invoiceNo AS NVARCHAR(500)), '') AS invoiceNumber
+       FROM tblInvoice WHERE id = ${Number(accInvId)}`,
+      {}
+    );
+    const invoiceNumber = String(
+      invNoResult?.recordset?.[0]?.invoiceNumber ?? ""
+    ).trim();
+
+    const spRes = await executeQuery(
+      `EXEC einvoicingMalaysia @accountInvoiceId = ${Number(accInvId)}`,
+      {}
+    );
+    const jsonString = (spRes?.recordset ?? [])
+      .map((row) => row[Object.keys(row)[0]] ?? "")
+      .join("");
+
+    if (!jsonString || !jsonString.trim()) {
+      throw createHttpError(
+        404,
+        "No invoice JSON returned from einvoicingMalaysia for this invoice",
+        { data: [] }
+      );
+    }
+
+    const jsonBytes = Buffer.from(jsonString, "utf-8");
+    const base64Document = jsonBytes.toString("base64");
+    const documentHash = crypto
+      .createHash("sha256")
+      .update(jsonBytes)
+      .digest("hex");
+
+    const baseUrl = String(einvoiceServerLink || "").replace(/\/$/, "");
+    const submitUrl = `${baseUrl}/api/v1.0/documentsubmissions/`;
+
+    const body = {
+      documents: [
+        {
+          format: "json",
+          document: base64Document,
+          documentHash,
+          codeNumber: invoiceNumber,
+        },
+      ],
+    };
+
+    console.log("Submitting document to Malaysia endpoint:", submitUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    // return { submissionUid:'fsdfsfsdfsfsdfsdfsdfsd' }
+    const submitResponse = await fetch(submitUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result = await parseJsonResponse(submitResponse);
+    console.log("Malaysia document submission response:", result);
+
+    const submissionUid = result?.submissionUid;
+
+    if (!submitResponse.ok || !submissionUid) {
+      const errText = getMalaysiaSubmissionErrors(result);
+      throw createHttpError(
+        400,
+        `There is error while generating IRN as ${errText || "unknown rejection from MyInvois"}, Please update the invoice again and check.`,
+        { data: result ?? [] }
+      );
+    }
+
+    await executeQuery(
+      `UPDATE tblInvoice SET submissionUid = '${escapeSqlString(
+        submissionUid
+      )}' WHERE id = ${Number(accInvId)}`,
+      {}
+    );
+
+    return { submissionUid };
+  },
+
+  documentSubmissionStatusCheck_Malaysia: async ({
+    accInvId,
+    einvoiceServerLink,
+    accessToken,
+    submissionUid,
+  }) => {
+    const baseUrl = String(einvoiceServerLink || "").replace(/\/$/, "");
+    const statusUrl = `${baseUrl}/api/v1.0/documentsubmissions/${encodeURIComponent(
+      submissionUid
+    )}?pageNo=1&pageSize=10`;
+
+    const statusResponse = await fetch(statusUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+      },
+    });
+
+    const statusPayload = await parseJsonResponse(statusResponse);
+    console.log("Malaysia document submission status:", statusPayload);
+
+    if (!statusResponse.ok) {
+      const errText = getMalaysiaSubmissionErrors(statusPayload);
+      throw createHttpError(
+        statusResponse.status || 502,
+        errText || "Malaysia submission status request failed",
+        { data: statusPayload ?? [] }
+      );
+    }
+
+    const { dateTimeReceived, documentSummary } = statusPayload || {};
+    const uuidCombined = (documentSummary || [])
+      .map((d) => d?.uuid ?? d?.UUID)
+      .filter(Boolean)
+      .join(" ");
+    const longIdCombined = (documentSummary || [])
+      .map((d) => d?.longId ?? d?.LongId)
+      .filter(Boolean)
+      .join(" ");
+
+    if (!uuidCombined || !longIdCombined) {
+      throw createHttpError(
+        502,
+        "Malaysia status response did not include uuid/longId in documentSummary; try again later.",
+        { data: statusPayload ?? [] }
+      );
+    }
+
+    // MyInvois public share URL — stored in tblInvoice.signedQrCode (same column as GST IRN QR payload)
+    const malaysiaShareUrl = `https://myinvois.hasil.gov.my/${uuidCombined}/share/${longIdCombined}`;
+
+    const finalUid = String(statusPayload?.submissionUid || submissionUid);
+    const dtRecv = dateTimeReceived
+      ? `'${escapeSqlString(String(dateTimeReceived))}'`
+      : "NULL";
+
+    await executeQuery(
+      `UPDATE tblInvoice SET
+         finalSubmissionUid = '${escapeSqlString(finalUid)}',
+         [UUID] = '${escapeSqlString(uuidCombined)}',
+         longId = '${escapeSqlString(longIdCombined)}',
+         dateTimeReceived = ${dtRecv},
+         signedQrCode = '${escapeSqlString(malaysiaShareUrl)}'
+       WHERE id = ${Number(accInvId)}`,
+      {}
+    );
+
+    return {
+      submissionUid: finalUid,
+      uuidCombined,
+      longIdCombined,
+      dateTimeReceived: dateTimeReceived || null,
+      signedQrCode: malaysiaShareUrl,
+    };
+  },
+
   eInvoicing_Malaysia: async ({ accInvId, branchId, companyId }) => {
     requireFields({ accInvId, branchId }, ["accInvId", "branchId"]);
 
@@ -1122,12 +1329,28 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         branchId,
       });
 
-    // PHASE 2 will append: documentSubmission_Malaysia → sleep 30s → documentSubmissionStatusCheck_Malaysia
+    const { submissionUid } =
+      await module.exports.documentSubmission_Malaysia({
+        accInvId,
+        einvoiceServerLink,
+        accessToken: access_token,
+      });
+
+    await new Promise((r) => setTimeout(r, 30 * 1000));
+
+    const status = await module.exports.documentSubmissionStatusCheck_Malaysia(
+      {
+        accInvId,
+        einvoiceServerLink,
+        accessToken: access_token,
+        submissionUid,
+      }
+    );
 
     return {
-      message: "Malaysia e-invoice authentication successful (Phase 1)",
-      access_token,
-      einvoiceServerLink,
+      message: "Malaysia e-invoice submitted successfully",
+      submissionUid,
+      ...status,
     };
   },
 };
