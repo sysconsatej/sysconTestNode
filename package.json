@@ -62,6 +62,8 @@
     "puppeteer": "^22.15.0",
     "qrcode": "^1.5.4",
     "request": "^2.88.2",
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.0",
     "validatorjs": "^3.22.1",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0",
