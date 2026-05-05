@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid')
 
-const getRoomIs = (userIdA, userIdB) => {
+const getRoomId = (userIdA, userIdB) => {
     return 'dm:' + [userIdA, userIdB].sort().join(':');
 }
 
@@ -55,4 +55,141 @@ const getOnlineUsers = () => {
     })
 
     return users;
+}
+
+
+// rooms
+const getOrCreateRoom = (roomId, name = null, creatorId) => {
+    if (!store.rooms.has(roomId)) {
+        store.rooms.set(roomId, {
+            id: roomId,
+            name: name || roomId,
+            members: new Set(creatorId ? [creatorId] : []),
+            createdAt: Date.now(),
+        });
+        store.messages.set(roomId, []);
+        store.typing.set(roomId, new Set());
+    }
+
+    return store.rooms.get(roomId);
+}
+
+const joinRoom = (roomId, userId) => {
+    const room = getOrCreateRoom(roomId);
+    room?.members?.add(userId);
+    return room;
+}
+
+const leaveRoom = (roomId, userId) => {
+    const room = store.rooms.get(roomId);
+    if (room) {
+        room?.members?.delete(userId);
+        const typingSet = store.typing.get(roomId);
+        if (typingSet) {
+            typingSet?.delete(userId);
+        }
+    }
+}
+
+const getRoomMembers = (roomId) => {
+    const room = store.rooms.get(roomId);
+    return room ? Array.from(room) : []
+}
+
+
+const addMessages = (roomId, { senderId, senderName, content, type = 'text', replyTo = null }) => {
+    const messages = store.messages.get(roomId);
+    if (!messages) return null;
+
+    const msg = {
+        id: uuidv4(),
+        roomId,
+        senderId,
+        senderName,
+        content,
+        type,
+        replyTo,
+        status: 'sent',
+        createdAt: Date.now(),
+        deliveredTo: [],
+        readBy: [],
+    }
+
+    messages.push(msg);
+    return msg;
+}
+
+
+const updateMessageStatus = (roomId, messageId, userId, status) => {
+    const messages = store.messages.get(roomId);
+
+    if (!messages) return null;
+
+    const msg = messages?.find(m => m?.id === messageId);
+    if (!msg) return null;
+
+
+    if (status === 'delivered' && !msg?.deliveredTo?.includes(userId)) {
+        msg?.deliveredTo?.push(userId);
+        if (msg?.status === 'sent') msg?.status = 'delivered';
+    }
+
+
+    if (status === 'read' && !msg?.readBy?.includes(userId)) {
+        msg?.readBy?.push(userId);
+        msg?.deliveredTo = [...new Set([...msg?.deliveredTo, userId])];
+        msg?.status = 'read';
+    }
+
+    return msg;
+}
+
+const getMessages = (roomId, limit = 50) => {
+    const messages = store?.message?.get(roomId) || [];
+    return messages?.slice(-limit);
+}
+
+
+
+// typing
+
+
+const setTyping = (roomId, userId, isTyping) => {
+    if (!store.typing.has(roomId)) {
+        store.typing.set(roomId, new Set());
+    }
+
+    const typingSet = store.typing.get(roomId);
+    if (isTyping) {
+        typingSet?.add(userId);
+    } else {
+        typingSet?.delete(userId);
+    }
+
+    return Array.from(typingSet);
+
+}
+
+const getTypingUsers = (roomId) => {
+    return Array.from(store.typing.get(roomId) || []);
+}
+
+
+module.exports = {
+    getRoomId,
+    registerSocket,
+    removeSocket,
+    getUserBySocket,
+    getUserById,
+    isUserOnline,
+    getOnlineUsers,
+    getOrCreateRoom,
+    joinRoom,
+    leaveRoom,
+    getRoomMembers,
+    addMessages,
+    updateMessageStatus,
+    getMessages,
+    setTyping,
+    getTypingUsers,
 }
