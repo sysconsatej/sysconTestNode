@@ -1,0 +1,246 @@
+Class-Based OOP Design Example For This Express App
+===================================================
+
+Yes, you can use a class-based OOP design here, but use it selectively.
+Do not convert everything just to "make it OOP." The best candidates are
+shared infrastructure and domain services:
+
+- DB connection manager
+- Query executor
+- Auth service
+- File upload service
+- User service
+- Audit logger
+- Metrics logger
+
+For route handlers, functions are still fine. In Express, routes are usually
+thin wrappers that call service classes.
+
+
+Example Shape
+-------------
+
+Instead of this style:
+
+  executeStoredProcedure("loginApi", parameters);
+  executeQuery(query, data);
+
+You can move toward this kind of design:
+
+  class SqlConnectionManager {
+    getPool() {}
+    reconnect() {}
+    close() {}
+  }
+
+  class SqlExecutor {
+    constructor(connectionManager, logger, metrics) {}
+
+    executeQuery(query, params, context) {}
+    executeStoredProcedure(name, params, context) {}
+  }
+
+  class UserService {
+    constructor(sqlExecutor, passwordService, tokenService, redisSessionStore) {}
+
+    login(payload) {}
+    changePassword(payload) {}
+    resetPassword(payload) {}
+  }
+
+  class UserController {
+    constructor(userService) {}
+
+    login(req, res, next) {}
+  }
+
+Then the route only does this conceptually:
+
+  router.post("/login", userController.login);
+
+The controller should not know how SQL connection pooling works. It should only
+validate request input, call UserService, and return HTTP responses.
+
+
+Production DB Design
+--------------------
+
+The current DB layer can be improved a lot. A production-level DB layer should
+handle:
+
+1. Connection lifecycle
+
+   - Create one pool per app instance.
+   - Reuse the pool.
+   - Detect pool errors.
+   - Reconnect safely.
+   - Close gracefully on process shutdown.
+
+2. Query execution errors
+
+   - Log SQL error code, procedure name/query name, duration, user/client
+     context.
+   - Do not leak raw SQL errors to the API response.
+   - Throw structured application errors upward.
+
+3. Slow query tracking
+
+   - Measure query duration.
+   - Log warnings when query time exceeds a threshold, for example 1000ms or
+     3000ms.
+   - Include procedure name, route, clientId, userId, and sanitized params.
+
+4. Safe logging
+
+   - Never log passwords, tokens, secrets, OTPs, or full request bodies.
+   - Redact fields like password, newPassword, token, authorization.
+
+
+Example SqlExecutor Design
+--------------------------
+
+  class SqlExecutor {
+    async executeStoredProcedure(procedureName, params, context) {
+      const start = Date.now();
+
+      try {
+        const pool = await this.connectionManager.getPool();
+        const request = pool.request();
+
+        this.bindParams(request, params);
+
+        const result = await request.execute(procedureName);
+
+        const durationMs = Date.now() - start;
+        this.logIfSlow("storedProcedure", procedureName, durationMs, context);
+
+        return this.parseResult(result);
+      } catch (error) {
+        this.logger.error("SQL execution failed", {
+          procedureName,
+          durationMs: Date.now() - start,
+          userId: context.userId,
+          clientId: context.clientId,
+          route: context.route,
+          sqlErrorCode: error.code,
+          sqlNumber: error.number,
+          message: error.message,
+        });
+
+        throw new DatabaseError("Database operation failed");
+      }
+    }
+  }
+
+
+Raw SQL Query Design
+--------------------
+
+For raw SQL queries, avoid passing arbitrary SQL strings everywhere. Better
+pattern:
+
+  class MasterRepository {
+    constructor(sqlExecutor) {}
+
+    findById({ tableName, id, clientId }, context) {
+      const safeTable = this.tableNamePolicy.assertAllowed(tableName);
+
+      return this.sqlExecutor.executeQuery(
+        `SELECT * FROM ${safeTable} WHERE id = @id AND clientId = @clientId`,
+        { id, clientId },
+        context
+      );
+    }
+  }
+
+Important point:
+
+Parameters protect values, but not table names, column names, or procedure
+names. Those must be allowlisted.
+
+
+Recommended Layering
+--------------------
+
+  src/
+    config/
+      env.js
+    infrastructure/
+      db/
+        SqlConnectionManager.js
+        SqlExecutor.js
+        SqlErrorMapper.js
+      logging/
+        Logger.js
+      metrics/
+        QueryMetrics.js
+    modules/
+      users/
+        UserController.js
+        UserService.js
+        UserRepository.js
+        user.routes.js
+      master/
+        MasterController.js
+        MasterService.js
+        MasterRepository.js
+    middlewares/
+      authMiddleware.js
+      errorMiddleware.js
+
+
+Where OOP Helps Most Here
+-------------------------
+
+Use classes for:
+
+  SqlConnectionManager
+  SqlExecutor
+  RedisSessionStore
+  PasswordService
+  TokenService
+  UploadService
+  AuditLogService
+  UserService
+  MasterRepository
+
+Avoid classes for tiny helpers like:
+
+  formatDate()
+  sanitizeObject()
+  parseDecimal()
+  getClientIp()
+
+Those are better as pure functions.
+
+
+Slow Query Example Log
+----------------------
+
+A good slow-query log should look like this:
+
+  {
+    "level": "warn",
+    "message": "Slow SQL query",
+    "type": "storedProcedure",
+    "name": "dynamicSearchApi",
+    "durationMs": 4320,
+    "route": "/Sql/api/master/dytablelist",
+    "userId": 101,
+    "clientId": 4
+  }
+
+This lets you answer:
+
+- Which procedure is slow
+- Which route triggered it
+- Which tenant/client is affected
+- How long it took
+
+
+Summary
+-------
+
+Class-based OOP would be useful here, especially for DB, auth, upload, and
+business services. Do not make Express routes heavy classes. Keep controllers
+thin and put the real logic into services and repositories.
