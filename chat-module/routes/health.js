@@ -16,7 +16,7 @@ module.exports = function healthRoutes(store, ws) {
             uptime: process.uptime(),
             timestamp: Date.now(),
             connections: ws?.connectionCont,
-            onlineUsers =  store.getOnlineUsers().length,
+            onlineUsers: store.getOnlineUsers().length,
             memory: process.memoryUsage().heapUsed,
         })
     })

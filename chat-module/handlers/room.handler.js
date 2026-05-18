@@ -1,36 +1,49 @@
+// handlers/RoomHandler.js
+
 'use strict';
 
-const { S } = require("../core/protocol")
+const { S } = require('../core/protocol');
 
 class RoomHandler {
-    /**
-  * @param {import('../core/store')} store
-  * @param {import('../core/ws-server')} ws
-  * @param {import('../core/room-registry')} rooms
-  */
-    constructor(store, ws, rooms) {
-        this._store = store;
-        this._ws = ws;
-        this._rooms = rooms;
-    }
+  constructor(store, ws, rooms) {
+    this._store = store;
+    this._ws    = ws;
+    this._rooms = rooms;
+  }
 
-    onJoinRoom(connId, { roomId, roomName }) {
-        const user = this._store.getUserByConn(connId);
-        if (!user) {
-            this._ws.sendTo(connId, S.ERROR, { message: 'Not Authenticated' })
-            return;
-        }
+  // frame type: 'join_room'
+  // payload: { roomId, roomName? }
+  onJoinRoom(connId, { roomId, roomName }) {
+    const user = this._store.getUserByConn(connId);
+    if (!user) { this._ws.sendTo(connId, S.ERROR, { message: 'Not authenticated' }); return; }
 
-        this._rooms.join(roomId, connId);
-        this._store.joinRoom(roomId, user?.userId);
+    this._rooms.join(roomId, connId);
+    this._store.joinRoom(roomId, user.userId);
 
-        const history = this._store.getMessages(roomId);
-        this._ws.sendTo(connId, S.ROOM_HISTORY, { roomId, message: history });
+    const history = this._store.getMessages(roomId);
+    this._ws.sendTo(connId, S.ROOM_HISTORY, { roomId, messages: history });
 
-        this._ws.broadCastRoom(roomId, S.USER_JOINED_ROOM, { roomId, userId: user?.userId, username: user?.username }, connId);
+    // Notify others in the room
+    this._ws.broadcastRoom(roomId, S.USER_JOINED_ROOM, {
+      roomId, userId: user.userId, username: user.username,
+    }, connId);
 
-        console.log(`[Room] 🚪 ${user.username} joined: ${roomId}`);
+    console.log(`[Room] 🚪 ${user.username} joined: ${roomId}`);
+  }
 
+  // frame type: 'leave_room'
+  // payload: { roomId }
+  onLeaveRoom(connId, { roomId }) {
+    const user = this._store.getUserByConn(connId);
+    if (!user) return;
 
-    }
+    this._rooms.leave(roomId, connId);
+    this._store.leaveRoom(roomId, user.userId);
+
+    this._ws.broadcastRoom(roomId, S.USER_LEFT_ROOM, {
+      roomId, userId: user.userId, username: user.username,
+    });
+  }
 }
+
+module.exports = RoomHandler;
