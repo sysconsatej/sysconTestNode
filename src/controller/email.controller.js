@@ -141,7 +141,6 @@ module.exports = {
                 htmlSize: document.documentElement.outerHTML.length,
             }));
 
-            console.log("PDF metrics:", metrics);
 
             const pdfBuffer = await page.pdf({
                 format: "A4",
@@ -170,7 +169,6 @@ module.exports = {
             return res.end(Buffer.from(pdfBuffer), "binary");
 
         } catch (error) {
-            console.error("Error generating PDF:", error);
 
             return res.status(500).json({
                 success: false,
