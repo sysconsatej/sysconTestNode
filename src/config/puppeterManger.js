@@ -1,4 +1,5 @@
 const puppeteer = require("puppeteer");
+const os = require("node:os")
 
 let browserInstance = null;
 
@@ -14,7 +15,7 @@ async function getBrowser() {
             "--disable-dev-shm-usage",
             "--disable-gpu",
         ],
-        executablePath:  "/usr/bin/chromium-browser",
+        executablePath: os.platform() === "linux" ? "/usr/bin/chromium-browser" : undefined,
     });
 
     browserInstance.on("disconnected", () => {
