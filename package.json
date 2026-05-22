@@ -8,7 +8,9 @@
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "worker": "nodemon ./src/workers/notificationWorker.js"
+    "worker": "nodemon ./src/workers/notificationWorker.js",
+    "chat-server": "node  ./chat-module/chat-server.js",
+    "chat-run-test": "node  ./chat-module/test/integration.test.js"
   },
   "author": "",
   "license": "ISC",
@@ -49,6 +51,7 @@
     "mongoose-sequence": "^6.0.0",
     "morgan": "^1.10.0",
     "mssql": "^11.0.1",
+    "multer": "^2.1.1",
     "mysql": "^2.18.1",
     "mysql-cache": "^1.2.0",
     "node-cache": "^5.1.2",
@@ -72,6 +75,7 @@
     "ws": "^8.14.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "socket.io-client": "^4.8.3"
   }
 }
