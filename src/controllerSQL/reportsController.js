@@ -196,14 +196,17 @@ module.exports = {
   },
   getGLChargeDetails: async (req, res) => {
   try {
-    const { chargeId, voucherTypeId, companyId, glId } = req.body || {};
+    const { chargeId, voucherTypeId, companyId,glId,businessSegmentId, principalId, } = req.body || {};
 
     const query = "getGLChargeDetails";
     const parameters = {
       "chargeId": chargeId ?? 0,
       "voucherTypeId": voucherTypeId,
       "companyId": companyId,
-      "glId": glId,
+      "glId": glId ?? 0,
+      "businessSegmentId":businessSegmentId,
+      "principalId":principalId ?? 0,
+      
     };
 
     const data = await executeStoredProcedure(query, parameters);
