@@ -39,7 +39,7 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     end({
       method: req.method,
-      route: req.route?.path || req.path,
+      route: req.route?.path || "unknown",
       status_code: res.statusCode,
     });
   });
