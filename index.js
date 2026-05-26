@@ -8,44 +8,20 @@ var logger = require("morgan");
 // var { errorLogger } = require("./src/helper/loggerService");
 var bodyParser = require("body-parser");
 // var session = require("express-session");
-var status = require("express-status-monitor");
+// var status = require("express-status-monitor");
 const cron = require("node-cron");
 const sqllConnection = require("./src/config/sqlConfig");
 const flash = require("connect-flash");
 const cors = require("cors");
-const promClient = require("prom-client");
 // const limiter = require("./src/middlewares/rateLimiter");
 const httpLogger = require("./src/middlewares/requestLogger");
 const responseTimeLogger = require("./src/middlewares/responseTimeLogger");
 const errorHandler = require("./src/middlewares/errorHandler");
+const { metricsMiddleware, register } = require("./src/middlewares/prometheusMiddleware");
 
 const app = express();
+app.use(metricsMiddleware);
 
-const register = new promClient.Registry();
-promClient.collectDefaultMetrics({ register });
-
-const httpRequestDuration = new promClient.Histogram({
-  name: "http_request_duration_seconds",
-  help: "Duration of HTTP requests in seconds",
-  labelNames: ["method", "route", "status_code"],
-  buckets: [0.1, 0.5, 1, 2.5, 5, 10],
-});
-
-register.registerMetric(httpRequestDuration);
-
-app.use((req, res, next) => {
-  const end = httpRequestDuration.startTimer();
-
-  res.on("finish", () => {
-    end({
-      method: req.method,
-      route: req.route?.path || "unknown",
-      status_code: res.statusCode,
-    });
-  });
-
-  next();
-});
 
 app.use(
   fileUpload({
@@ -64,7 +40,7 @@ app.use(cookieParser());
 //   next();
 // };
 // app.use(sessionFlash);
-app.use(status());
+// app.use(status());
 app.set("views", path.join(__dirname, "views"));
 app.engine("html", require("ejs").renderFile);
 app.set("view engine", "html");
