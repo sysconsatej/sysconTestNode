@@ -44,6 +44,7 @@ module.exports = {
           loginCompany,
           loginfinYear,
           userTypeId,
+          sortingCondition,
         } = req.body;
         let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
         let limit = parseInt(req.body.limit, 10) || 10; // Default to 10 items per page if not specified
@@ -52,7 +53,7 @@ module.exports = {
           tableName: tableName,
           columnName: null,
           filterCondition: null,
-          sortingOrder: null,
+          sortingOrder: sortingCondition || null,
           search: null,
           menuId: menuID,
           pageSize: limit,
