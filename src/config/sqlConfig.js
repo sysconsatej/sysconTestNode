@@ -13,7 +13,7 @@ const sqlConfig = {
     enableArithAbort: true,
   },
   pool: {
-    max: 20,
+    max: 5,
     min: 2,
     idleTimeoutMillis: 30000,
   },
