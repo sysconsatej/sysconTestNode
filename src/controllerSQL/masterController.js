@@ -53,7 +53,7 @@ module.exports = {
           tableName: tableName,
           columnName: null,
           filterCondition: null,
-          sortingOrder: sortingCondition || null,
+          sortingOrder: null,
           search: null,
           menuId: menuID,
           pageSize: limit,
