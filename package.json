@@ -3,16 +3,21 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "nodemon ./bin/www",
+    "start": "node ./bin/www",
+    "dev": "nodemon ./bin/www",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "worker": "nodemon ./src/workers/notificationWorker.js"
+    "worker": "nodemon ./src/workers/notificationWorker.js",
+    "chat-server": "node  ./chat-module/chat-server.js",
+    "chat-run-test": "node  ./chat-module/test/integration.test.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@bull-board/express": "^6.18.2",
     "@google/genai": "^1.45.0",
+    "@novu/api": "^3.15.0",
     "axios": "^1.7.7",
     "body-parser": "^1.20.1",
     "bull": "^4.16.5",
@@ -46,13 +51,13 @@
     "mongoose-sequence": "^6.0.0",
     "morgan": "^1.10.0",
     "mssql": "^11.0.1",
+    "multer": "^2.1.1",
     "mysql": "^2.18.1",
     "mysql-cache": "^1.2.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0",
     "nodemailer": "^7.0.12",
-    "nodemon": "^3.0.1",
     "object-scan": "^19.0.5",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
@@ -61,9 +66,16 @@
     "puppeteer": "^22.15.0",
     "qrcode": "^1.5.4",
     "request": "^2.88.2",
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.0",
     "validatorjs": "^3.22.1",
     "winston": "^3.13.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "winston-mongodb": "^5.1.1",
     "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "socket.io-client": "^4.8.3"
   }
 }

@@ -136,26 +136,26 @@ module.exports = {
           console.log(dropdownFilter);
           const obj = pageSize
             ? {
-                clientId: req.clientId || 4,
-                filterCondition: dropdownFilter?.trim() || null,
-                sortingOrder: sortingOrder || null,
-                tableName: referenceTable.trim(),
-                columnName: referenceColumn.trim(),
-                search: search || null,
-                pageNumber: pageNo || null,
-                value: value || "",
-                pageSize: pageSize,
-              }
+              clientId: req.clientId || 4,
+              filterCondition: dropdownFilter?.trim() || null,
+              sortingOrder: sortingOrder || null,
+              tableName: referenceTable.trim(),
+              columnName: referenceColumn.trim(),
+              search: search || null,
+              pageNumber: pageNo || null,
+              value: value || "",
+              pageSize: pageSize,
+            }
             : {
-                clientId: req.clientId || 4,
-                filterCondition: dropdownFilter?.trim() || null,
-                sortingOrder: sortingOrder || null,
-                tableName: referenceTable.trim(),
-                columnName: referenceColumn.trim(),
-                search: search || null,
-                pageNumber: pageNo || null,
-                value: value || "",
-              };
+              clientId: req.clientId || 4,
+              filterCondition: dropdownFilter?.trim() || null,
+              sortingOrder: sortingOrder || null,
+              tableName: referenceTable.trim(),
+              columnName: referenceColumn.trim(),
+              search: search || null,
+              pageNumber: pageNo || null,
+              value: value || "",
+            };
           let data = await executeStoredProcedure("dynamicDataFetch", obj);
           let nextPage = data.length < 1001 ? null : pageNo + 1;
           // console.log(data);
@@ -286,7 +286,7 @@ module.exports = {
       }
       let count = await executeQuery(
         `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
-          query,
+        query,
         {}
       );
       if (count.recordset[0].total === 0) {
@@ -377,7 +377,7 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
               ]
             )[0],
           });
@@ -394,13 +394,15 @@ module.exports = {
   },
   dropdownCreateForm: async (req, res) => {
     try {
-      let parameter = { IsTable: 1 };
-      if (req.body.dropdownFilter) {
-        parameter = { IsTable: 0, TableName: req.body.dropdownFilter };
-      }
+      let parameter = {
+        TableName: req.body.referenceTable,
+        dropDownFilterCondition: req.body.dropdownFilter,
+        referenceColumn: req.body.referenceColumn,
+        IsTable: req.body.IsTable,
+      };
       let data = await executeNonJSONStoredProcedure(
         "FetchDatabaseInfo",
-        parameter
+        parameter,
       );
       if (data.recordsets[0]?.length > 0) {
         return res.send({
