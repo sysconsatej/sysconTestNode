@@ -142,7 +142,6 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
-const notifications = require("./src/routesSQL/notification.route");
 const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
 const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
 const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
@@ -173,7 +172,6 @@ app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
-app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
 app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
 app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);
