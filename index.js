@@ -17,10 +17,10 @@ const cors = require("cors");
 const httpLogger = require("./src/middlewares/requestLogger");
 const responseTimeLogger = require("./src/middlewares/responseTimeLogger");
 const errorHandler = require("./src/middlewares/errorHandler");
-// const { metricsMiddleware, register } = require("./src/middlewares/prometheusMiddleware");
+const { metricsMiddleware, register } = require("./src/middlewares/prometheusMiddleware");
 
 const app = express();
-// app.use(metricsMiddleware);
+app.use(metricsMiddleware);
 
 
 app.use(
@@ -141,8 +141,7 @@ const activites = require("./src/routesSQL/activitesRoutes");
 const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
-// const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
-// const notifications = require("./src/routesSQL/notification.route");
+const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
 const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
 const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
 const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
@@ -172,8 +171,7 @@ app.use("/Sql/api/activites", activites);
 app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
-// app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
-// app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
+app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
 app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
 app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);
@@ -208,7 +206,7 @@ app.use(function (req, res, next) {
 // console.log("connection", connect);
 // error handler
 app.use(errorHandler);
-const PORT = process.env.PORT || 9016;
+const PORT = process.env.PORT || 3000;
 console.log(`Server is running on port ${PORT}`.green);
 
 
