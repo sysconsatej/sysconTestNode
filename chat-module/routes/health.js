@@ -10,7 +10,7 @@ const { Router } = require("express")
 module.exports = function healthRoutes(store, ws) {
     const router = Router();
 
-    router.get("/chat-server/health", (req, res) => {
+    router.get("/", (req, res) => {
         res.json({
             status: 'ok',
             uptime: process.uptime(),
