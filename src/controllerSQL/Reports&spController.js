@@ -3,6 +3,7 @@ const {
   executeStoredProcedure,
   executeStoredProcedureToSendEmail,
   executeStoredProcedureXML,
+  execSpWithJsonParam,
 } = require("../modelSQL/model");
 const sql = require("mssql");
 const { connectToSql } = require("../config/sqlConfig");
@@ -481,13 +482,8 @@ module.exports = {
   },
   spCargoManifestBldata: async (req, res) => {
     try {
-      const { id } = req.body;
-      // const query = `igmBlData`;
       const query = `cargoManifestBldata`;
-      const parameters = {
-        filterCondition: id,
-      };
-      let data = await executeStoredProcedure(query, parameters);
+      let data = await execSpWithJsonParam(query, req?.body);
       if (data) {
         res.send({
           success: true,
