@@ -39,10 +39,10 @@ const SSL_KEY = process.env.SSL_KEY;
 
 // ── Express — mounted after store/ws/uploadService are created below ──────────
 const app = express();
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: '*' , methods: ['GET', 'POST'] }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/chat-uploads', express.static(path.join(__dirname, 'chat-uploads')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'chat-uploads')));
 
 // ── HTTP / HTTPS 
 let httpServer;
@@ -83,7 +83,7 @@ const rooms = new RoomRegistry(io);
 const ws = new WSServer(io, store, rooms);
 
 // Mount REST routes now that all dependencies exist
-app.use('/chat-api', mountRoutes(store, ws, uploadService));
+app.use('/api', mountRoutes(store, ws, uploadService));
 
 // ── Instantiate handlers (all receive same store/ws/rooms/notifs)
 const authHandler = new AuthHandler(store, ws, notifs);

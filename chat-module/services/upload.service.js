@@ -98,7 +98,7 @@ class UploadService {
                 size: stat.size,
                 sizeKb: Math.round(stat.size / 1024),
                 label: EXT_LABEL[ext] || ext.replace('.', '').toUpperCase(),
-                url: `/uploads/${this._safeUsername(username)}/${f}`,
+                url: `/uploads/${this._safeUserName(username)}/${f}`,
                 createdAt: stat.birthtimeMs || stat.mtimeMs,
             };
         }).sort((a, b) => b.createdAt - a.createdAt);
@@ -119,7 +119,7 @@ class UploadService {
     }
 
     _userDir(username) {
-        return path.join(this._root, this._safeUsername(username));
+        return path.join(this._root, this._safeUserName(username));
     }
 
     _buildFilename(originalName) {

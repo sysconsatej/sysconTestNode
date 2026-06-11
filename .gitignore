@@ -10,3 +10,5 @@ public/
 .qodo
 logs/
 *.log
+chat-uploads/
+chat-module/components/

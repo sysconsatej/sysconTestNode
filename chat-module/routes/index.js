@@ -14,9 +14,9 @@ const uploadRoutes = require('./upload');
 module.exports = function mountRoutes(store, ws, uploadService) {
   const router = Router();
 
-  router.use('/health',  healthRoutes(store, ws));
-  router.use('/users',   userRoutes(store));
-  router.use('/chat-upload',  uploadRoutes(uploadService));
+  router.use('/health', healthRoutes(store, ws));
+  router.use('/users', userRoutes(store));
+  router.use('/upload', uploadRoutes(uploadService));
 
   router.use('/rooms',   userRoutes(store));  
   router.use('/chat-files',   uploadRoutes(uploadService)); 

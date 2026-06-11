@@ -31,7 +31,7 @@ class AuthHandler {
         this._ws.sendTo(connId, S.AUTH_SUCCESS, {
             userId,
             username,
-            onlineUsers: this._store.getOnlineUsers().map(u => ({
+            onlineUsers: this._store.getOnlineUsers()?.map(u => ({
                 userId: u.userId,
                 username: u.username,
                 avatar: u.avatar,
