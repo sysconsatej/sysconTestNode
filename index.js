@@ -17,11 +17,13 @@ const cors = require("cors");
 const httpLogger = require("./src/middlewares/requestLogger");
 const responseTimeLogger = require("./src/middlewares/responseTimeLogger");
 const errorHandler = require("./src/middlewares/errorHandler");
-const { metricsMiddleware, register } = require("./src/middlewares/prometheusMiddleware");
+const {
+  metricsMiddleware,
+  register,
+} = require("./src/middlewares/prometheusMiddleware");
 
 const app = express();
 app.use(metricsMiddleware);
-
 
 app.use(
   fileUpload({
@@ -56,7 +58,6 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(httpLogger);
 app.use(responseTimeLogger);
 // app.use(limiter);
-
 
 const BalanceRouter = require("./src/routes/Balancereport");
 const BalanceSheet = require("./src/routes/BalanceSheet");
@@ -143,8 +144,9 @@ const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
 const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
-const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
+const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute");
 const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
+const extractEnquireDataRoute = require("./src/routes/extractEnquireDataRoute");
 const {
   deleteDeletedAttachments,
   deleteUnsavedAttachments,
@@ -175,6 +177,7 @@ app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by 
 app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
 app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);
+app.use("/Sql/api/ai", extractEnquireDataRoute);
 // test api made for test adter automating code is updating is working or not
 // app.get("/run-test", (req, res) => {
 //   try {
@@ -208,6 +211,5 @@ app.use(function (req, res, next) {
 app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 console.log(`Server is running on port ${PORT}`.green);
-
 
 module.exports = app;
