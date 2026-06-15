@@ -37,6 +37,14 @@ const GEMINI_FILE_POLL_INTERVAL_MS = Number(
 const GEMINI_FILE_PROCESSING_TIMEOUT_MS = Number(
   process.env.GEMINI_FILE_PROCESSING_TIMEOUT_MS || 15 * 60 * 1000,
 );
+const READING_STATUS_PROGRESS_STEP = Math.max(
+  1,
+  Number(process.env.READING_STATUS_PROGRESS_STEP) || 3,
+);
+const READING_STATUS_COMPLETE_DELAY_MS = Math.max(
+  0,
+  Number(process.env.READING_STATUS_COMPLETE_DELAY_MS) || 250,
+);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -55,11 +63,53 @@ let readingStatus = {
 };
 
 function setReadingStatus(patch = {}) {
+  const nextPatch = { ...patch };
+
+  if (
+    nextPatch.status === "running" &&
+    typeof nextPatch.progress === "number" &&
+    typeof readingStatus.progress === "number"
+  ) {
+    const currentProgress = Number(readingStatus.progress || 0);
+    const requestedProgress = Math.max(0, Math.min(99, nextPatch.progress));
+
+    if (requestedProgress > currentProgress) {
+      nextPatch.progress = Math.min(
+        currentProgress + READING_STATUS_PROGRESS_STEP,
+        requestedProgress,
+      );
+    } else {
+      nextPatch.progress = requestedProgress;
+    }
+  }
+
   readingStatus = {
     ...readingStatus,
-    ...patch,
+    ...nextPatch,
     updatedAt: new Date().toISOString(),
   };
+}
+
+async function completeReadingStatusSlowly(finalPatch = {}) {
+  while (Number(readingStatus.progress || 0) < 99) {
+    setReadingStatus({
+      status: "running",
+      stage: "finalizing",
+      progress: Math.min(
+        99,
+        Number(readingStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
+      ),
+      message: "Finalizing extracted PDF data",
+      error: null,
+    });
+
+    await sleep(READING_STATUS_COMPLETE_DELAY_MS);
+  }
+
+  setReadingStatus({
+    ...finalPatch,
+    progress: 100,
+  });
 }
 
 function resetReadingStatus() {
@@ -2174,10 +2224,9 @@ module.exports = {
           mergedResult = normalizeResultShape(mergedResult);
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
-          setReadingStatus({
+          await completeReadingStatusSlowly({
             status: "completed",
             stage: "completed",
-            progress: 100,
             currentFileIndex: workItems.length || null,
             totalFiles: workItems.length,
             currentFileName: null,
