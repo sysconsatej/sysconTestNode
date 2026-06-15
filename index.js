@@ -145,6 +145,8 @@ const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  
 const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
 const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
 const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
+const customerQuotationRoute = require("./src/routesSQL/customer-quotation.route");
+
 const {
   deleteDeletedAttachments,
   deleteUnsavedAttachments,
@@ -175,15 +177,7 @@ app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by 
 app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
 app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);
-// test api made for test adter automating code is updating is working or not
-// app.get("/run-test", (req, res) => {
-//   try {
-//     console.log("Test run successful");
-//     res.status(200).json({ message: "Test run Final", status: 200 });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
+app.use("/Sql/api/customer-quotation", customerQuotationRoute);
 
 app.get("/api/metrics", async (req, res) => {
   res.setHeader("Content-Type", register.contentType);
