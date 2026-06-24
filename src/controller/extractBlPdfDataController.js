@@ -389,7 +389,10 @@ function mergeExtractionResults(base = {}, incoming = {}) {
   for (const [key, value] of Object.entries(incoming || {})) {
     if (Array.isArray(value)) {
       const prev = Array.isArray(out[key]) ? out[key] : [];
-      out[key] = dedupeObjectArray([...prev, ...value]);
+      out[key] =
+        key === "tblContainer"
+          ? sanitizeContainerRows([...prev, ...value])
+          : dedupeObjectArray([...prev, ...value]);
       continue;
     }
 
@@ -1038,7 +1041,8 @@ function extractDeterministicFieldsFromText(rawText = "") {
 }
 
 function sanitizeContainerRows(rows = []) {
-  const cleaned = [];
+  const rowsByContainerNo = new Map();
+
   for (const row of rows || []) {
     const r = normalizeContainerRow(row);
     r.containerNo = normalizeWhitespace(r.containerNo);
@@ -1054,9 +1058,19 @@ function sanitizeContainerRows(rows = []) {
     r.grossWtUnit = normalizeWhitespace(r.grossWtUnit);
 
     if (!r.containerNo && !r.grossWt && !r.ntWt) continue;
-    cleaned.push(r);
+
+    const normalizedContainerNo = String(r.containerNo || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+    const key = normalizedContainerNo
+      ? `container:${normalizedContainerNo}`
+      : `row:${stableStringify(r)}`;
+
+    const existing = rowsByContainerNo.get(key);
+    rowsByContainerNo.set(key, existing ? mergeFlatObject(existing, r) : r);
   }
-  return dedupeObjectArray(cleaned);
+
+  return [...rowsByContainerNo.values()];
 }
 
 function isLabelOnlyValue(field, value) {
