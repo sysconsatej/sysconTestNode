@@ -1,63 +1,14 @@
 const md5 = require("md5");
 const validate = require("../helper/validate");
-const model = require("../models/module");
 const moment = require("moment");
 const jwt = require("jsonwebtoken");
 const SendMail = require("../helper/NodeMailer");
 const config = require("../config/auth.config");
 const Mailtemplate = require("../helper/Mailtemplate");
-// const { errorLogger } = require("../helper/loggerService");
-// const mongoose = require("../config/MongoConnection");
 const client = require("../redis/redis_client");
-const { executeStoredProcedure } = require("../modelSQL/model");
-// const { config } = require('dotenv')
+const { executeStoredProcedure, executeQuery } = require("../modelSQL/model");
 const Redis_expire_time = process.env.REDIS_EXPIRE_TIME;
 
-function parseDecimalFormat(inputString, value) {
-  // Regular expression to match "decimal(m,n)" and capture m and n
-  const regex = /decimal\((\d+),(\d+)\)/;
-  const matches = inputString.match(regex);
-
-  if (matches) {
-    // The first capturing group (\d+) is m, and the second is n
-    const m = parseInt(matches[1], 10); // Convert captured strings to integers
-    const n = parseInt(matches[2], 10);
-
-    return { success: true, m: m, n: n };
-  } else {
-    // Return null or throw an error if the format does not match
-    // throw Error('Invalid decimal format');
-    return { success: false };
-  }
-}
-function createDecimalValidator(m, n) {
-  return function (value) {
-    const stringValue = value?.toString() || "0";
-    //        console.log(stringValue);
-    // Calculate the maximum number of digits allowed before the decimal point
-    const maxDigitsBeforeDecimal = m - n;
-    const parts = stringValue.split(".");
-    const integerPart = parts[0];
-    const decimalPart = parts[1] || "";
-
-    const integerPartLength = integerPart.replace("-", "").length; // Remove sign for length check
-    const decimalPartLength = decimalPart.length;
-
-    return integerPartLength + decimalPartLength <= m;
-    // && decimalPartLength <= n;
-  };
-}
-function truncateDecimal(value, decimalPlaces) {
-  const factor = Math.pow(10, decimalPlaces);
-  return Math.floor(value * factor) / factor;
-}
-function extractIPv4(ip) {
-  // Check if the IP has an IPv6 prefix
-  if (ip.includes("::ffff:")) {
-    ip = ip.split(":").pop(); // Split by ':' and take the last part
-  }
-  return ip;
-}
 const generateOTP = () => {
   // Generate a random number between 100000 and 999999
   const otp = Math.floor(100000 + Math.random() * 900000);
@@ -135,308 +86,6 @@ function isDateOlderThan60Days(dateString) {
 }
 
 module.exports = {
-  // addUser: async (req, res) => {
-  //   const validationRule = {
-  //     name: "required",
-  //     email: "required",
-  //     password: "required",
-  //   };
-  //   validate(req.body, validationRule, {}, async (err, status) => {
-  //     if (!status) {
-  //       res.status(412).send({
-  //         success: false,
-  //         message: "Validation error",
-  //         data: err,
-  //       });
-  //     } else {
-  //       try {
-  //         let insertData = {};
-  //         let { body } = req;
-  //         // insertData.id = req.body.id || ""
-  //         // insertData.name = req.body.name
-  //         // insertData.email = req.body.email
-  //         // insertData.userName = req.body.userName
-  //         // insertData.password = md5(req.body.password)
-  //         // insertData.language = req.body.language
-  //         // insertData.twoStepVerification = req.body.twoStepVerification
-  //         // insertData.dateTimeFormat = req.body.dateTimeFormat
-  //         // insertData.currency = req.body.currency
-  //         // insertData.emailVerification = req.body.emailVerification
-  //         // insertData.smsVerification = req.body.smsVerification
-  //         // insertData.mobile = req.body.mobile
-  //         // insertData.status = req.body.status
-  //         if (Array.isArray(body.menuAccess)) {
-  //           body.menuAccess = body.menuAccess || [];
-  //         } else {
-  //           body.menuAccess = JSON.parse(body.menuAccess) || [];
-  //         }
-  //         body.password = md5(body.password);
-  //         insertData = {
-  //           id: body.id || "",
-  //           twoStepVerification: body.twoStepVerification || false,
-  //           emailVerification: body.emailVerification || false,
-  //           ...body,
-  //         };
-  //         if (req.files && req.files !== null && req.files.profilePhoto) {
-  //           var element = req.files.profilePhoto;
-  //           var image_name = moment().format("YYYYMMDDHHmmss") + element.name;
-  //           element.mv("./public/api/images/" + image_name.trim());
-  //           var doc_data = image_name;
-  //           //                        console.log(doc_data);
-  //           Object.assign(insertData, { profilePhoto: doc_data });
-  //         }
-  //         //                    // console.log(req.files.profilePhoto);
-  //         //                    // console.log(insertData);
-  //         let SchemaCheck = await model.AggregateFetchData(
-  //           "master_schema",
-  //           "master_schema",
-  //           [{ $match: { tableName: "tblUser" } }],
-  //           res,
-  //         );
-  //         if (SchemaCheck.length == 0) {
-  //           return res.send({
-  //             success: false,
-  //             message: "Please add schema for tblUser",
-  //             data: SchemaCheck,
-  //           });
-  //         }
-  //         let schemaObj = {
-  //           id: { type: Number, required: true, default: 0 },
-  //           status: { type: Number, required: true, default: 1 },
-  //           createdDate: { type: Date, required: true, default: Date.now() },
-  //           createdBy: { type: String, required: false, default: null },
-  //           updatedDate: { type: Date, required: true, default: Date.now() },
-  //           updatedBy: { type: String, required: false, default: null },
-  //           companyName: { type: String, required: false, default: null },
-  //           brachName: { type: String, required: false, default: null },
-  //           passwordLastUpdateDate: {
-  //             type: String,
-  //             required: false,
-  //             default: new Date().toISOString().split("T")[0],
-  //           },
-  //         };
-  //         for (const field of SchemaCheck[0].fields) {
-  //           let properties = {
-  //             required: field.isRequired,
-  //             default: field.defaultValue,
-  //           };
-  //           field.type.toLowerCase() == "string"
-  //             ? (properties.type = String)
-  //             : null;
-  //           field.type.toLowerCase() == "number"
-  //             ? (properties.type = Number)
-  //             : null;
-  //           field.type.toLowerCase() == "date"
-  //             ? (properties.type = Date)
-  //             : null;
-  //           field.type.toLowerCase() == "file"
-  //             ? (properties.type = String)
-  //             : null;
-  //           if (parseDecimalFormat(field.type).success == true) {
-  //             properties.type = Number;
-  //             properties.set = function (value) {
-  //               // Assuming you want to keep 2 decimal places
-  //               return truncateDecimal(value, parseDecimalFormat(field.type).n);
-  //             };
-  //             properties.validate = {
-  //               validator: (value) => {
-  //                 return createDecimalValidator(
-  //                   parseDecimalFormat(field.type).m,
-  //                   parseDecimalFormat(field.type).n,
-  //                 )(value);
-  //               },
-  //               message: `Value of ${field.fieldname} is not valid decimal format.`,
-  //             };
-  //           }
-  //           field.isUnique && field.isUnique
-  //             ? (properties.unique = true)
-  //             : null;
-  //           field.index && field.index == 1 ? (properties.index = "asc") : null;
-  //           if (field.referenceTable !== null) {
-  //             properties.ref = field.referenceTable;
-  //             properties.validate = {
-  //               validator: async (value) => {
-  //                 return await validateReference(field, value, model);
-
-  //                 // return checkDocumentExists(this[field.fieldname].ref,value)
-  //               },
-  //               message: `Value of ${field.fieldname} is not exist in reference table ${field.referenceTable}`,
-  //             };
-  //           }
-  //           schemaObj[field.fieldname] = properties;
-  //         }
-  //         SchemaCheck[0].child.forEach((child) => {
-  //           schemaObj[child.tableName] = [{}];
-
-  //           child.fields.forEach((field) => {
-  //             let properties = {
-  //               required: field.isRequired,
-  //               default: field.defaultValue,
-  //             };
-  //             field.type.toLowerCase() == "string"
-  //               ? (properties.type = String)
-  //               : null;
-  //             field.type.toLowerCase() == "number"
-  //               ? (properties.type = Number)
-  //               : null;
-  //             field.type.toLowerCase() == "date"
-  //               ? (properties.type = Date)
-  //               : null;
-  //             // field.isUnique && field.isUnique ? properties.unique = true : null
-  //             if (field.referenceTable !== null) {
-  //               properties.ref = field.referenceTable;
-  //               properties.validate = {
-  //                 validator: async (value) => {
-  //                   return await validateReference(field, value, model);
-
-  //                   // return checkDocumentExists(this[field.fieldname].ref,value)
-  //                 },
-  //                 message: `Value of ${field.fieldname} is not exist in reference table ${field.referenceTable}`,
-  //               };
-  //             }
-  //             if (parseDecimalFormat(field.type).success == true) {
-  //               properties.type = Number;
-  //               properties.set = function (value) {
-  //                 // Assuming you want to keep 2 decimal places
-  //                 return truncateDecimal(
-  //                   value,
-  //                   parseDecimalFormat(field.type).n,
-  //                 );
-  //               };
-  //               properties.validate = {
-  //                 validator: (value) => {
-  //                   return createDecimalValidator(
-  //                     parseDecimalFormat(field.type).m,
-  //                     parseDecimalFormat(field.type).n,
-  //                   )(value);
-  //                 },
-  //                 message: `Value of ${field.fieldname} is not valid decimal format`,
-  //               };
-  //             }
-  //             if (field.isUnique && field.isUnique) {
-  //               properties.validate = {
-  //                 validator: function (value) {
-  //                   //                                        // console.log("this parent",this.parent());
-  //                   // Assuming `this.parent()` refers to the parent array (`fields`)
-  //                   const fieldsArray = this.parent()[child.tableName];
-  //                   // Count occurrences of `value` in `fieldname`s of the `fieldsArray`
-  //                   const occurrences = fieldsArray.filter(
-  //                     (item) => item[field.fieldname] === value,
-  //                   ).length;
-  //                   // Validation passes if there's only one occurrence (the current field itself)
-  //                   return occurrences === 1;
-  //                 },
-  //                 message: (props) =>
-  //                   `${props.value} is not unique within the fields array`,
-  //               };
-  //             }
-  //             schemaObj[child.tableName][0][field.fieldname] = properties;
-  //           });
-  //           child.subChild.forEach((subChild) => {
-  //             schemaObj[child.tableName][0][subChild.tableName] = [{}];
-  //             subChild.fields.forEach((field) => {
-  //               let properties = {
-  //                 required: field.isRequired,
-  //                 default: field.defaultValue,
-  //               };
-
-  //               field.type.toLowerCase() == "string"
-  //                 ? (properties.type = String)
-  //                 : null;
-  //               field.type.toLowerCase() == "number"
-  //                 ? (properties.type = Number)
-  //                 : null;
-  //               field.type.toLowerCase() == "date"
-  //                 ? (properties.type = Date)
-  //                 : null;
-  //               // field.isUnique && field.isUnique ? properties.unique = true : null
-  //               if (field.referenceTable !== null) {
-  //                 properties.ref = field.referenceTable;
-  //                 properties.validate = {
-  //                   validator: async (value) => {
-  //                     return await validateReference(field, value, model);
-
-  //                     // return checkDocumentExists(this[field.fieldname].ref,value)
-  //                   },
-  //                   message: `Value of ${field.fieldname} is not exist in reference table ${field.referenceTable}`,
-  //                 };
-  //               }
-  //               if (parseDecimalFormat(field.type).success == true) {
-  //                 properties.type = Number;
-  //                 properties.set = function (value) {
-  //                   // Assuming you want to keep 2 decimal places
-  //                   return truncateDecimal(
-  //                     value,
-  //                     parseDecimalFormat(field.type).n,
-  //                   );
-  //                 };
-  //                 properties.validate = {
-  //                   validator: (value) => {
-  //                     return createDecimalValidator(
-  //                       parseDecimalFormat(field.type).m,
-  //                       parseDecimalFormat(field.type).n,
-  //                     )(value);
-  //                   },
-  //                   message: `Value of ${field.fieldname} is not valid decimal format`,
-  //                 };
-  //               }
-  //               if (field.isUnique && field.isUnique) {
-  //                 properties.validate = {
-  //                   validator: function (value) {
-  //                     //                                            console.log("this parent", this.parent());
-  //                     // return true
-  //                     // Assuming `this.parent()` refers to the parent array (`fields`)
-  //                     const fieldsArray = this.parent()[subChild.tableName];
-  //                     // Count occurrences of `value` in `fieldname`s of the `fieldsArray`
-  //                     const occurrences = fieldsArray.filter(
-  //                       (item) => item[field.fieldname] === value,
-  //                     ).length;
-  //                     // Validation passes if there's only one occurrence (the current field itself)
-  //                     return occurrences === 1;
-  //                   },
-  //                   message: (props) =>
-  //                     `${props.value} is not unique within the fields array For ${subChild.tableName}`,
-  //                 };
-  //               }
-  //               schemaObj[child.tableName][0][subChild.tableName][0][
-  //                 field.fieldname
-  //               ] = properties;
-  //               //                                // console.log(insertData[child.tableName][0][subChild.tableName][0]);
-  //             });
-  //           });
-  //           //                        // console.log(insertData[child.tableName][0]);
-  //         });
-  //         //                    // return console.log(schemaObj);
-  //         //                    //   return  console.log(insertData);
-  //         let data = await model.updateIfAvailableElseInsertMaster(
-  //           "tblUser",
-  //           schemaObj,
-  //           insertData,
-  //           { ip: extractIPv4(req.ip || req.connection.remoteAddress) },
-  //           "",
-  //         );
-  //         data
-  //           ? res.send({
-  //               success: true,
-  //               message: "Data inserted successfully....",
-  //               data: data,
-  //             })
-  //           : res.status(500).send({
-  //               success: false,
-  //               message: "Data not inserted Successfully...",
-  //               data: data,
-  //             });
-  //       } catch (error) {
-  //         //errorLogger(error, req);
-  //         res.status(500).send({
-  //           success: false,
-  //           message: "Data not inserted Successfully...",
-  //           data: error.message,
-  //         });
-  //       }
-  //     }
-  //   });
-  // },
   login: async (req, res) => {
     const validationRule = {
       userName: "required",
@@ -594,201 +243,6 @@ module.exports = {
       }
     });
   },
-  // VerifyOtp: async (req, res) => {
-  //   const validationRule = {
-  //     otp: "required",
-  //     userName: "required",
-  //   };
-  //   validate(req.body, validationRule, {}, async (err, status) => {
-  //     if (!status) {
-  //       res.status(403).send({
-  //         success: false,
-  //         message: "Validation error",
-  //         data: err,
-  //       });
-  //     } else {
-  //       try {
-  //         let query = [
-  //           {
-  //             $match: {
-  //               status: Number(process.env.ACTIVE_STATUS),
-  //               // otp: Number(req.body.otp),
-  //               $or: [
-  //                 {
-  //                   userName: req.body.userName,
-  //                 },
-  //                 {
-  //                   email: req.body.userName,
-  //                 },
-  //                 {
-  //                   mobile: req.body.userName,
-  //                 },
-  //               ],
-  //             },
-  //           },
-  //           {
-  //             $addFields: {
-  //               profilePhoto: {
-  //                 $concat: [
-  //                   process.env.HOST + process.env.PORT + "/api/images/",
-  //                   "$profilePhoto",
-  //                 ],
-  //               },
-  //             },
-  //           },
-  //           {
-  //             $project: {
-  //               password: 0,
-  //               menuAccess: 0,
-  //             },
-  //           },
-  //         ];
-  //         let data = await model.AggregateFetchData(
-  //           "tblUser",
-  //           "tblUser",
-  //           query,
-  //           res,
-  //         );
-  //         if (data.length > 0) {
-  //           let userName = data[0].userName;
-  //           let otpdata = await model.AggregateFetchData(
-  //             "tblOtpLog",
-  //             "tblOtpLog",
-  //             [
-  //               {
-  //                 $match: {
-  //                   userID: data[0].id,
-  //                   otp: req.body.otp,
-  //                   isUseable: 1,
-  //                 },
-  //               },
-  //             ],
-  //             res,
-  //           );
-  //           if (otpdata.length > 0) {
-  //             // let token = jwt.sign({ id: data[0].id ,userName: data[0].email, iat: Date.now(), companyName: data[0].defaultCompanyId, brachName: data[0].defaultBranchId,defaultFinYearId:data[0].defaultFinYear,numberFormat:data[0].numberFormat  }, config.secret, { expiresIn: 7200000 });
-  //             let token = jwt.sign(
-  //               {
-  //                 id: data[0].id,
-  //                 userName: data[0].email,
-  //                 iat: Date.now(),
-  //                 numberFormat: data[0].numberFormat,
-  //               },
-  //               config.secret,
-  //               { expiresIn: 7200000 },
-  //             );
-  //             // await model.updateIfAvailableElseInsert("tblOtpLog", "tblOtpLog", { id: otpdata[0].id, isUseable: 0 }, {}, res)
-  //             await model.Update(
-  //               "tblOtpLog",
-  //               "tblOtpLog",
-  //               { userID: data[0].id },
-  //               { isUseable: 0 },
-  //               {},
-  //               res,
-  //             );
-  //             res.send({
-  //               success: true,
-  //               message: "OTP Verified Successfully",
-  //               data: data,
-  //               token: token,
-  //             });
-  //           } else {
-  //             res.status(403).send({
-  //               success: false,
-  //               message: "Invalid OTP",
-  //               data: [],
-  //             });
-  //           }
-  //         } else {
-  //           res.status(403).send({
-  //             success: false,
-  //             message: "Invalid OTP",
-  //             data: [],
-  //           });
-  //         }
-  //       } catch (error) {
-  //         //errorLogger(error, req);
-  //         res.status(500).send({
-  //           success: false,
-  //           message: "Error - " + error.message,
-  //           data: error.message,
-  //         });
-  //       }
-  //     }
-  //   });
-  // },
-  // forgotPassword: async (req, res) => {
-  //   const validationRule = {
-  //     userName: "required",
-  //   };
-  //   validate(req.body, validationRule, {}, async (err, status) => {
-  //     if (!status) {
-  //       res.status(403).send({
-  //         success: false,
-  //         message: "Validation error",
-  //         data: err,
-  //       });
-  //     } else {
-  //       try {
-  //         let query = [
-  //           {
-  //             $match: {
-  //               status: Number(process.env.ACTIVE_STATUS),
-  //               $or: [
-  //                 {
-  //                   userName: req.body.userName,
-  //                 },
-  //                 {
-  //                   email: req.body.userName,
-  //                 },
-  //                 {
-  //                   mobile: req.body.userName,
-  //                 },
-  //               ],
-  //             },
-  //           },
-  //         ];
-  //         let otp = generateOTP();
-  //         let data = await model.AggregateFetchData(
-  //           "tblUser",
-  //           "tblUser",
-  //           query,
-  //           res,
-  //         );
-  //         if (data.length > 0) {
-  //           await model.updateIfAvailableElseInsert(
-  //             "tblOtpLog",
-  //             "tblOtpLog",
-  //             { id: "", userID: data[0].id, otp: otp, action: "forgot" },
-  //             {},
-  //             res,
-  //           );
-  //           let templete = Mailtemplate.mailOtp(otp);
-  //           //                        console.log(templete);
-  //           SendMail(data[0].email, "Forgot Password", "", templete);
-  //           res.send({
-  //             success: true,
-  //             message: "OTP sent to your mail",
-  //             data: data,
-  //           });
-  //         } else {
-  //           res.status(403).send({
-  //             success: false,
-  //             message: "user not found",
-  //             data: data,
-  //           });
-  //         }
-  //       } catch (error) {
-  //         //errorLogger(error, req);
-  //         res.status(500).send({
-  //           success: false,
-  //           message: "Error - " + error.message,
-  //           data: error.message,
-  //         });
-  //       }
-  //     }
-  //   });
-  // },
   changePassword: async (req, res) => {
     let validationRule = {
       userName: "required",
@@ -1063,6 +517,78 @@ module.exports = {
         success: false,
         message: "Error - " + error.message,
         data: error.message,
+      });
+    }
+  },
+  getAllUsers: async (req, res) => {
+    try {
+      if (!req.clientId) {
+        return res.status(400).json({
+          success: false,
+          message: "Bad Request  : Client Id is required",
+        })
+      }
+
+      const keys = await client.keys("user:*:session");
+      if (!keys.length) {
+        return res.status(200).json({
+          success: true,
+          message: "No active users found.",
+          data: [],
+        });
+      }
+
+      const users = await Promise.all(
+        keys.map(async (key) => {
+          const session = await client.hgetall(key);
+          return session;
+        })
+      );
+
+      const query = `select u.id , u.name ,  u.profilePhoto  , u.emailId from  tblUser  u where clientid = ${req?.clientId}`
+      const getUsersFromtheClientId = await executeQuery(query, {})
+
+      const dbUsers = getUsersFromtheClientId?.["recordset"] ?? [];
+
+      const activeUsers = [];
+      const inactiveUsers = [];
+
+      for (const dbUser of dbUsers) {
+        let isActive = false;
+        for (const user of users) {
+          if (dbUser.emailId === user.email) {
+            isActive = true;
+            activeUsers.push({
+              name: dbUser?.name,
+              profilePhoto: dbUser?.profilePhoto,
+              id : dbUser?.id,
+            });
+            break;
+          }
+        }
+        if (!isActive) {
+          inactiveUsers.push({
+            name: dbUser.name,
+            profilePhoto: dbUser.profilePhoto,
+            id : dbUser?.id,
+          });
+        }
+      }
+
+
+      return res.status(200).json({
+        success: true,
+        message: "Active users fetched successfully.",
+        data: {
+          active: activeUsers,
+          inactiveUsers: inactiveUsers,
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Error - " + err.message,
+        data: err.message,
       });
     }
   },
