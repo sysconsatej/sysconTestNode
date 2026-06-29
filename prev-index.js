@@ -7,23 +7,40 @@ const cookieParser = require("cookie-parser");
 var logger = require("morgan");
 // var { errorLogger } = require("./src/helper/loggerService");
 var bodyParser = require("body-parser");
-// var session = require("express-session");
-// var status = require("express-status-monitor");
+var session = require("express-session");
+var status = require("express-status-monitor");
 const cron = require("node-cron");
 const sqllConnection = require("./src/config/sqlConfig");
 const flash = require("connect-flash");
 const cors = require("cors");
-// const limiter = require("./src/middlewares/rateLimiter");
-const httpLogger = require("./src/middlewares/requestLogger");
-const responseTimeLogger = require("./src/middlewares/responseTimeLogger");
-const errorHandler = require("./src/middlewares/errorHandler");
-const {
-  metricsMiddleware,
-  register,
-} = require("./src/middlewares/prometheusMiddleware");
-
+const promClient = require("prom-client");
 const app = express();
-app.use(metricsMiddleware);
+
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register });
+
+const httpRequestDuration = new promClient.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status_code"],
+  buckets: [0.1, 0.5, 1, 2.5, 5, 10],
+});
+
+register.registerMetric(httpRequestDuration);
+
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+
+  res.on("finish", () => {
+    end({
+      method: req.method,
+      route: req.route?.path || req.path,
+      status_code: res.statusCode,
+    });
+  });
+
+  next();
+});
 
 app.use(
   fileUpload({
@@ -32,17 +49,17 @@ app.use(
 );
 app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser());
-// app.use(session({ secret: "123", resave: false, saveUninitialized: false }));
+app.use(session({ secret: "123", resave: false, saveUninitialized: false }));
 
-// app.use(flash());
-// const sessionFlash = function (req, res, next) {
-//   res.locals.currentUser = req.user;
-//   res.locals.error = req.flash("error");
-//   res.locals.success = req.flash("success");
-//   next();
-// };
-// app.use(sessionFlash);
-// app.use(status());
+app.use(flash());
+const sessionFlash = function (req, res, next) {
+  res.locals.currentUser = req.user;
+  res.locals.error = req.flash("error");
+  res.locals.success = req.flash("success");
+  next();
+};
+app.use(sessionFlash);
+app.use(status());
 app.set("views", path.join(__dirname, "views"));
 app.engine("html", require("ejs").renderFile);
 app.set("view engine", "html");
@@ -55,9 +72,6 @@ app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 app.use(bodyParser.json({ limit: "100mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(httpLogger);
-app.use(responseTimeLogger);
-// app.use(limiter);
 
 const BalanceRouter = require("./src/routes/Balancereport");
 const BalanceSheet = require("./src/routes/BalanceSheet");
@@ -83,6 +97,19 @@ const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
 const SendEmail = require("./src/routes/Email");
 const validations = require("./src/routes/validation");
 const SQLSp = require("./src/routesSQL/storeProcedureSql");
+
+// const redashQuery = require('./src/routes/redashRoutes');
+
+// const { loggers } = require('winston');
+
+// app.use((err, req, res, next) => {
+//   errorLogger(err, req);
+//    res.status(500).send({
+//      success: false,
+//      message: 'Something went wrong',
+//      data: []
+//    });
+//  });
 //const dynamicRouterMiddleware = require('./src/routes/SingleinsertRoute')
 
 // Middleware to parse JSON bodies
@@ -143,12 +170,10 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
+const notifications = require("./src/routesSQL/notification.route");
 const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
-const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute");
-const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
-const extractEnquireDataRoute = require("./src/routes/extractEnquireDataRoute");
-const customerQuotationRoute = require("./src/routesSQL/customer-quotation.route");
-
+const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute")
+// const { handleCrashes } = require("./handleCrash"); // commenting out crash handler for now to avoid process exit on unhandled exceptions, will revisit this later for a more robust solution
 const {
   deleteDeletedAttachments,
   deleteUnsavedAttachments,
@@ -176,11 +201,19 @@ app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
+app.use("/Sql/api/", notifications);  // notification route for push notification by aakash yadav
 app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
 app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
-app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);
-app.use("/Sql/api/ai", extractEnquireDataRoute);
-app.use("/Sql/api/customer-quotation", customerQuotationRoute);
+
+// test api made for test adter automating code is updating is working or not
+// app.get("/run-test", (req, res) => {
+//   try {
+//     console.log("Test run successful");
+//     res.status(200).json({ message: "Test run Final", status: 200 });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 app.get("/api/metrics", async (req, res) => {
   res.setHeader("Content-Type", register.contentType);
@@ -202,8 +235,26 @@ app.use(function (req, res, next) {
 });
 // console.log("connection", connect);
 // error handler
-app.use(errorHandler);
+app.use(function (err, req, res, next) {
+  // set locals, only providing error in development
+  res.removeHeader("X-Powered-By");
+  res.set(
+    "Cache-Control",
+    "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0",
+  );
+
+  res.locals.message = err.message;
+  console.log(err.message);
+  res.locals.error = req.app.get("env") === "development" ? err : {};
+
+  // render the error page
+
+  res.status(err.status || 500);
+  res.send({ success: false, message: "Api Not Found", data: [] });
+});
+
 const PORT = process.env.PORT || 3000;
 console.log(`Server is running on port ${PORT}`.green);
+// handleCrashes();
 
 module.exports = app;

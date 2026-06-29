@@ -6,7 +6,7 @@ const {
   executeNonJSONStoredProcedure,
   validatePrintExecuteStoredProcedure,
 } = require("../modelSQL/model");
-async function controlDefalutValue(data, clientId) {
+async function controlDefalutValue(data, clientId, finYearId) {
   if (data.controlname.toLowerCase() === "dropdown") {
     let result = await executeNonJSONStoredProcedure(
       "sp_GetControlDefaultValue",
@@ -15,15 +15,54 @@ async function controlDefalutValue(data, clientId) {
         ReferenceColumn: data.referenceColumn,
         controlDefaultValue: data.controlDefaultValue,
         clientId: clientId,
-      }
+      },
     );
     return JSON.parse(result.recordset[0].controlDefaultValue) || "";
-  } else if (
+  }
+  // else if (
+  //   ["date.now()", "Date.now()", "date.now", "Date.now"].includes(
+  //     data.controlDefaultValue
+  //   )
+  // ) {
+  //   return moment().format("YYYY-MM-DD");
+  // }
+  else if (
     ["date.now()", "Date.now()", "date.now", "Date.now"].includes(
-      data.controlDefaultValue
+      data.controlDefaultValue,
     )
   ) {
-    return moment().format("YYYY-MM-DD");
+    const currentDate = moment();
+
+    const fyId = Number(finYearId);
+    const cId = Number(clientId);
+
+    if (fyId) {
+      let fyResult = await executeQuery(
+        `SELECT TOP 1 
+        CONVERT(VARCHAR(19), startDate, 120) AS startDate,
+        CONVERT(VARCHAR(19), endDate, 120) AS endDate
+     FROM tblFinancialYear 
+     WHERE id = ${fyId} 
+       AND status = 1 
+       AND clientId = ${cId}`,
+        {},
+      );
+
+      const fyData = fyResult?.recordset?.[0];
+
+      if (fyData?.startDate && fyData?.endDate) {
+        const startDate = moment(fyData.startDate, "YYYY-MM-DD HH:mm:ss");
+        const endDate = moment(fyData.endDate, "YYYY-MM-DD HH:mm:ss");
+
+        if (currentDate.isBetween(startDate, endDate, undefined, "[]")) {
+          return currentDate.format("YYYY-MM-DD");
+        } else {
+          return endDate.format("YYYY-MM-DD");
+        }
+      }
+    }
+
+    return currentDate.format("YYYY-MM-DD");
   }
 
   return data.controlDefaultValue;
@@ -42,7 +81,7 @@ module.exports = {
         });
       }
       try {
-        const { menuID } = req.query;
+        const { menuID, defaultFinYearId } = req.query;
         let parameter = {
           menuID: menuID,
           createForm: 0,
@@ -62,7 +101,8 @@ module.exports = {
               if (element.controlDefaultValue) {
                 element.controlDefaultValue = await controlDefalutValue(
                   element,
-                  req.clientId
+                  req.clientId,
+                  defaultFinYearId,
                 );
               }
             }
@@ -71,7 +111,8 @@ module.exports = {
                 if (element.controlDefaultValue) {
                   element.controlDefaultValue = await controlDefalutValue(
                     element,
-                    req.clientId
+                    req.clientId,
+                    defaultFinYearId,
                   );
                 }
                 for (const element of child.subChild) {
@@ -79,7 +120,8 @@ module.exports = {
                     if (element.controlDefaultValue) {
                       element.controlDefaultValue = await controlDefalutValue(
                         element,
-                        req.clientId
+                        req.clientId,
+                        defaultFinYearId,
                       );
                     }
                   }
@@ -136,26 +178,26 @@ module.exports = {
           console.log(dropdownFilter);
           const obj = pageSize
             ? {
-              clientId: req.clientId || 4,
-              filterCondition: dropdownFilter?.trim() || null,
-              sortingOrder: sortingOrder || null,
-              tableName: referenceTable.trim(),
-              columnName: referenceColumn.trim(),
-              search: search || null,
-              pageNumber: pageNo || null,
-              value: value || "",
-              pageSize: pageSize,
-            }
+                clientId: req.clientId || 4,
+                filterCondition: dropdownFilter?.trim() || null,
+                sortingOrder: sortingOrder || null,
+                tableName: referenceTable.trim(),
+                columnName: referenceColumn.trim(),
+                search: search || null,
+                pageNumber: pageNo || null,
+                value: value || "",
+                pageSize: pageSize,
+              }
             : {
-              clientId: req.clientId || 4,
-              filterCondition: dropdownFilter?.trim() || null,
-              sortingOrder: sortingOrder || null,
-              tableName: referenceTable.trim(),
-              columnName: referenceColumn.trim(),
-              search: search || null,
-              pageNumber: pageNo || null,
-              value: value || "",
-            };
+                clientId: req.clientId || 4,
+                filterCondition: dropdownFilter?.trim() || null,
+                sortingOrder: sortingOrder || null,
+                tableName: referenceTable.trim(),
+                columnName: referenceColumn.trim(),
+                search: search || null,
+                pageNumber: pageNo || null,
+                value: value || "",
+              };
           let data = await executeStoredProcedure("dynamicDataFetch", obj);
           let nextPage = data.length < 1001 ? null : pageNo + 1;
           // console.log(data);
@@ -286,8 +328,8 @@ module.exports = {
       }
       let count = await executeQuery(
         `select count(*) as total from tblForm where status = 1 and clientId in ( ${req.clientId},(select id from tblClient where clientCode = 'SYSCON')) ` +
-        query,
-        {}
+          query,
+        {},
       );
       if (count.recordset[0].total === 0) {
         return res.send({
@@ -299,7 +341,7 @@ module.exports = {
       }
       let data = await executeStoredProcedure(
         "dynamicSearchApiCreateFormControl",
-        parameter
+        parameter,
       );
       if (data.length > 0) {
         return res.send({
@@ -330,7 +372,7 @@ module.exports = {
           loginCompanyId: req.body.loginCompany,
           loginCompanyBranchId: req.body.loginBranch,
           finYearId: req.body.loginfinYear,
-        }
+        },
       );
       res.send({
         success: true,
@@ -377,8 +419,8 @@ module.exports = {
             data: data,
             keyToValidate: JSON.parse(
               queryData.recordset[0][
-              "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
-              ]
+                "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+              ],
             )[0],
           });
         }

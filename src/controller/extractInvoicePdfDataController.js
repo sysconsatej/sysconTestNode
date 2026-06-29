@@ -11,6 +11,14 @@ const ai = new GoogleGenAI({
 });
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODELS = [
+  ...new Set(
+    (process.env.GEMINI_MODELS || `${MODEL},gemini-2.5-flash-lite`)
+      .split(",")
+      .map((model) => model.trim())
+      .filter(Boolean),
+  ),
+];
 const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50 MB per uploaded PDF
 
 // Big PDF handling
@@ -28,6 +36,14 @@ const GEMINI_FILE_POLL_INTERVAL_MS = Number(
 );
 const GEMINI_FILE_PROCESSING_TIMEOUT_MS = Number(
   process.env.GEMINI_FILE_PROCESSING_TIMEOUT_MS || 15 * 60 * 1000,
+);
+const READING_STATUS_PROGRESS_STEP = Math.max(
+  1,
+  Number(process.env.READING_STATUS_PROGRESS_STEP) || 3,
+);
+const READING_STATUS_COMPLETE_DELAY_MS = Math.max(
+  0,
+  Number(process.env.READING_STATUS_COMPLETE_DELAY_MS) || 250,
 );
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -47,11 +63,53 @@ let readingStatus = {
 };
 
 function setReadingStatus(patch = {}) {
+  const nextPatch = { ...patch };
+
+  if (
+    nextPatch.status === "running" &&
+    typeof nextPatch.progress === "number" &&
+    typeof readingStatus.progress === "number"
+  ) {
+    const currentProgress = Number(readingStatus.progress || 0);
+    const requestedProgress = Math.max(0, Math.min(99, nextPatch.progress));
+
+    if (requestedProgress > currentProgress) {
+      nextPatch.progress = Math.min(
+        currentProgress + READING_STATUS_PROGRESS_STEP,
+        requestedProgress,
+      );
+    } else {
+      nextPatch.progress = requestedProgress;
+    }
+  }
+
   readingStatus = {
     ...readingStatus,
-    ...patch,
+    ...nextPatch,
     updatedAt: new Date().toISOString(),
   };
+}
+
+async function completeReadingStatusSlowly(finalPatch = {}) {
+  while (Number(readingStatus.progress || 0) < 99) {
+    setReadingStatus({
+      status: "running",
+      stage: "finalizing",
+      progress: Math.min(
+        99,
+        Number(readingStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
+      ),
+      message: "Finalizing extracted PDF data",
+      error: null,
+    });
+
+    await sleep(READING_STATUS_COMPLETE_DELAY_MS);
+  }
+
+  setReadingStatus({
+    ...finalPatch,
+    progress: 100,
+  });
 }
 
 function resetReadingStatus() {
@@ -589,6 +647,8 @@ function isPdfFile(file) {
 function isRetryableGeminiError(error) {
   const message = String(
     error?.message ||
+      error?.status ||
+      error?.code ||
       error?.cause?.message ||
       error?.cause?.code ||
       error ||
@@ -609,8 +669,10 @@ function isRetryableGeminiError(error) {
     "429",
     "resource exhausted",
     "temporarily unavailable",
+    "unavailable",
     "internal error",
     "deadline exceeded",
+    "high demand",
     "network",
     "overloaded",
   ].some((token) => message.includes(token));
@@ -647,6 +709,69 @@ async function withRetry(fn, options = {}) {
   }
 
   throw lastError;
+}
+
+async function generateContentWithModelFallback({
+  contents,
+  config,
+  label = "generate content",
+  onRetry,
+  onModelFallback,
+}) {
+  let lastError;
+
+  for (let modelIndex = 0; modelIndex < GEMINI_MODELS.length; modelIndex++) {
+    const model = GEMINI_MODELS[modelIndex];
+
+    try {
+      const response = await withRetry(
+        async () =>
+          await ai.models.generateContent({
+            model,
+            contents,
+            config,
+          }),
+        {
+          label: `${label} using ${model}`,
+          onRetry: (error, attempt, delayMs) => {
+            if (typeof onRetry === "function") {
+              onRetry(error, attempt, delayMs, model);
+            }
+          },
+        },
+      );
+
+      try {
+        response.modelUsed = model;
+      } catch (e) {}
+      return response;
+    } catch (error) {
+      lastError = error;
+
+      const canTryNextModel =
+        modelIndex < GEMINI_MODELS.length - 1 && isRetryableGeminiError(error);
+
+      if (!canTryNextModel) {
+        throw error;
+      }
+
+      if (typeof onModelFallback === "function") {
+        onModelFallback(error, model, GEMINI_MODELS[modelIndex + 1]);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+function getFriendlyExtractionError(error) {
+  const rawMessage = error?.message || String(error || "");
+
+  if (isRetryableGeminiError(error)) {
+    return `${rawMessage}. Gemini is busy or temporarily unavailable. The request was retried and model fallback was attempted; please retry after a short delay if this continues.`;
+  }
+
+  return rawMessage || "Failed to extract PDF data";
 }
 
 const S = {
@@ -1126,7 +1251,12 @@ async function getPdfPageCount(buffer) {
   return pdf.getPageCount();
 }
 
-async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
+async function splitPdfBufferToTempFiles(
+  buffer,
+  originalName,
+  chunkPageCount,
+  textInvoiceCandidate = null,
+) {
   const srcPdf = await PDFDocument.load(buffer, {
     ignoreEncryption: true,
     updateMetadata: false,
@@ -1155,8 +1285,6 @@ async function splitPdfBufferToTempFiles(buffer, originalName, chunkPageCount) {
 
     const bytes = await chunkPdf.save();
     const chunkBuffer = Buffer.from(bytes);
-    const textInvoiceCandidate =
-      await extractInvoiceNoFromPdfTextBuffer(chunkBuffer);
     const partIndex = Math.floor(start / chunkPageCount) + 1;
     const displayName = `${safeBaseName}__part_${partIndex}_of_${partCount}.pdf`;
     const tempPath = path.join(
@@ -1196,11 +1324,13 @@ async function buildWorkItems(files) {
   for (const file of files) {
     const displayName = file?.name || "upload.pdf";
     const buffer = await getFileBuffer(file);
-    const textInvoiceCandidate =
-      await extractInvoiceNoFromPdfTextBuffer(buffer);
+
     if (!buffer) {
       throw new Error(`Could not read uploaded file: ${displayName}`);
     }
+
+    const textInvoiceCandidate =
+      await extractInvoiceNoFromPdfTextBuffer(buffer);
 
     let pageCount = null;
     try {
@@ -1218,6 +1348,7 @@ async function buildWorkItems(files) {
         buffer,
         displayName,
         PDF_CHUNK_PAGE_COUNT,
+        textInvoiceCandidate,
       );
       workItems.push(...chunkItems);
       continue;
@@ -1427,8 +1558,7 @@ async function extractContainerFallbackFromGemini(
         createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
       ];
 
-      return await ai.models.generateContent({
-        model: MODEL,
+      return await generateContentWithModelFallback({
         contents,
         config: {
           temperature: 0,
@@ -1437,21 +1567,34 @@ async function extractContainerFallbackFromGemini(
           responseMimeType: "application/json",
           responseJsonSchema: CONTAINER_ONLY_SCHEMA,
         },
+        label: `container fallback ${displayName}`,
+        onRetry: (error, attempt, delayMs, model) => {
+          setReadingStatus({
+            status: "running",
+            stage: "retrying_container_fallback",
+            currentFileIndex: index + 1,
+            totalFiles: totalItems,
+            currentFileName: displayName,
+            message: `Retrying container fallback for ${displayName} with ${model} (attempt ${attempt + 1}) after ${delayMs} ms`,
+            error: error?.message || String(error),
+          });
+        },
+        onModelFallback: (error, failedModel, nextModel) => {
+          setReadingStatus({
+            status: "running",
+            stage: "switching_model",
+            currentFileIndex: index + 1,
+            totalFiles: totalItems,
+            currentFileName: displayName,
+            message: `${failedModel} is unavailable for ${displayName}; trying ${nextModel}`,
+            error: error?.message || String(error),
+          });
+        },
       });
     },
     {
       label: `container fallback ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_container_fallback",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying container fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
+      retries: 0,
     },
   );
 
@@ -1507,8 +1650,7 @@ async function extractInvoiceNoFallbackFromGemini(
         createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
       ];
 
-      return await ai.models.generateContent({
-        model: MODEL,
+      return await generateContentWithModelFallback({
         contents,
         config: {
           temperature: 0,
@@ -1517,21 +1659,34 @@ async function extractInvoiceNoFallbackFromGemini(
           responseMimeType: "application/json",
           responseJsonSchema: INVOICE_NO_ONLY_SCHEMA,
         },
+        label: `invoiceNo fallback ${displayName}`,
+        onRetry: (error, attempt, delayMs, model) => {
+          setReadingStatus({
+            status: "running",
+            stage: "retrying_invoice_no_fallback",
+            currentFileIndex: index + 1,
+            totalFiles: totalItems,
+            currentFileName: displayName,
+            message: `Retrying invoice number fallback for ${displayName} with ${model} (attempt ${attempt + 1}) after ${delayMs} ms`,
+            error: error?.message || String(error),
+          });
+        },
+        onModelFallback: (error, failedModel, nextModel) => {
+          setReadingStatus({
+            status: "running",
+            stage: "switching_model",
+            currentFileIndex: index + 1,
+            totalFiles: totalItems,
+            currentFileName: displayName,
+            message: `${failedModel} is unavailable for ${displayName}; trying ${nextModel}`,
+            error: error?.message || String(error),
+          });
+        },
       });
     },
     {
       label: `invoiceNo fallback ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_invoice_no_fallback",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying invoice number fallback for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
+      retries: 0,
     },
   );
 
@@ -1732,8 +1887,7 @@ async function extractSingleChunkFromGemini(
         createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
       ];
 
-      return await ai.models.generateContent({
-        model: MODEL,
+      return await generateContentWithModelFallback({
         contents,
         config: {
           temperature: 0,
@@ -1742,21 +1896,34 @@ async function extractSingleChunkFromGemini(
           responseMimeType: "application/json",
           responseJsonSchema: EXTRACTION_SCHEMA,
         },
+        label: `generate content ${displayName}`,
+        onRetry: (error, attempt, delayMs, model) => {
+          setReadingStatus({
+            status: "running",
+            stage: "retrying_generate_content",
+            currentFileIndex: index + 1,
+            totalFiles: totalItems,
+            currentFileName: displayName,
+            message: `Retrying extraction for ${displayName} with ${model} (attempt ${attempt + 1}) after ${delayMs} ms`,
+            error: error?.message || String(error),
+          });
+        },
+        onModelFallback: (error, failedModel, nextModel) => {
+          setReadingStatus({
+            status: "running",
+            stage: "switching_model",
+            currentFileIndex: index + 1,
+            totalFiles: totalItems,
+            currentFileName: displayName,
+            message: `${failedModel} is unavailable for ${displayName}; trying ${nextModel}`,
+            error: error?.message || String(error),
+          });
+        },
       });
     },
     {
       label: `generate content ${displayName}`,
-      onRetry: (error, attempt, delayMs) => {
-        setReadingStatus({
-          status: "running",
-          stage: "retrying_generate_content",
-          currentFileIndex: index + 1,
-          totalFiles: totalItems,
-          currentFileName: displayName,
-          message: `Retrying extraction for ${displayName} (attempt ${attempt + 1}) after ${delayMs} ms`,
-          error: error?.message || String(error),
-        });
-      },
+      retries: 0,
     },
   );
 
@@ -1777,20 +1944,22 @@ async function extractSingleChunkFromGemini(
   // Focused fallback for invoice number
   let invoiceFallback = null;
 
-  try {
-    invoiceFallback = await extractInvoiceNoFallbackFromGemini(
-      fetchedFile,
-      workItem,
-      index,
-      totalItems,
-    );
+  if (!looksLikeInvoiceNo(workItem.textInvoiceCandidate)) {
+    try {
+      invoiceFallback = await extractInvoiceNoFallbackFromGemini(
+        fetchedFile,
+        workItem,
+        index,
+        totalItems,
+      );
 
-    usageEntries.push(invoiceFallback?.usageMetadata || {});
-  } catch (invoiceFallbackError) {
-    console.error(
-      `InvoiceNo fallback failed for ${displayName}:`,
-      invoiceFallbackError,
-    );
+      usageEntries.push(invoiceFallback?.usageMetadata || {});
+    } catch (invoiceFallbackError) {
+      console.error(
+        `InvoiceNo fallback failed for ${displayName}:`,
+        invoiceFallbackError,
+      );
+    }
   }
 
   parsed.invoiceNo = pickBestInvoiceNo([
@@ -2055,10 +2224,9 @@ module.exports = {
           mergedResult = normalizeResultShape(mergedResult);
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
-          setReadingStatus({
+          await completeReadingStatusSlowly({
             status: "completed",
             stage: "completed",
-            progress: 100,
             currentFileIndex: workItems.length || null,
             totalFiles: workItems.length,
             currentFileName: null,
@@ -2082,6 +2250,7 @@ module.exports = {
           });
         } catch (error) {
           console.error("Error extracting PDF data:", error);
+          const friendlyError = getFriendlyExtractionError(error);
 
           setReadingStatus({
             status: "failed",
@@ -2089,8 +2258,8 @@ module.exports = {
             progress: 100,
             currentFileName: null,
             fileState: null,
-            message: error.message || "Failed to extract PDF data",
-            error: error.message || "Failed to extract PDF data",
+            message: friendlyError,
+            error: friendlyError,
             data: null,
           });
         } finally {

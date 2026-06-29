@@ -18,6 +18,8 @@ router.post('/changeDeviceByRedis', controller.changeDeviceByRedis)
 router.post('/clearPassByRedis', controller.clearPassByRedis)
 
 
+// get all the  loggedIn(active)  and  notLoggedIn(not Active)
+router.get("/list", auth.verifyToken, controller.getAllUsers)
 
 
 
