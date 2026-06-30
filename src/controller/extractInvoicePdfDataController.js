@@ -48,28 +48,61 @@ const READING_STATUS_COMPLETE_DELAY_MS = Math.max(
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let readingStatus = {
-  status: "idle", // idle | running | completed | failed
-  stage: "idle",
-  progress: 0,
-  message: "No active process",
-  currentFileIndex: null,
-  totalFiles: 0,
-  currentFileName: null,
-  fileState: null,
-  data: null,
-  error: null,
-  updatedAt: new Date().toISOString(),
-};
+const EXTRACTION_JOB_TTL_MS = Number(
+  process.env.EXTRACTION_JOB_TTL_MS || 60 * 60 * 1000,
+);
 
-let currentExtractionRunId = 0;
+// extractionId wise status storage
+const extractionJobs = new Map();
 
-function isCurrentRun(runId) {
-  return Number(runId) === currentExtractionRunId;
+function createInitialReadingStatus({ extractionId, totalFiles = 0 }) {
+  return {
+    extractionId,
+    status: "idle", // idle | running | completed | failed
+    stage: "idle",
+    progress: 0,
+    message: "No active process",
+    currentFileIndex: null,
+    totalFiles,
+    currentFileName: null,
+    fileState: null,
+    data: null,
+    error: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
-function setReadingStatus(patch = {}, runId = currentExtractionRunId) {
-  if (!isCurrentRun(runId)) {
+function getReadingStatus(extractionId) {
+  if (!extractionId) return null;
+  return extractionJobs.get(extractionId) || null;
+}
+
+function isCurrentRun(extractionId) {
+  return !!getReadingStatus(extractionId);
+}
+
+function cleanupOldExtractionJobs() {
+  const now = Date.now();
+
+  for (const [extractionId, job] of extractionJobs.entries()) {
+    const updatedAt = new Date(job?.updatedAt || job?.createdAt || 0).getTime();
+    const isFinished = ["completed", "failed"].includes(job?.status);
+
+    if (isFinished && now - updatedAt > EXTRACTION_JOB_TTL_MS) {
+      extractionJobs.delete(extractionId);
+    }
+  }
+}
+
+function setReadingStatus(patch = {}, extractionId) {
+  if (!extractionId) {
+    return;
+  }
+
+  const currentStatus = getReadingStatus(extractionId);
+
+  if (!currentStatus) {
     return;
   }
 
@@ -78,9 +111,9 @@ function setReadingStatus(patch = {}, runId = currentExtractionRunId) {
   if (
     nextPatch.status === "running" &&
     typeof nextPatch.progress === "number" &&
-    typeof readingStatus.progress === "number"
+    typeof currentStatus.progress === "number"
   ) {
-    const currentProgress = Number(readingStatus.progress || 0);
+    const currentProgress = Number(currentStatus.progress || 0);
     const requestedProgress = Math.max(0, Math.min(99, nextPatch.progress));
 
     if (requestedProgress > currentProgress) {
@@ -93,17 +126,24 @@ function setReadingStatus(patch = {}, runId = currentExtractionRunId) {
     }
   }
 
-  readingStatus = {
-    ...readingStatus,
+  extractionJobs.set(extractionId, {
+    ...currentStatus,
     ...nextPatch,
+    extractionId,
     updatedAt: new Date().toISOString(),
-  };
+  });
 }
 
-async function completeReadingStatusSlowly(finalPatch = {}, runId = currentExtractionRunId) {
-  while (Number(readingStatus.progress || 0) < 99) {
-    if (!isCurrentRun(runId)) {
+async function completeReadingStatusSlowly(finalPatch = {}, extractionId) {
+  while (true) {
+    const currentStatus = getReadingStatus(extractionId);
+
+    if (!currentStatus) {
       return;
+    }
+
+    if (Number(currentStatus.progress || 0) >= 99) {
+      break;
     }
 
     setReadingStatus(
@@ -112,12 +152,12 @@ async function completeReadingStatusSlowly(finalPatch = {}, runId = currentExtra
         stage: "finalizing",
         progress: Math.min(
           99,
-          Number(readingStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
+          Number(currentStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
         ),
         message: "Finalizing extracted PDF data",
         error: null,
       },
-      runId,
+      extractionId,
     );
 
     await sleep(READING_STATUS_COMPLETE_DELAY_MS);
@@ -128,24 +168,8 @@ async function completeReadingStatusSlowly(finalPatch = {}, runId = currentExtra
       ...finalPatch,
       progress: 100,
     },
-    runId,
+    extractionId,
   );
-}
-
-function resetReadingStatus() {
-  readingStatus = {
-    status: "idle",
-    stage: "idle",
-    progress: 0,
-    message: "No active process",
-    currentFileIndex: null,
-    totalFiles: 0,
-    currentFileName: null,
-    fileState: null,
-    data: null,
-    error: null,
-    updatedAt: new Date().toISOString(),
-  };
 }
 
 function setNoStoreHeaders(res) {
@@ -2076,7 +2100,7 @@ async function extractSingleChunkFromGemini(
   const mergedUsageMetadata = {
     promptTokenCount: usageEntries.reduce(
       (sum, meta) => sum + Number(meta?.promptTokenCount || 0),
-      0, 
+      0,
     ),
     candidatesTokenCount: usageEntries.reduce(
       (sum, meta) => sum + Number(meta?.candidatesTokenCount || 0),
@@ -2152,16 +2176,12 @@ function getBillableCostFromUsage({
 
 module.exports = {
   extractPdfData: async (req, res) => {
+    let extractionId = null;
+    let uploadedSnapshots = [];
+
     try {
       setNoStoreHeaders(res);
-
-      if (readingStatus.status === "running") {
-        return res.status(409).json({
-          success: false,
-          error: "Another PDF extraction is already running",
-          readingStatus,
-        });
-      }
+      cleanupOldExtractionJobs();
 
       if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({
@@ -2177,6 +2197,16 @@ module.exports = {
           success: false,
           error:
             "No PDF files received. Send file(s) in form-data using key 'file'.",
+        });
+      }
+
+      // Since Purchase Invoice screen allows only one PDF,
+      // keep this validation on backend also.
+      if (files.length > 1) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "Only one PDF file is allowed per purchase invoice extraction.",
         });
       }
 
@@ -2204,14 +2234,22 @@ module.exports = {
         });
       }
 
-      const uploadedSnapshots = await Promise.all(
+      uploadedSnapshots = await Promise.all(
         files.map((file) => snapshotUploadedFile(file)),
       );
+
       const processingFiles = uploadedSnapshots.map((item) => item.file);
 
-      const runId = ++currentExtractionRunId;
+      // Unique id for this specific upload/process
+      extractionId = crypto.randomUUID();
 
-      resetReadingStatus();
+      extractionJobs.set(
+        extractionId,
+        createInitialReadingStatus({
+          extractionId,
+          totalFiles: processingFiles.length,
+        }),
+      );
 
       setReadingStatus(
         {
@@ -2226,13 +2264,14 @@ module.exports = {
           data: null,
           error: null,
         },
-        runId,
+        extractionId,
       );
 
       res.status(202).json({
         success: true,
+        extractionId,
         message: "PDF extraction started",
-        readingStatus,
+        readingStatus: getReadingStatus(extractionId),
       });
 
       (async () => {
@@ -2248,7 +2287,7 @@ module.exports = {
               message: "Validating uploaded PDF files",
               error: null,
             },
-            runId,
+            extractionId,
           );
 
           const workItems = await buildWorkItems(processingFiles);
@@ -2264,7 +2303,7 @@ module.exports = {
               message: `Prepared ${workItems.length} processing unit(s) from ${processingFiles.length} uploaded PDF file(s)`,
               error: null,
             },
-            runId,
+            extractionId,
           );
 
           let mergedResult = normalizeResultShape({});
@@ -2273,7 +2312,7 @@ module.exports = {
           for (let i = 0; i < workItems.length; i++) {
             const workItem = workItems[i];
 
-            if (!isCurrentRun(runId)) {
+            if (!isCurrentRun(extractionId)) {
               break;
             }
 
@@ -2281,10 +2320,10 @@ module.exports = {
               workItem,
               i,
               workItems.length,
-              runId,
+              extractionId,
             );
 
-            if (!isCurrentRun(runId)) {
+            if (!isCurrentRun(extractionId)) {
               break;
             }
 
@@ -2296,10 +2335,10 @@ module.exports = {
                 workItem,
                 i,
                 workItems.length,
-                runId,
+                extractionId,
               );
 
-            if (!isCurrentRun(runId)) {
+            if (!isCurrentRun(extractionId)) {
               break;
             }
 
@@ -2320,7 +2359,7 @@ module.exports = {
             });
           }
 
-          if (!isCurrentRun(runId)) {
+          if (!isCurrentRun(extractionId)) {
             return;
           }
 
@@ -2352,13 +2391,13 @@ module.exports = {
               },
               error: null,
             },
-            runId,
+            extractionId,
           );
         } catch (error) {
           console.error("Error extracting PDF data:", error);
           const friendlyError = getFriendlyExtractionError(error);
 
-          if (isCurrentRun(runId)) {
+          if (isCurrentRun(extractionId)) {
             setReadingStatus(
               {
                 status: "failed",
@@ -2370,32 +2409,34 @@ module.exports = {
                 error: friendlyError,
                 data: null,
               },
-              runId,
+              extractionId,
             );
           }
         } finally {
           await deleteGeminiFiles(uploadedGeminiNames);
-          await Promise.all(
-            uploadedSnapshots.map((item) => item.cleanup?.()),
-          );
+          await Promise.all(uploadedSnapshots.map((item) => item.cleanup?.()));
         }
       })();
     } catch (error) {
       console.error("Error starting PDF extraction:", error);
 
-      setReadingStatus(
-        {
-          status: "failed",
-          stage: "failed",
-          progress: 100,
-          currentFileName: null,
-          fileState: null,
-          message: error.message || "Failed to start PDF extraction",
-          error: error.message || "Failed to start PDF extraction",
-          data: null,
-        },
-        currentExtractionRunId,
-      );
+      if (extractionId && isCurrentRun(extractionId)) {
+        setReadingStatus(
+          {
+            status: "failed",
+            stage: "failed",
+            progress: 100,
+            currentFileName: null,
+            fileState: null,
+            message: error.message || "Failed to start PDF extraction",
+            error: error.message || "Failed to start PDF extraction",
+            data: null,
+          },
+          extractionId,
+        );
+      }
+
+      await Promise.all(uploadedSnapshots.map((item) => item.cleanup?.()));
 
       return res.status(500).json({
         success: false,
@@ -2407,9 +2448,32 @@ module.exports = {
   getPdfExtractionStatus: async (req, res) => {
     try {
       setNoStoreHeaders(res);
+      cleanupOldExtractionJobs();
+
+      const extractionId =
+        req.query?.extractionId ||
+        req.params?.extractionId ||
+        req.body?.extractionId;
+
+      if (!extractionId) {
+        return res.status(400).json({
+          success: false,
+          error: "extractionId is required",
+        });
+      }
+
+      const readingStatus = getReadingStatus(extractionId);
+
+      if (!readingStatus) {
+        return res.status(404).json({
+          success: false,
+          error: "PDF extraction status not found or expired",
+        });
+      }
 
       return res.status(200).json({
         success: true,
+        extractionId,
         readingStatus,
       });
     } catch (error) {
