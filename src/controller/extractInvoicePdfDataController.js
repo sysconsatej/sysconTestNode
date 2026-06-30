@@ -148,6 +148,15 @@ function resetReadingStatus() {
   };
 }
 
+function setNoStoreHeaders(res) {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+    "Surrogate-Control": "no-store",
+  });
+}
+
 function safeFileState(state) {
   if (!state) return "UNKNOWN";
   if (typeof state === "string") return state.toUpperCase();
@@ -1232,6 +1241,35 @@ async function getFileBuffer(file) {
   return null;
 }
 
+async function snapshotUploadedFile(file) {
+  const buffer = await getFileBuffer(file);
+  const displayName = file?.name || "upload.pdf";
+
+  if (!buffer || !buffer.length) {
+    throw new Error(`Could not read uploaded file: ${displayName}`);
+  }
+
+  const tempName = `${Date.now()}-${crypto.randomUUID()}-${displayName}`;
+  const tempPath = path.join(os.tmpdir(), tempName);
+
+  await fs.writeFile(tempPath, buffer);
+
+  return {
+    file: {
+      ...file,
+      data: undefined,
+      tempFilePath: tempPath,
+      size: file?.size || buffer.length,
+      name: displayName,
+    },
+    cleanup: async () => {
+      try {
+        await fs.unlink(tempPath);
+      } catch (e) {}
+    },
+  };
+}
+
 async function ensureUploadInput(file) {
   if (file?.tempFilePath) {
     return {
@@ -2115,6 +2153,8 @@ function getBillableCostFromUsage({
 module.exports = {
   extractPdfData: async (req, res) => {
     try {
+      setNoStoreHeaders(res);
+
       if (readingStatus.status === "running") {
         return res.status(409).json({
           success: false,
@@ -2164,6 +2204,11 @@ module.exports = {
         });
       }
 
+      const uploadedSnapshots = await Promise.all(
+        files.map((file) => snapshotUploadedFile(file)),
+      );
+      const processingFiles = uploadedSnapshots.map((item) => item.file);
+
       const runId = ++currentExtractionRunId;
 
       resetReadingStatus();
@@ -2173,7 +2218,7 @@ module.exports = {
           status: "running",
           stage: "queued",
           progress: 0,
-          totalFiles: files.length,
+          totalFiles: processingFiles.length,
           currentFileIndex: null,
           currentFileName: null,
           fileState: null,
@@ -2199,14 +2244,14 @@ module.exports = {
               status: "running",
               stage: "validating",
               progress: 5,
-              totalFiles: files.length,
+              totalFiles: processingFiles.length,
               message: "Validating uploaded PDF files",
               error: null,
             },
             runId,
           );
 
-          const workItems = await buildWorkItems(files);
+          const workItems = await buildWorkItems(processingFiles);
 
           setReadingStatus(
             {
@@ -2216,7 +2261,7 @@ module.exports = {
               totalFiles: workItems.length,
               currentFileIndex: null,
               currentFileName: null,
-              message: `Prepared ${workItems.length} processing unit(s) from ${files.length} uploaded PDF file(s)`,
+              message: `Prepared ${workItems.length} processing unit(s) from ${processingFiles.length} uploaded PDF file(s)`,
               error: null,
             },
             runId,
@@ -2296,7 +2341,7 @@ module.exports = {
                 pdfFiles: buildPdfFilesSummary(workItems),
                 usageMetadata: finalUsageMetadata,
                 processingInfo: {
-                  originalUploadedFiles: files.length,
+                  originalUploadedFiles: processingFiles.length,
                   processedUnits: workItems.length,
                   chunkedFiles: uniqueNonEmpty(
                     workItems
@@ -2330,6 +2375,9 @@ module.exports = {
           }
         } finally {
           await deleteGeminiFiles(uploadedGeminiNames);
+          await Promise.all(
+            uploadedSnapshots.map((item) => item.cleanup?.()),
+          );
         }
       })();
     } catch (error) {
@@ -2358,6 +2406,8 @@ module.exports = {
 
   getPdfExtractionStatus: async (req, res) => {
     try {
+      setNoStoreHeaders(res);
+
       return res.status(200).json({
         success: true,
         readingStatus,
