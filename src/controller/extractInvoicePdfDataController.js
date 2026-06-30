@@ -2270,6 +2270,7 @@ module.exports = {
       res.status(202).json({
         success: true,
         extractionId,
+        serverProcessId: process.pid,
         message: "PDF extraction started",
         readingStatus: getReadingStatus(extractionId),
       });
@@ -2467,7 +2468,10 @@ module.exports = {
       if (!readingStatus) {
         return res.status(404).json({
           success: false,
+          extractionId,
+          serverProcessId: process.pid,
           error: "PDF extraction status not found or expired",
+          readingStatus: null,
         });
       }
 
