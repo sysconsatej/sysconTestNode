@@ -62,7 +62,17 @@ let readingStatus = {
   updatedAt: new Date().toISOString(),
 };
 
-function setReadingStatus(patch = {}) {
+let currentExtractionRunId = 0;
+
+function isCurrentRun(runId) {
+  return Number(runId) === currentExtractionRunId;
+}
+
+function setReadingStatus(patch = {}, runId = currentExtractionRunId) {
+  if (!isCurrentRun(runId)) {
+    return;
+  }
+
   const nextPatch = { ...patch };
 
   if (
@@ -90,26 +100,36 @@ function setReadingStatus(patch = {}) {
   };
 }
 
-async function completeReadingStatusSlowly(finalPatch = {}) {
+async function completeReadingStatusSlowly(finalPatch = {}, runId = currentExtractionRunId) {
   while (Number(readingStatus.progress || 0) < 99) {
-    setReadingStatus({
-      status: "running",
-      stage: "finalizing",
-      progress: Math.min(
-        99,
-        Number(readingStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
-      ),
-      message: "Finalizing extracted PDF data",
-      error: null,
-    });
+    if (!isCurrentRun(runId)) {
+      return;
+    }
+
+    setReadingStatus(
+      {
+        status: "running",
+        stage: "finalizing",
+        progress: Math.min(
+          99,
+          Number(readingStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
+        ),
+        message: "Finalizing extracted PDF data",
+        error: null,
+      },
+      runId,
+    );
 
     await sleep(READING_STATUS_COMPLETE_DELAY_MS);
   }
 
-  setReadingStatus({
-    ...finalPatch,
-    progress: 100,
-  });
+  setReadingStatus(
+    {
+      ...finalPatch,
+      progress: 100,
+    },
+    runId,
+  );
 }
 
 function resetReadingStatus() {
@@ -1376,13 +1396,14 @@ async function buildWorkItems(files) {
   return workItems;
 }
 
-async function uploadAndWaitForFile(workItem, index, totalItems) {
+async function uploadAndWaitForFile(workItem, index, totalItems, runId) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
   const cleanupLocalFile = workItem.cleanup || (async () => {});
   let uploadedName = null;
+  const updateStatus = (patch = {}) => setReadingStatus(patch, runId);
 
   try {
-    setReadingStatus({
+    updateStatus({
       status: "running",
       stage: "reading_local_file",
       progress: Math.min(
@@ -1398,7 +1419,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
 
     const uploaded = await withRetry(
       async () => {
-        setReadingStatus({
+        updateStatus({
           status: "running",
           stage: "uploading_to_gemini",
           progress: Math.min(
@@ -1423,7 +1444,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
       {
         label: `upload ${displayName}`,
         onRetry: (error, attempt, delayMs) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "retrying_upload",
             currentFileIndex: index + 1,
@@ -1465,7 +1486,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
         70,
       );
 
-      setReadingStatus({
+      updateStatus({
         status: "running",
         stage: "gemini_processing_file",
         progress: loopProgress,
@@ -1493,7 +1514,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
       throw new Error(`Gemini failed to process file: ${displayName}`);
     }
 
-    setReadingStatus({
+    updateStatus({
       status: "running",
       stage: "gemini_file_ready",
       progress: Math.min(60 + Math.floor(((index + 1) / totalItems) * 10), 75),
@@ -1534,12 +1555,14 @@ async function extractContainerFallbackFromGemini(
   workItem,
   index,
   totalItems,
+  runId,
 ) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
+  const updateStatus = (patch = {}) => setReadingStatus(patch, runId);
 
   const response = await withRetry(
     async () => {
-      setReadingStatus({
+      updateStatus({
         status: "running",
         stage: "extracting_container_fallback",
         progress: Math.min(
@@ -1569,7 +1592,7 @@ async function extractContainerFallbackFromGemini(
         },
         label: `container fallback ${displayName}`,
         onRetry: (error, attempt, delayMs, model) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "retrying_container_fallback",
             currentFileIndex: index + 1,
@@ -1580,7 +1603,7 @@ async function extractContainerFallbackFromGemini(
           });
         },
         onModelFallback: (error, failedModel, nextModel) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "switching_model",
             currentFileIndex: index + 1,
@@ -1626,12 +1649,14 @@ async function extractInvoiceNoFallbackFromGemini(
   workItem,
   index,
   totalItems,
+  runId,
 ) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
+  const updateStatus = (patch = {}) => setReadingStatus(patch, runId);
 
   const response = await withRetry(
     async () => {
-      setReadingStatus({
+      updateStatus({
         status: "running",
         stage: "extracting_invoice_no_fallback",
         progress: Math.min(
@@ -1661,7 +1686,7 @@ async function extractInvoiceNoFallbackFromGemini(
         },
         label: `invoiceNo fallback ${displayName}`,
         onRetry: (error, attempt, delayMs, model) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "retrying_invoice_no_fallback",
             currentFileIndex: index + 1,
@@ -1672,7 +1697,7 @@ async function extractInvoiceNoFallbackFromGemini(
           });
         },
         onModelFallback: (error, failedModel, nextModel) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "switching_model",
             currentFileIndex: index + 1,
@@ -1859,8 +1884,10 @@ async function extractSingleChunkFromGemini(
   workItem,
   index,
   totalItems,
+  runId,
 ) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
+  const updateStatus = (patch = {}) => setReadingStatus(patch, runId);
 
   const prompt = workItem.wasChunked
     ? buildChunkTaskPrompt(workItem)
@@ -1868,7 +1895,7 @@ async function extractSingleChunkFromGemini(
 
   const response = await withRetry(
     async () => {
-      setReadingStatus({
+      updateStatus({
         status: "running",
         stage: "generating_content",
         progress: Math.min(
@@ -1898,7 +1925,7 @@ async function extractSingleChunkFromGemini(
         },
         label: `generate content ${displayName}`,
         onRetry: (error, attempt, delayMs, model) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "retrying_generate_content",
             currentFileIndex: index + 1,
@@ -1909,7 +1936,7 @@ async function extractSingleChunkFromGemini(
           });
         },
         onModelFallback: (error, failedModel, nextModel) => {
-          setReadingStatus({
+          updateStatus({
             status: "running",
             stage: "switching_model",
             currentFileIndex: index + 1,
@@ -1951,6 +1978,7 @@ async function extractSingleChunkFromGemini(
         workItem,
         index,
         totalItems,
+        runId,
       );
 
       usageEntries.push(invoiceFallback?.usageMetadata || {});
@@ -1976,6 +2004,7 @@ async function extractSingleChunkFromGemini(
         workItem,
         index,
         totalItems,
+        runId,
       );
 
       usageEntries.push(fallback?.usageMetadata || {});
@@ -2135,20 +2164,25 @@ module.exports = {
         });
       }
 
+      const runId = ++currentExtractionRunId;
+
       resetReadingStatus();
 
-      setReadingStatus({
-        status: "running",
-        stage: "queued",
-        progress: 0,
-        totalFiles: files.length,
-        currentFileIndex: null,
-        currentFileName: null,
-        fileState: null,
-        message: "PDF extraction started",
-        data: null,
-        error: null,
-      });
+      setReadingStatus(
+        {
+          status: "running",
+          stage: "queued",
+          progress: 0,
+          totalFiles: files.length,
+          currentFileIndex: null,
+          currentFileName: null,
+          fileState: null,
+          message: "PDF extraction started",
+          data: null,
+          error: null,
+        },
+        runId,
+      );
 
       res.status(202).json({
         success: true,
@@ -2160,27 +2194,33 @@ module.exports = {
         const uploadedGeminiNames = [];
 
         try {
-          setReadingStatus({
-            status: "running",
-            stage: "validating",
-            progress: 5,
-            totalFiles: files.length,
-            message: "Validating uploaded PDF files",
-            error: null,
-          });
+          setReadingStatus(
+            {
+              status: "running",
+              stage: "validating",
+              progress: 5,
+              totalFiles: files.length,
+              message: "Validating uploaded PDF files",
+              error: null,
+            },
+            runId,
+          );
 
           const workItems = await buildWorkItems(files);
 
-          setReadingStatus({
-            status: "running",
-            stage: "preparing_chunks",
-            progress: 8,
-            totalFiles: workItems.length,
-            currentFileIndex: null,
-            currentFileName: null,
-            message: `Prepared ${workItems.length} processing unit(s) from ${files.length} uploaded PDF file(s)`,
-            error: null,
-          });
+          setReadingStatus(
+            {
+              status: "running",
+              stage: "preparing_chunks",
+              progress: 8,
+              totalFiles: workItems.length,
+              currentFileIndex: null,
+              currentFileName: null,
+              message: `Prepared ${workItems.length} processing unit(s) from ${files.length} uploaded PDF file(s)`,
+              error: null,
+            },
+            runId,
+          );
 
           let mergedResult = normalizeResultShape({});
           const usageMetadataList = [];
@@ -2188,11 +2228,20 @@ module.exports = {
           for (let i = 0; i < workItems.length; i++) {
             const workItem = workItems[i];
 
+            if (!isCurrentRun(runId)) {
+              break;
+            }
+
             const { fetchedFile, uploadedName } = await uploadAndWaitForFile(
               workItem,
               i,
               workItems.length,
+              runId,
             );
+
+            if (!isCurrentRun(runId)) {
+              break;
+            }
 
             uploadedGeminiNames.push(uploadedName);
 
@@ -2202,7 +2251,12 @@ module.exports = {
                 workItem,
                 i,
                 workItems.length,
+                runId,
               );
+
+            if (!isCurrentRun(runId)) {
+              break;
+            }
 
             mergedResult = mergeExtractionResults(mergedResult, parsed);
 
@@ -2221,47 +2275,59 @@ module.exports = {
             });
           }
 
+          if (!isCurrentRun(runId)) {
+            return;
+          }
+
           mergedResult = normalizeResultShape(mergedResult);
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
-          await completeReadingStatusSlowly({
-            status: "completed",
-            stage: "completed",
-            currentFileIndex: workItems.length || null,
-            totalFiles: workItems.length,
-            currentFileName: null,
-            fileState: null,
-            message: "PDF data extracted successfully",
-            data: {
-              ...mergedResult,
-              pdfFiles: buildPdfFilesSummary(workItems),
-              usageMetadata: finalUsageMetadata,
-              processingInfo: {
-                originalUploadedFiles: files.length,
-                processedUnits: workItems.length,
-                chunkedFiles: uniqueNonEmpty(
-                  workItems
-                    .filter((w) => w.wasChunked)
-                    .map((w) => w.originalFileName),
-                ),
+          await completeReadingStatusSlowly(
+            {
+              status: "completed",
+              stage: "completed",
+              currentFileIndex: workItems.length || null,
+              totalFiles: workItems.length,
+              currentFileName: null,
+              fileState: null,
+              message: "PDF data extracted successfully",
+              data: {
+                ...mergedResult,
+                pdfFiles: buildPdfFilesSummary(workItems),
+                usageMetadata: finalUsageMetadata,
+                processingInfo: {
+                  originalUploadedFiles: files.length,
+                  processedUnits: workItems.length,
+                  chunkedFiles: uniqueNonEmpty(
+                    workItems
+                      .filter((w) => w.wasChunked)
+                      .map((w) => w.originalFileName),
+                  ),
+                },
               },
+              error: null,
             },
-            error: null,
-          });
+            runId,
+          );
         } catch (error) {
           console.error("Error extracting PDF data:", error);
           const friendlyError = getFriendlyExtractionError(error);
 
-          setReadingStatus({
-            status: "failed",
-            stage: "failed",
-            progress: 100,
-            currentFileName: null,
-            fileState: null,
-            message: friendlyError,
-            error: friendlyError,
-            data: null,
-          });
+          if (isCurrentRun(runId)) {
+            setReadingStatus(
+              {
+                status: "failed",
+                stage: "failed",
+                progress: 100,
+                currentFileName: null,
+                fileState: null,
+                message: friendlyError,
+                error: friendlyError,
+                data: null,
+              },
+              runId,
+            );
+          }
         } finally {
           await deleteGeminiFiles(uploadedGeminiNames);
         }
@@ -2269,16 +2335,19 @@ module.exports = {
     } catch (error) {
       console.error("Error starting PDF extraction:", error);
 
-      setReadingStatus({
-        status: "failed",
-        stage: "failed",
-        progress: 100,
-        currentFileName: null,
-        fileState: null,
-        message: error.message || "Failed to start PDF extraction",
-        error: error.message || "Failed to start PDF extraction",
-        data: null,
-      });
+      setReadingStatus(
+        {
+          status: "failed",
+          stage: "failed",
+          progress: 100,
+          currentFileName: null,
+          fileState: null,
+          message: error.message || "Failed to start PDF extraction",
+          error: error.message || "Failed to start PDF extraction",
+          data: null,
+        },
+        currentExtractionRunId,
+      );
 
       return res.status(500).json({
         success: false,
