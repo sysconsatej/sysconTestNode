@@ -11,12 +11,20 @@ const ai = new GoogleGenAI({
 });
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const FALLBACK_MODEL =
+  process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash-lite";
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024);
 const BIG_PDF_PAGE_THRESHOLD = Number(process.env.BIG_PDF_PAGE_THRESHOLD || 25);
 const PDF_CHUNK_PAGE_COUNT = Number(process.env.PDF_CHUNK_PAGE_COUNT || 12);
 const GEMINI_GENERATE_RETRIES = Number(process.env.GEMINI_GENERATE_RETRIES || 3);
 const GEMINI_RETRY_BASE_MS = Number(process.env.GEMINI_RETRY_BASE_MS || 3000);
+const GEMINI_HIGH_DEMAND_RETRIES = Number(
+  process.env.GEMINI_HIGH_DEMAND_RETRIES || 6,
+);
+const GEMINI_RETRY_MAX_DELAY_MS = Number(
+  process.env.GEMINI_RETRY_MAX_DELAY_MS || 60000,
+);
 const GEMINI_FILE_POLL_INTERVAL_MS = Number(
   process.env.GEMINI_FILE_POLL_INTERVAL_MS || 2000,
 );
@@ -44,13 +52,22 @@ const TARGET_FIELDS = [
   "marksAndNoAttach",
   "goodAndDescriptionAttach",
   "weight",
+  "weightUnit",
   "measurement",
   "grossWeight",
+  "grossWeightUnit",
   "netWeight",
+  "netWeightUnit",
+  "totalFreightAndCharges",
+  "prepaidCollect",
+  "loadFreeTimeForContainer",
+  "dischargeFreeTimeForContainer",
+  "containerDemurrageDaily",
   "shippedOnBoardDate",
   "freightPayableAt",
   "numberOfOriginalMtd",
-  "placeAndDateOfIssue",
+  "placeIssue",
+  "DateOfIssue",
   "forCompanyName",
   "mtdNo",
   "reportType",
@@ -143,6 +160,7 @@ const FIELD_ALIASES = {
     "WEIGHT",
     "TOTAL WEIGHT",
   ],
+  weightUnit: ["WEIGHT UNIT", "TOTAL WEIGHT UNIT"],
   measurement: [
     "MEASUREMENT",
     "TOTAL WEIGHT MEASUREMENT",
@@ -153,9 +171,22 @@ const FIELD_ALIASES = {
     "GROSS WEIGHT",
     "GR WT",
   ],
+  grossWeightUnit: ["GROSS WEIGHT UNIT", "GR WT UNIT"],
   netWeight: [
     "NET WEIGHT",
     "NT WT",
+  ],
+  netWeightUnit: ["NET WEIGHT UNIT", "NT WT UNIT"],
+  totalFreightAndCharges: [
+    "TOTAL FREIGHT & CHARGES",
+    "TOTAL FREIGHT AND CHARGES",
+  ],
+  prepaidCollect: ["PREPAID / COLLECT", "PREPAID COLLECT"],
+  loadFreeTimeForContainer: ["LOAD FREE TIME FOR CONTAINER"],
+  dischargeFreeTimeForContainer: ["DISCHARGE FREE TIME FOR CONTAINER"],
+  containerDemurrageDaily: [
+    "CONTAINER DEMURRAGE (DAILY)",
+    "CONTAINER DEMURRAGE DAILY",
   ],
   shippedOnBoardDate: [
     "SHIPPED ON BOARD DATE",
@@ -174,11 +205,12 @@ const FIELD_ALIASES = {
     "NO OF ORIGINAL MTDS",
     "NO OF ORIGINAL MTD S",
   ],
-  placeAndDateOfIssue: [
+  placeIssue: [
     "PLACE DATE OF ISSUE",
     "PLACE AND DATE OF ISSUE",
     "PLACE OF ISSUE DATE OF ISSUE",
   ],
+  DateOfIssue: ["DATE OF ISSUE"],
   forCompanyName: [
     "FOR",
     "SIGNED FOR",
@@ -357,7 +389,10 @@ function mergeExtractionResults(base = {}, incoming = {}) {
   for (const [key, value] of Object.entries(incoming || {})) {
     if (Array.isArray(value)) {
       const prev = Array.isArray(out[key]) ? out[key] : [];
-      out[key] = dedupeObjectArray([...prev, ...value]);
+      out[key] =
+        key === "tblContainer"
+          ? sanitizeContainerRows([...prev, ...value])
+          : dedupeObjectArray([...prev, ...value]);
       continue;
     }
 
@@ -379,19 +414,85 @@ function uniqueNonEmpty(values = []) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function splitContainerSizeAndType(typeValue, sizeValue) {
+  let type = normalizeWhitespace(typeValue);
+  let size = normalizeWhitespace(sizeValue);
+
+  if (type) {
+    const match = type.match(
+      /^(\d{2})\s*(?:FT|['’])?\s*(?:\/|\-)?\s*([A-Z][A-Z0-9 -]*)$/i,
+    );
+
+    if (match) {
+      size = size || match[1];
+      type = normalizeWhitespace(match[2]);
+    }
+  }
+
+  return {
+    size: size || null,
+    type: type || null,
+  };
+}
+
+function splitPlaceAndDateOfIssue(combinedValue, placeValue, dateValue) {
+  const combined = normalizeWhitespace(combinedValue);
+  let placeIssue = normalizeWhitespace(placeValue);
+  let DateOfIssue = normalizeWhitespace(dateValue);
+
+  if (combined && (!placeIssue || !DateOfIssue)) {
+    const dateMatch = combined.match(
+      /\b(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})\b/,
+    );
+
+    if (dateMatch) {
+      DateOfIssue = DateOfIssue || dateMatch[1];
+      placeIssue =
+        placeIssue ||
+        normalizeWhitespace(
+          combined
+            .replace(dateMatch[0], "")
+            .replace(/^[\s,:;\-]+|[\s,:;\-]+$/g, ""),
+        );
+    } else {
+      placeIssue = placeIssue || combined;
+    }
+  }
+
+  return {
+    placeIssue: placeIssue || null,
+    DateOfIssue: DateOfIssue || null,
+  };
+}
+
 function normalizeContainerRow(row = {}) {
+  const containerType = splitContainerSizeAndType(row.type, row.size);
+  const netWeight = splitWeightAndUnit(row.ntWt, row.ntWtUnit);
+  const tareWeight = splitWeightAndUnit(row.tarWt, row.tarWtUnit);
+  const grossWeight = splitWeightAndUnit(row.grossWt, row.grossWtUnit);
+
   return {
     containerNo: row.containerNo ?? null,
-    type: row.type ?? null,
+    size: containerType.size,
+    type: containerType.type,
     customeSealNo: row.customeSealNo ?? null,
     agentSealNo: row.agentSealNo ?? null,
-    ntWt: row.ntWt ?? null,
-    tarWt: row.tarWt ?? null,
-    grossWt: row.grossWt ?? null,
+    ntWt: netWeight.value,
+    ntWtUnit: netWeight.unit,
+    tarWt: tareWeight.value,
+    tarWtUnit: tareWeight.unit,
+    grossWt: grossWeight.value,
+    grossWtUnit: grossWeight.unit,
   };
 }
 
 function normalizeResultShape(data = {}) {
+  const issue = splitPlaceAndDateOfIssue(
+    data.placeAndDateOfIssue,
+    data.placeIssue,
+    data.DateOfIssue,
+  );
+
   return {
     consignorOrShipperName: data.consignorOrShipperName ?? null,
     consignorOrShipperAddress: data.consignorOrShipperAddress ?? null,
@@ -410,13 +511,22 @@ function normalizeResultShape(data = {}) {
     marksAndNoAttach: data.marksAndNoAttach ?? null,
     goodAndDescriptionAttach: data.goodAndDescriptionAttach ?? null,
     weight: data.weight ?? null,
+    weightUnit: data.weightUnit ?? null,
     measurement: data.measurement ?? null,
     grossWeight: data.grossWeight ?? null,
+    grossWeightUnit: data.grossWeightUnit ?? null,
     netWeight: data.netWeight ?? null,
+    netWeightUnit: data.netWeightUnit ?? null,
+    totalFreightAndCharges: data.totalFreightAndCharges ?? null,
+    prepaidCollect: data.prepaidCollect ?? null,
+    loadFreeTimeForContainer: data.loadFreeTimeForContainer ?? null,
+    dischargeFreeTimeForContainer: data.dischargeFreeTimeForContainer ?? null,
+    containerDemurrageDaily: data.containerDemurrageDaily ?? null,
     shippedOnBoardDate: data.shippedOnBoardDate ?? null,
     freightPayableAt: data.freightPayableAt ?? null,
     numberOfOriginalMtd: data.numberOfOriginalMtd ?? null,
-    placeAndDateOfIssue: data.placeAndDateOfIssue ?? null,
+    placeIssue: issue.placeIssue,
+    DateOfIssue: issue.DateOfIssue,
     forCompanyName: data.forCompanyName ?? null,
     mtdNo: data.mtdNo ?? null,
     reportType: data.reportType ?? null,
@@ -726,11 +836,11 @@ function parseContainerRow(line = "") {
   const gross = parseWeightToken(tokens, idx);
   idx -= gross.used;
 
-  const tarWt = idx >= 0 ? tokens[idx] : null;
-  idx -= 1;
+  const tare = parseWeightToken(tokens, idx);
+  idx -= tare.used;
 
-  const ntWt = idx >= 0 ? tokens[idx] : null;
-  idx -= 1;
+  const net = parseWeightToken(tokens, idx);
+  idx -= net.used;
 
   const middle = tokens.slice(1, idx + 1);
 
@@ -764,8 +874,8 @@ function parseContainerRow(line = "") {
     type: normalizeWhitespace(type),
     customeSealNo: normalizeWhitespace(customeSealNo),
     agentSealNo: normalizeWhitespace(agentSealNo),
-    ntWt: normalizeWhitespace(ntWt),
-    tarWt: normalizeWhitespace(tarWt),
+    ntWt: normalizeWhitespace(net.value),
+    tarWt: normalizeWhitespace(tare.value),
     grossWt: normalizeWhitespace(gross.value),
   };
 
@@ -828,6 +938,13 @@ function extractDeterministicFieldsFromText(rawText = "") {
     }),
   );
 
+  const issue = splitPlaceAndDateOfIssue(
+    firstNonEmptyMatch(text, [
+      /PLACE\s*&\s*DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
+      /PLACE\s+AND\s+DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
+    ]),
+  );
+
   const direct = {
     consignorOrShipperName: consignorParty.name,
     consignorOrShipperAddress: consignorParty.address,
@@ -870,10 +987,8 @@ function extractDeterministicFieldsFromText(rawText = "") {
     shippedOnBoardDate: firstNonEmptyMatch(text, [
       /SHIPPED\s+ON\s+BOARD\s+DATE\s*:?\s*([^\n\r]{2,80})/i,
     ]),
-    placeAndDateOfIssue: firstNonEmptyMatch(text, [
-      /PLACE\s*&\s*DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
-      /PLACE\s+AND\s+DATE\s+OF\s+ISSUE\s*:?\s*([^\n\r]{2,160})/i,
-    ]),
+    placeIssue: issue.placeIssue,
+    DateOfIssue: issue.DateOfIssue,
     forCompanyName: firstNonEmptyMatch(text, [
       /(?:^|\n)For\s+([A-Za-z0-9&.,'()\/\- ]{3,120})(?:\n|$)/im,
       /SIGNED\s+FOR\s+([A-Za-z0-9&.,'()\/\- ]{3,120})(?:\n|$)/im,
@@ -926,21 +1041,36 @@ function extractDeterministicFieldsFromText(rawText = "") {
 }
 
 function sanitizeContainerRows(rows = []) {
-  const cleaned = [];
+  const rowsByContainerNo = new Map();
+
   for (const row of rows || []) {
     const r = normalizeContainerRow(row);
     r.containerNo = normalizeWhitespace(r.containerNo);
+    r.size = normalizeWhitespace(r.size);
     r.type = normalizeWhitespace(r.type);
     r.customeSealNo = normalizeWhitespace(r.customeSealNo);
     r.agentSealNo = normalizeWhitespace(r.agentSealNo);
     r.ntWt = normalizeWhitespace(r.ntWt);
+    r.ntWtUnit = normalizeWhitespace(r.ntWtUnit);
     r.tarWt = normalizeWhitespace(r.tarWt);
+    r.tarWtUnit = normalizeWhitespace(r.tarWtUnit);
     r.grossWt = normalizeWhitespace(r.grossWt);
+    r.grossWtUnit = normalizeWhitespace(r.grossWtUnit);
 
     if (!r.containerNo && !r.grossWt && !r.ntWt) continue;
-    cleaned.push(r);
+
+    const normalizedContainerNo = String(r.containerNo || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+    const key = normalizedContainerNo
+      ? `container:${normalizedContainerNo}`
+      : `row:${stableStringify(r)}`;
+
+    const existing = rowsByContainerNo.get(key);
+    rowsByContainerNo.set(key, existing ? mergeFlatObject(existing, r) : r);
   }
-  return dedupeObjectArray(cleaned);
+
+  return [...rowsByContainerNo.values()];
 }
 
 function isLabelOnlyValue(field, value) {
@@ -973,6 +1103,33 @@ function normalizeReportType(value) {
   return null;
 }
 
+function splitWeightAndUnit(value, explicitUnit) {
+  let weight = normalizeWhitespace(value);
+  let unit = normalizeWhitespace(explicitUnit);
+
+  if (weight) {
+    const match = weight.match(
+      /^(.+?)[\s,]*(KGS?|KG|LBS?|LB|MTS?|MT|TONNES?|TONS?)\.?$/i,
+    );
+
+    if (match) {
+      weight = normalizeWhitespace(match[1]);
+      unit = unit || match[2];
+    }
+  }
+
+  return {
+    value: weight || null,
+    unit: unit ? String(unit).replace(/\.$/, "").toUpperCase() : null,
+  };
+}
+
+function removeTrailingIndia(value) {
+  const normalized = normalizeWhitespace(value);
+  if (!normalized) return null;
+  return normalizeWhitespace(normalized.replace(/,\s*INDIA\s*$/i, ""));
+}
+
 function sanitizeResult(data = {}) {
   const out = normalizeResultShape(data);
 
@@ -993,9 +1150,28 @@ function sanitizeResult(data = {}) {
   });
 
   out.tblContainer = sanitizeContainerRows(out.tblContainer);
+  out.placeOfReceipt = removeTrailingIndia(out.placeOfReceipt);
+  out.portOfLoading = removeTrailingIndia(out.portOfLoading);
+
+  const weight = splitWeightAndUnit(out.weight, out.weightUnit);
+  out.weight = weight.value;
+  out.weightUnit = weight.unit;
+
+  const grossWeight = splitWeightAndUnit(out.grossWeight, out.grossWeightUnit);
+  out.grossWeight = grossWeight.value;
+  out.grossWeightUnit = grossWeight.unit;
+
+  const netWeight = splitWeightAndUnit(out.netWeight, out.netWeightUnit);
+  out.netWeight = netWeight.value;
+  out.netWeightUnit = netWeight.unit;
 
   if (!out.weight) {
     out.weight = out.grossWeight || out.netWeight || null;
+    out.weightUnit = out.grossWeight
+      ? out.grossWeightUnit
+      : out.netWeight
+        ? out.netWeightUnit
+        : null;
   }
 
   if (
@@ -1121,9 +1297,28 @@ function isRetryableGeminiError(error) {
   ].some((token) => message.includes(token));
 }
 
+function isGeminiHighDemandError(error) {
+  const message = String(
+    error?.message ||
+      error?.cause?.message ||
+      error?.cause?.code ||
+      error ||
+      "",
+  ).toLowerCase();
+
+  return [
+    "503",
+    "unavailable",
+    "high demand",
+    "temporarily unavailable",
+    "overloaded",
+  ].some((token) => message.includes(token));
+}
+
 async function withRetry(fn, options = {}) {
   const {
     retries = GEMINI_GENERATE_RETRIES,
+    highDemandRetries = GEMINI_HIGH_DEMAND_RETRIES,
     baseDelayMs = GEMINI_RETRY_BASE_MS,
     label = "operation",
     onRetry,
@@ -1131,23 +1326,90 @@ async function withRetry(fn, options = {}) {
 
   let lastError;
 
-  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+  for (let attempt = 1; ; attempt++) {
     try {
       return await fn(attempt);
     } catch (error) {
       lastError = error;
 
-      if (attempt > retries || !isRetryableGeminiError(error)) {
+      const allowedRetries = isGeminiHighDemandError(error)
+        ? Math.max(retries, highDemandRetries)
+        : retries;
+
+      if (attempt > allowedRetries || !isRetryableGeminiError(error)) {
         throw error;
       }
 
-      const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
+      const delayMs = Math.min(
+        baseDelayMs * Math.pow(2, attempt - 1),
+        GEMINI_RETRY_MAX_DELAY_MS,
+      );
 
       if (typeof onRetry === "function") {
         onRetry(error, attempt, delayMs, label);
+      } else {
+        console.warn(
+          `${label} failed temporarily. Retrying in ${delayMs} ms ` +
+            `(attempt ${attempt + 1}/${allowedRetries + 1}).`,
+        );
+
+        if (readingStatus.status === "running") {
+          setReadingStatus({
+            message:
+              `Gemini is temporarily unavailable. Retrying ${label} in ` +
+              `${Math.ceil(delayMs / 1000)} seconds ` +
+              `(attempt ${attempt + 1}/${allowedRetries + 1})`,
+            error: null,
+          });
+        }
       }
 
       await sleep(delayMs);
+    }
+  }
+
+  throw lastError;
+}
+
+async function generateContentWithModelFailover(generate, label, preferredModel = null) {
+  const models = uniqueNonEmpty([preferredModel, MODEL, FALLBACK_MODEL]);
+  let lastError;
+
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex];
+    const isPrimaryModel = model === MODEL && models.length > 1;
+    const primaryRetries = Math.min(GEMINI_GENERATE_RETRIES, 2);
+
+    try {
+      const response = await withRetry(() => generate(model), {
+        label: `${label} using ${model}`,
+        retries: isPrimaryModel ? primaryRetries : GEMINI_GENERATE_RETRIES,
+        highDemandRetries: isPrimaryModel
+          ? primaryRetries
+          : GEMINI_HIGH_DEMAND_RETRIES,
+      });
+
+      return { response, modelUsed: model };
+    } catch (error) {
+      lastError = error;
+
+      const nextModel = models[modelIndex + 1];
+      if (!nextModel || !isGeminiHighDemandError(error)) {
+        throw error;
+      }
+
+      console.warn(
+        `${model} is unavailable due to high demand. Switching to ${nextModel}.`,
+      );
+
+      if (readingStatus.status === "running") {
+        setReadingStatus({
+          message:
+            `${model} is experiencing high demand. ` +
+            `Continuing with fallback model ${nextModel}.`,
+          error: null,
+        });
+      }
     }
   }
 
@@ -1166,12 +1428,16 @@ const CONTAINER_ITEM_SCHEMA = {
   additionalProperties: false,
   properties: {
     containerNo: S.str("Container No or Tank NOS."),
-    type: S.str("TYPE."),
+    size: S.str("Container size only, for example 20 from '20 / TK'."),
+    type: S.str("Container type only, for example TK from '20 / TK'."),
     customeSealNo: S.str("C. SEAL NO or custom seal number."),
     agentSealNo: S.str("S. SEAL NO or agent seal number."),
-    ntWt: S.str("NT. WT / Net Weight."),
-    tarWt: S.str("Tare Weight."),
-    grossWt: S.str("GR. WT / Gross Weight."),
+    ntWt: S.str("NT. WT / Net Weight value only, without its unit."),
+    ntWtUnit: S.str("Unit printed for NT. WT / Net Weight, for example KGS."),
+    tarWt: S.str("Tare Weight value only, without its unit."),
+    tarWtUnit: S.str("Unit printed for Tare Weight, for example KGS."),
+    grossWt: S.str("GR. WT / Gross Weight value only, without its unit."),
+    grossWtUnit: S.str("Unit printed for GR. WT / Gross Weight, for example KGS."),
   },
   required: [],
 };
@@ -1208,14 +1474,25 @@ const EXTRACTION_SCHEMA = {
     descriptionOfGoods: S.str("Main goods description block."),
     marksAndNoAttach: S.str("Attached sheet marks and numbers block."),
     goodAndDescriptionAttach: S.str("Attached sheet goods description block."),
-    weight: S.str("Weight."),
+    weight: S.str("Weight value only, without its unit."),
+    weightUnit: S.str("Unit printed for weight, for example KGS."),
     measurement: S.str("Measurement."),
-    grossWeight: S.str("Gross weight."),
-    netWeight: S.str("Net weight."),
+    grossWeight: S.str("Gross weight value only, without its unit."),
+    grossWeightUnit: S.str("Unit printed for gross weight, for example KGS."),
+    netWeight: S.str("Net weight value only, without its unit."),
+    netWeightUnit: S.str("Unit printed for net weight, for example KGS."),
+    totalFreightAndCharges: S.str("Value under Total Freight & Charges."),
+    prepaidCollect: S.str("Value under Prepaid / Collect, such as PREPAID or COLLECT."),
+    loadFreeTimeForContainer: S.str("Value under Load Free Time For Container."),
+    dischargeFreeTimeForContainer: S.str(
+      "Value under Discharge Free Time For Container.",
+    ),
+    containerDemurrageDaily: S.str("Value under Container Demurrage (daily)."),
     shippedOnBoardDate: S.str("Shipped on board date."),
     freightPayableAt: S.str("Freight payable at."),
     numberOfOriginalMtd: S.str("Number of original MTD."),
-    placeAndDateOfIssue: S.str("Place and date of issue."),
+    placeIssue: S.str("Place of issue only, without the issue date."),
+    DateOfIssue: S.str("Date of issue only, without the issue place."),
     forCompanyName: S.str("Company name after 'For' or 'Signed for'."),
     mtdNo: S.str("MTD number / BL number."),
     reportType: S.str("DRAFT or FINAL."),
@@ -1238,8 +1515,14 @@ Important:
 - Extract attached-sheet values separately.
 - Do not merge attached-sheet data into the main body fields.
 - tblContainer must include rows from table headers like Tank NOS / TYPE / C. SEAL NO / S. SEAL NO / NT. WT / Tare Weight / GR. WT.
+- Split combined container TYPE values such as '20 / TK' into size: '20' and type: 'TK'.
+- In each tblContainer row, keep ntWt, tarWt, and grossWt as values only and put their units in ntWtUnit, tarWtUnit, and grossWtUnit.
 - consignorOrShipperName / consigneeName / notifyName must contain only the company name.
 - consignorOrShipperAddress / consigneeAddress / notifyAddress must contain the remaining address lines.
+- Keep weight, grossWeight, and netWeight as values only; put their units in weightUnit, grossWeightUnit, and netWeightUnit.
+- Extract the Total Freight & Charges table into totalFreightAndCharges, prepaidCollect, loadFreeTimeForContainer, dischargeFreeTimeForContainer, and containerDemurrageDaily.
+- Split Place & Date of Issue into placeIssue and DateOfIssue.
+- For placeOfReceipt and portOfLoading, remove a trailing ', INDIA'; for example, return MUNDRA instead of MUNDRA, INDIA.
 - If a field is blank, return null.
 - Never return the label text as the value.
 
@@ -1270,6 +1553,8 @@ Focus especially on:
 - goodAndDescriptionAttach
 - tblContainer
 - vessel / voyage
+- weight / weightUnit / grossWeight / grossWeightUnit / netWeight / netWeightUnit
+- totalFreightAndCharges / prepaidCollect / loadFreeTimeForContainer / dischargeFreeTimeForContainer / containerDemurrageDaily
 `;
 }
 
@@ -1553,11 +1838,17 @@ async function deleteGeminiFiles(fileNames = []) {
   }
 }
 
-async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItems) {
+async function extractFallbackFromGemini(
+  fetchedFile,
+  workItem,
+  index,
+  totalItems,
+  preferredModel,
+) {
   const displayName = workItem.displayName || `file-${index + 1}.pdf`;
 
-  const response = await withRetry(
-    async () => {
+  const { response, modelUsed } = await generateContentWithModelFailover(
+    async (model) => {
       setReadingStatus({
         status: "running",
         stage: "extracting_fallback",
@@ -1570,7 +1861,7 @@ async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItem
       });
 
       return await ai.models.generateContent({
-        model: MODEL,
+        model,
         contents: [
           buildFallbackPrompt(workItem),
           createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
@@ -1584,9 +1875,8 @@ async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItem
         },
       });
     },
-    {
-      label: `fallback ${displayName}`,
-    },
+    `fallback ${displayName}`,
+    preferredModel,
   );
 
   let parsed;
@@ -1600,6 +1890,7 @@ async function extractFallbackFromGemini(fetchedFile, workItem, index, totalItem
   return {
     data: normalizeResultShape(parsed),
     usageMetadata: response?.usageMetadata || {},
+    modelUsed,
   };
 }
 
@@ -1684,6 +1975,7 @@ function buildUsageMetadata(usageMetadataList = []) {
       totalTokenCount: 0,
       promptTokensDetails: [],
       thoughtsTokenCount: 0,
+      modelsUsed: [],
       pdfName: null,
       startPage: null,
       endPage: null,
@@ -1719,6 +2011,9 @@ function buildUsageMetadata(usageMetadataList = []) {
       (sum, item) => sum + Number(item?.usageMetadata?.thoughtsTokenCount || 0),
       0,
     ),
+    modelsUsed: uniqueNonEmpty(
+      usageMetadataList.flatMap((item) => item?.usageMetadata?.modelsUsed || []),
+    ),
     pdfName: uniqueNonEmpty(
       usageMetadataList.map((item) => item.originalFileName || item.file),
     ).join(", "),
@@ -1732,7 +2027,10 @@ function buildUsageMetadata(usageMetadataList = []) {
     ...mergedUsage,
     tokensAmount: getBillableCostFromUsage({
       usageMetadata: mergedUsage,
-      model: MODEL,
+      model:
+        mergedUsage.modelsUsed.length === 1
+          ? mergedUsage.modelsUsed[0]
+          : MODEL,
       mode: pricingMode,
     }),
   };
@@ -1744,8 +2042,8 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
     ? buildChunkTaskPrompt(workItem)
     : buildTaskPrompt([workItem.originalFileName || workItem.displayName]);
 
-  const response = await withRetry(
-    async () => {
+  const { response, modelUsed } = await generateContentWithModelFailover(
+    async (model) => {
       setReadingStatus({
         status: "running",
         stage: "generating_content",
@@ -1758,7 +2056,7 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
       });
 
       return await ai.models.generateContent({
-        model: MODEL,
+        model,
         contents: [prompt, createPartFromUri(fetchedFile.uri, fetchedFile.mimeType)],
         config: {
           temperature: 0,
@@ -1769,9 +2067,7 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
         },
       });
     },
-    {
-      label: `generate content ${displayName}`,
-    },
+    `generate content ${displayName}`,
   );
 
   let parsed;
@@ -1783,7 +2079,12 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
   }
 
   parsed = sanitizeResult(normalizeResultShape(parsed));
-  const usageEntries = [response?.usageMetadata || {}];
+  const usageEntries = [
+    {
+      ...(response?.usageMetadata || {}),
+      modelUsed,
+    },
+  ];
 
   let fallbackResult = null;
   try {
@@ -1792,8 +2093,12 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
       workItem,
       index,
       totalItems,
+      modelUsed,
     );
-    usageEntries.push(fallbackResult?.usageMetadata || {});
+    usageEntries.push({
+      ...(fallbackResult?.usageMetadata || {}),
+      modelUsed: fallbackResult?.modelUsed,
+    });
   } catch (fallbackError) {
     console.error(`Fallback extraction failed for ${displayName}:`, fallbackError);
   }
@@ -1824,6 +2129,7 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
     promptTokensDetails: mergePromptTokensDetails(
       usageEntries.map((meta) => ({ usageMetadata: meta })),
     ),
+    modelsUsed: uniqueNonEmpty(usageEntries.map((meta) => meta?.modelUsed)),
   };
 
   return {
