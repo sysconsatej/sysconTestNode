@@ -54,7 +54,7 @@ const menuRouter = require("./src/routes/menuRoute");
 const roleRouter = require("./src/routes/roleRouter");
 const userRouter = require("./src/routes/userRoute");
 const NoGenerationRoutes = require("./src/routes/NoGenerationRoutes");
-const ImageForLoing = require("./src/routes/ImageForLoing");
+
 
 
 
