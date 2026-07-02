@@ -51,8 +51,7 @@ const reportSearchCriteria = require("./src/routes/reportSearchCriteria");
 const MasterRouter = require("./src/routes/master");
 const FormRouter = require("./src/routes/FormRoute");
 const menuRouter = require("./src/routes/menuRoute");
-const roleRouter = require("./src/routes/roleRouter");
-const userRouter = require("./src/routes/");
+
 
 
 
