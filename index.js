@@ -62,7 +62,8 @@ const dynamicRouterMiddleware = require("./src/routes/SingleinsertRoute"); // Ad
 const ReportsHtml = require("./src/routes/ReportsHtml");
 const loginNew = require("./src/routes/NewsRoutes");
 const chartRoutes = require("./src/routes/chartRoutes");
-const eInvoicing = require("./src/routes/eInvoicingRoute");
+
+// const eInvoicing = require("./src/routes/eInvoicingRoute");
 
 // const DynamicReports = require("./src/routes/DynamicReports");
 
