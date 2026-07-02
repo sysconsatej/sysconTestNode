@@ -63,7 +63,8 @@ const ReportsHtml = require("./src/routes/ReportsHtml");
 const loginNew = require("./src/routes/NewsRoutes");
 const chartRoutes = require("./src/routes/chartRoutes");
 const eInvoicing = require("./src/routes/eInvoicingRoute");
-const DynamicReports = require("./src/routes/DynamicReports");
+
+// const DynamicReports = require("./src/routes/DynamicReports");
 
 // const balanceSheetRoute = require("./src/routes/BalanceSheetRoute");
 
