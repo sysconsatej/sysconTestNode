@@ -50,7 +50,7 @@ const BalanceSheet = require("./src/routes/BalanceSheet");
 const reportSearchCriteria = require("./src/routes/reportSearchCriteria");
 const MasterRouter = require("./src/routes/master");
 const FormRouter = require("./src/routes/FormRoute");
-const menuRouter = require("./src/routes/menuRoute");
+const menuRouter = require("./src/routes/");
 
 
 
