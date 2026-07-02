@@ -57,7 +57,6 @@ const NoGenerationRoutes = require("./src/routes/NoGenerationRoutes");
 const ImageForLoing = require("./src/routes/ImageForLoing");
 const Reports = require("./src/routes/Reports&sp");
 const yearEnding = require("./src/routes/yearEnding");
-const sp = require("./src/routes/storeProcedure ");
 
 
 const SendEmail = require("./src/routes/Email");
