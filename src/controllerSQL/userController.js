@@ -147,8 +147,12 @@ module.exports = {
                 const sessionKey = `user:${data[0].emailId}:session`;
                 // Check if user already exists
                 let userExists = await client.exists(sessionKey);
+                const emailId = data[0].emailId;
 
-                if (isDateOlderThan60Days(data[0].passwordLastUpdateDate)) {
+                if (
+                  !emailId.toLowerCase().endsWith("@sysconinfotech.com") &&
+                  isDateOlderThan60Days(data[0].passwordLastUpdateDate)
+                ) {
                   return res.status(200).send({
                     success: "60DaysResetPassword",
                     message: "60DaysResetPassword",
