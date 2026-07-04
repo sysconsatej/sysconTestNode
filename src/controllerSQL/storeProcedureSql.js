@@ -1,47 +1,9 @@
 const validate = require("../helper/validate");
 const model = require("../models/module");
 const { executeQuery, executeStoredProcedure, executeStoredProcedureSecond } = require("../modelSQL/model");
-const functionForCommaSeperated = require("../helper/CommaSeperatedValue");
-const mongoose = require("mongoose");
-const moment = require("moment");
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
-// const { errorLogger } = require("../helper/loggerService");
-const { log } = require("winston");
-function createObjectId(companyId) {
-  try {
-    if (companyId !== null) {
-      return new mongoose.Types.ObjectId(companyId);
-    } else {
-      return null;
-    }
-    // Attempt to create a new ObjectId with the provided companyId
-  } catch (error) {
-    // If an error occurs (e.g., due to an invalid companyId format), return null
-    return companyId;
-  }
-}
-function Isnull(value, defaultValue) {
-  return value === null || value === undefined || value === ""
-    ? defaultValue
-    : value;
-}
-function isDateBetweenGivenDates(givenDate, json) {
-  const date = new Date(givenDate);
 
-  // Iterate through tblTaxDetails array to find the effective and validity dates
-  for (const taxDetail of json.taxData.tblTaxDetails) {
-    const startDate = new Date(taxDetail.effectiveDate);
-    const endDate = new Date(taxDetail.validityDate);
-
-    // Check if the given date is between the start and end dates
-    if (date >= startDate && date <= endDate) {
-      return json;
-    }
-  }
-
-  return false;
-}
 
 module.exports = {
   getJobChargeDetails: async (req, res) => {
@@ -144,7 +106,6 @@ module.exports = {
         voucherTypeId: voucherTypeId,
         isTaxApplicable:isTaxApplicable
       };
-      console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
         return res.send({
@@ -153,7 +114,6 @@ module.exports = {
           tblTax: [],
         });
       }
-      console.debug("data", data);
       return res.send({
         success: true,
         message: "Data fetched successfully!",
@@ -224,8 +184,6 @@ module.exports = {
       let data = await executeStoredProcedure("GeneralLedgerData", {
         billingPartyId,
       });
-      console.log("data", billingPartyId);
-      console.log("data", data);
 
       if (data?.length === 0) {
         return res.send({
