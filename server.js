@@ -75,6 +75,10 @@ const SQLAllocation = require("./src/routesSQL/allocationRoutes");
 const mergeBl = require("./src/routesSQL/mergeBlRoutes");
 const operationalApi = require("./src/routesSQL/operationalApiRoutes");
 const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  a new sso route for by pass login for mobile app
+// const extractInvoicePdfDataRoute = require("./src/routes/extractInvoicePdfDataRoute");
+// const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute");
+// const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
+// const extractEnquireDataRoute = require("./src/routes/extractEnquireDataRoute");
 const customerQuotationRoute = require("./src/routesSQL/customer-quotation.route");
 
 const {
