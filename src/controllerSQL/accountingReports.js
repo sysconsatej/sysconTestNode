@@ -94,6 +94,7 @@ module.exports = {
     const {
       fromDate,
       toDate,
+      companyId,
       branchId,
       finYearId,
       clientId,
@@ -101,7 +102,7 @@ module.exports = {
       tbGroupId,
     } = req.body;
 
-    if (!fromDate || !toDate || !branchId || !finYearId || !clientId) {
+    if (!fromDate || !toDate || !finYearId || !clientId) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
@@ -113,6 +114,7 @@ module.exports = {
         .request()
         .input("fromDate", sql.VarChar(10), fromDate)
         .input("toDate", sql.VarChar(10), toDate)
+        .input("companyId", sql.Int, companyId)
         .input("branchId", sql.Int, branchId)
         .input("finYearId", sql.Int, finYearId)
         .input("clientId", sql.Int, clientId)
