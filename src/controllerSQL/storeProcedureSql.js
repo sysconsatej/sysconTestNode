@@ -996,7 +996,7 @@ module.exports = {
   getVoucherThirlLevelData: async (req, res) => {
     try {
       // Accept either { clientId, glId } or legacy { id } -> throw if missing
-      const { clientId, glId } = req.body || {};
+      const { clientId, glId,companyId,companyBranchId } = req.body || {};
 
       if (!clientId || !glId) {
         return res.status(400).send({
@@ -1009,6 +1009,8 @@ module.exports = {
       const data = await executeStoredProcedure("unadjustedThirdLevelVoucherData", {
         clientId: Number(clientId),
         glId: Number(glId),
+        companyId:companyId,
+        companyBranchId:companyBranchId
       });
 
       if (!Array.isArray(data) || data.length === 0) {
