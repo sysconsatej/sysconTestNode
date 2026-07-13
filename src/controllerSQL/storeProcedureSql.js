@@ -1,6 +1,8 @@
-const validate = require("../helper/validate");
-const model = require("../models/module");
-const { executeQuery, executeStoredProcedure, executeStoredProcedureSecond } = require("../modelSQL/model");
+const {
+  executeQuery,
+  executeStoredProcedure,
+  executeStoredProcedureSecond,
+} = require("../modelSQL/model");
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
 
@@ -79,7 +81,7 @@ module.exports = {
         billingPartyState,
         totalAmountHc,
         voucherTypeId,
-        isTaxApplicable
+        isTaxApplicable,
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -104,7 +106,7 @@ module.exports = {
         departmentId: departmentId,
         placeOfSupply_state: placeOfSupply_state,
         voucherTypeId: voucherTypeId,
-        isTaxApplicable:isTaxApplicable
+        isTaxApplicable: isTaxApplicable,
       };
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
@@ -139,7 +141,7 @@ module.exports = {
         exchangeRateGrid,
         invoiceDate,
         companyId,
-        clientId
+        clientId,
       } = req.body;
       let parameters = {
         glId: glId,
@@ -174,7 +176,6 @@ module.exports = {
       });
     }
   },
-
 
   getGeneralLedgerData: async (req, res) => {
     try {
@@ -264,7 +265,7 @@ module.exports = {
         companyId,
         companyBranchId,
         currencyId,
-        exchangeRate
+        exchangeRate,
       } = req.body;
 
       // Call stored procedure with all necessary parameters
@@ -277,7 +278,7 @@ module.exports = {
         companyId,
         companyBranchId,
         currencyId,
-        exchangeRate
+        exchangeRate,
       });
 
       if (data?.length === 0) {
@@ -487,12 +488,14 @@ module.exports = {
   //   }
   // },
 
-
   saveContainerMovement: async (req, res) => {
     try {
       const { tblContainerMovement, clientId, userId } = req.body;
 
-      if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
+      if (
+        !Array.isArray(tblContainerMovement) ||
+        tblContainerMovement.length === 0
+      ) {
         return res.status(400).send({
           success: false,
           message: "No container movement data provided.",
@@ -506,7 +509,8 @@ module.exports = {
       // YYYY-MM-DD (date only)
       const toSqlDate = (value) => {
         const d = value ? new Date(value) : new Date();
-        if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString("en-CA");
+        if (Number.isNaN(d.getTime()))
+          return new Date().toLocaleDateString("en-CA");
         return d.toLocaleDateString("en-CA");
       };
 
@@ -539,25 +543,47 @@ module.exports = {
 
       const payload = {
         childJson1: tblContainerMovement.map((item) => ({
-          "tblContainerMovement.containerId": item.containerNo ? Number(item.containerNo) : null,
-          "tblContainerMovement.agentId": item.agentId ? Number(item.agentId) : null,
-          "tblContainerMovement.agentBranchId": item.agentBranchId ? Number(item.agentBranchId) : null,
-          "tblContainerMovement.fromLocationId": item.fromLocationId ? Number(item.fromLocationId) : null,
-          "tblContainerMovement.toLocationId": item.toLocationId ? Number(item.toLocationId) : null,
+          "tblContainerMovement.containerId": item.containerNo
+            ? Number(item.containerNo)
+            : null,
+          "tblContainerMovement.agentId": item.agentId
+            ? Number(item.agentId)
+            : null,
+          "tblContainerMovement.agentBranchId": item.agentBranchId
+            ? Number(item.agentBranchId)
+            : null,
+          "tblContainerMovement.fromLocationId": item.fromLocationId
+            ? Number(item.fromLocationId)
+            : null,
+          "tblContainerMovement.toLocationId": item.toLocationId
+            ? Number(item.toLocationId)
+            : null,
           "tblContainerMovement.remarks": item.remarks || "",
-          "tblContainerMovement.activityId": item.activityId ? Number(item.activityId) : null,
+          "tblContainerMovement.activityId": item.activityId
+            ? Number(item.activityId)
+            : null,
 
           // ✅ NOW SAVES WITH TIME (like createdDate)
           // - If item.activityDate is blank/invalid => NULL (won't auto-fill now)
-          "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(item.activityDate),
+          "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(
+            item.activityDate,
+          ),
 
           "tblContainerMovement.clientId": clientId,
           "tblContainerMovement.createdBy": userId,
           "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
-          "tblContainerMovement.vesselId": item.vesselId ? Number(item.vesselId) : null,
-          "tblContainerMovement.voyageId": item.voyageId ? Number(item.voyageId) : null,
-          "tblContainerMovement.importBlId": item.importBlId ? Number(item.importBlId) : null,
-          "tblContainerMovement.exportBlId": item.exportBlId ? Number(item.exportBlId) : null,
+          "tblContainerMovement.vesselId": item.vesselId
+            ? Number(item.vesselId)
+            : null,
+          "tblContainerMovement.voyageId": item.voyageId
+            ? Number(item.voyageId)
+            : null,
+          "tblContainerMovement.importBlId": item.importBlId
+            ? Number(item.importBlId)
+            : null,
+          "tblContainerMovement.exportBlId": item.exportBlId
+            ? Number(item.exportBlId)
+            : null,
 
           "tblContainerMovement.status": 1,
           "tblContainerMovement.createdDate": createdDateWithTime,
@@ -593,7 +619,10 @@ module.exports = {
 
       // Call stored procedure with all necessary parameters
       let data = await executeStoredProcedure("GetLedgerNameByHblNo", {
-        id, clientId, voucherTypeId, companyId
+        id,
+        clientId,
+        voucherTypeId,
+        companyId,
       });
       console.log("data", data);
 
@@ -643,7 +672,7 @@ module.exports = {
           billingPartyId,
           companyId,
           companyBranchId,
-        }
+        },
       );
 
       if (data?.length === 0) {
@@ -713,40 +742,40 @@ module.exports = {
       // ✅ Build params object for stored procedure
       let params = {
         clientId,
-        jobId,
-        chargeId,
-        companyId,
-        companyBranchId,
-        businessSegmentId,
-        voucherTypeId,
-        blId,
-        vesselId,
-        voyageId,
-        plrId,
-        polId,
-        podId,
-        fpdId,
-        berthId,
-        containerId,
+        jobId: jobId || 0,
+        chargeId: chargeId || 0,
+        companyId: companyId || 0,
+        companyBranchId: companyBranchId || 0,
+        businessSegmentId: businessSegmentId || 0,
+        voucherTypeId: voucherTypeId || 0,
+        blId: blId || 0,
+        vesselId: vesselId || 0,
+        voyageId: voyageId || 0,
+        plrId: plrId || 0,
+        polId: polId || 0,
+        podId: podId || 0,
+        fpdId: fpdId || 0,
+        berthId: berthId || 0,
+        containerId: containerId || 0,
         fromDate,
         toDate,
-        billingPartyId,
-        containerStatusId,
-        cargoTypeId,
-        sizeId,
-        typeId,
-        agentId,
-        agentBranchId,
+        billingPartyId: billingPartyId || 0,
+        containerStatusId: containerStatusId || 0,
+        cargoTypeId: cargoTypeId || 0,
+        sizeId: sizeId || 0,
+        typeId: typeId || 0,
+        agentId: agentId || 0,
+        agentBranchId: agentBranchId || 0,
         expImp,
         icd,
         invoiceExchageRate,
         invoiceChargeExchangeRate,
         rate,
-        transhipPortId,
-        cfsId,
-        containerRepairId,
-        depotId,
-        containerTransactionId,
+        transhipPortId: transhipPortId || 0,
+        cfsId: cfsId || 0,
+        containerRepairId: containerRepairId || 0,
+        depotId: depotId || 0,
+        containerTransactionId: containerTransactionId || 0,
       };
 
       // ✅ Replace undefined/empty string with null
@@ -756,7 +785,6 @@ module.exports = {
 
       // Call stored procedure
       let data = await executeStoredProcedure("getThirdLevelDetails", params);
-
       if (!data || data.length === 0) {
         return res.send({
           success: true,
@@ -836,7 +864,7 @@ module.exports = {
           toDate,
           chargeId,
           clientId,
-        }
+        },
       );
 
       if (data?.length === 0) {
@@ -954,7 +982,7 @@ module.exports = {
   getVoucherThirlLevelData: async (req, res) => {
     try {
       // Accept either { clientId, glId } or legacy { id } -> throw if missing
-      const { clientId, glId } = req.body || {};
+      const { clientId, glId, companyId, companyBranchId } = req.body || {};
 
       if (!clientId || !glId) {
         return res.status(400).send({
@@ -967,6 +995,8 @@ module.exports = {
       const data = await executeStoredProcedure("unadjustedThirdLevelVoucherData", {
         clientId: Number(clientId),
         glId: Number(glId),
+        companyId: companyId,
+        companyBranchId: companyBranchId
       });
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -1260,7 +1290,7 @@ module.exports = {
         containerRepairId,
         depotId,
         containerTransactionId,
-        includeMNR
+        includeMNR,
       } = req.body;
 
       // ✅ Build params object for stored procedure
@@ -1300,7 +1330,7 @@ module.exports = {
         containerRepairId,
         depotId,
         containerTransactionId,
-        includeMNR
+        includeMNR,
       };
 
       // ✅ Replace undefined/empty string with null
@@ -1309,7 +1339,10 @@ module.exports = {
       });
 
       // Call stored procedure
-      let data = await executeStoredProcedureSecond("getSecondThirdLevelDetails", params);
+      let data = await executeStoredProcedureSecond(
+        "getSecondThirdLevelDetails",
+        params,
+      );
 
       if (!data || data.length === 0) {
         return res.send({
@@ -1459,14 +1492,11 @@ module.exports = {
 
   getRoundOffSetting: async (req, res) => {
     try {
-      let {
-        voucherTypeId,
-        clientId
-      } = req.body;
+      let { voucherTypeId, clientId } = req.body;
 
       let data = await executeStoredProcedure("getRoundOffSettings", {
         voucherTypeId,
-        clientId
+        clientId,
       });
 
       if (data?.length === 0) {
@@ -1494,10 +1524,7 @@ module.exports = {
   },
   checkDischargeDoneForBL: async (req, res) => {
     try {
-      let {
-        blno,
-
-      } = req.body;
+      let { blno } = req.body;
 
       let data = await executeStoredProcedure("checkDischargeDoneForBL", {
         blno,
@@ -1528,15 +1555,11 @@ module.exports = {
   },
   checkJobCreatedAginstBl: async (req, res) => {
     try {
-      let {
-        blId,
-        clientId
-
-      } = req.body;
+      let { blId, clientId } = req.body;
 
       let data = await executeStoredProcedure("checkJobCreatedAginstBl", {
         blId,
-        clientId
+        clientId,
       });
 
       if (data?.length === 0) {
@@ -1564,17 +1587,12 @@ module.exports = {
   },
   getBillingPartyForBl: async (req, res) => {
     try {
-      let {
-        blId,
-        clientId,
-        voucherTypeId
-
-      } = req.body;
+      let { blId, clientId, voucherTypeId } = req.body;
 
       let data = await executeStoredProcedure("getBillingPartyOnBl", {
         blId,
         clientId,
-        voucherTypeId
+        voucherTypeId,
       });
 
       if (data?.length === 0) {
@@ -1604,15 +1622,14 @@ module.exports = {
     try {
       let {
         //labourRate,
-       // agentId,
+        // agentId,
         repairLocationId,
         repairTypeId,
         componentId,
         dimension,
         depotId,
-       // damageId,
-        clientId
-
+        // damageId,
+        clientId,
       } = req.body;
 
       let data = await executeStoredProcedure("getChargesFromTariff", {
@@ -1624,7 +1641,7 @@ module.exports = {
         dimension,
         depotId,
         //damageId,
-        clientId
+        clientId,
       });
 
       if (data?.length === 0) {

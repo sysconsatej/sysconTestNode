@@ -13,6 +13,7 @@ const moment = require("moment"); // Assuming you use moment for the timestamp
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
 const { auditLog } = require("../modelSQL/auditLog");
+const sharp = require("sharp");
 
 const toNullableInt = (val) =>
   val === null || val === undefined || val === "" ? null : Number(val);
@@ -322,26 +323,45 @@ module.exports = {
             var element = req.files["documents"];
 
             // Use path module to get the extension
-            const extension = path.extname(element.name);
+            const extension = path.extname(element.name).toLowerCase();
             //console.log(extension);
             // Use path module to get the file name without extension
             const fileNameWithoutExt = path.basename(element.name, extension);
-            //console.log(fileNameWithoutExt);
-            // var image_name = moment().format("YYYYMMDDHHmmssSSS") + element.name;
-            var image_name =
-              fileNameWithoutExt +
-              moment().format("YYYYMMDDHHmmssSSS") +
-              extension;
-            element.mv(
-              `./public/api/images/${req.clientCode}/` + image_name.trim(),
-            );
+
+            if(['.png','.jpg','.png'].includes(extension)){
+               const image_name = fileNameWithoutExt + moment().format("YYYYMMDDHHmmssSSS") + ".webp";
+
+              await sharp(element.data).webp({
+                quality:75,
+                effort:6
+              }).toFile(`./public/api/images/${req.clientCode}/${image_name}`);
+
+              responce.data = {
+                path: `api/images/${req.clientCode}/` + image_name,
+                status: 1,
+              };
+
+            }else{
+              
+              //console.log(fileNameWithoutExt);
+              // var image_name = moment().format("YYYYMMDDHHmmssSSS") + element.name;
+              const image_name =
+                fileNameWithoutExt +
+                moment().format("YYYYMMDDHHmmssSSS") +
+                extension;
+              element.mv(
+                `./public/api/images/${req.clientCode}/` + image_name.trim(),
+              );
+              responce.data = {
+                path: `api/images/${req.clientCode}/` + image_name,
+                status: 1,
+              };
+
+            }
+
             // insertData["documents"] = image_name; // Store the processed file name
             responce.success = true; // Update flag since response is being sent
             responce.message = "File uploaded successfully.";
-            responce.data = {
-              path: `api/images/${req.clientCode}/` + image_name,
-              status: 1,
-            };
             let query = `INSERT INTO tblAttachmentTrack (path) VALUES ('${responce.data.path}');`;
             await executeQuery(query, {});
           }
