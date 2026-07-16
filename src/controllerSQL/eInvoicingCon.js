@@ -413,7 +413,8 @@ module.exports = {
         SignedInvoice: !!SignedInvoice,
       });
 
-      if (!AckDt && !AckNo && !Irn && !SignedQRCode && !SignedInvoice) {
+      // if (!AckDt && !AckNo && !Irn && !SignedQRCode && !SignedInvoice) {
+      if (!AckDt && !AckNo && !Irn) {
         throw createHttpError(
           400,
           "IRN response received, but required fields could not be extracted",

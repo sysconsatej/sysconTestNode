@@ -509,6 +509,46 @@ module.exports = {
       });
     }
   },
+
+  disableDelete: async (req, res) => {
+    try {
+      const { tableName, recordId, clientId, menuId } = req.body;
+
+      // Validate required fields
+      if (!tableName || !recordId) {
+        return res.status(400).send({
+          success: false,
+          message: "Table Name and Report Id are required.",
+        });
+      }
+      const query = `disableDelete`;
+      const parameters = {
+        tableName,
+        recordId,
+        clientId,
+        menuId,
+      };
+      let data = await executeStoredProcedure(query, parameters);
+      if (data) {
+        res.send({
+          success: data[0].success,
+          message: data[0].message,
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "No Data Found",
+          data: [],
+        });
+      }
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
   disableAdd: async (req, res) => {
     try {
       const { tableName } = req.body;
