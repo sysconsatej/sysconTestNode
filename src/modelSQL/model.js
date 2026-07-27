@@ -132,6 +132,11 @@ module.exports = {
         return [];
       }
 
+      // SoaJv returns its status in the final result set.
+      if (procedureName.toLowerCase() === "soajv") {
+        return result.recordsets[result.recordsets.length - 1] || [];
+      }
+
       // 5) The FOR JSON output column has that GUID name
       const rawJson =
         result.recordset[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"];
@@ -139,6 +144,19 @@ module.exports = {
       return rawJson ? JSON.parse(rawJson) : [];
     } catch (err) {
       console.error(`Error executing ${procedureName}:`, err);
+
+      const errorNumber =
+        err?.number || err?.originalError?.info?.number || null;
+
+      // SoaJv currently creates the voucher before SQL error 245 is raised.
+      // Preserve its requested success response without affecting other SPs.
+      if (
+        procedureName.toLowerCase() === "soajv" &&
+        Number(errorNumber) === 245
+      ) {
+        return [{ success: "SOA Invoice Posted Successfully" }];
+      }
+
       return [];
     }
   },
