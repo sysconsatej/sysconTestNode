@@ -622,7 +622,10 @@ module.exports = {
       }
       res.status(200).json({
         success: true,
-        message: "Data fetched and filtered successfully!",
+        message:
+          spName.toLowerCase() === "soajv" && response?.[0]?.success
+            ? response[0].success
+            : "Data fetched and filtered successfully!",
         length: response.length,
         data: response,
       });
