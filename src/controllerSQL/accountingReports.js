@@ -115,7 +115,7 @@ module.exports = {
         .input("fromDate", sql.VarChar(10), fromDate)
         .input("toDate", sql.VarChar(10), toDate)
         .input("companyId", sql.Int, companyId)
-        .input("branchId", sql.Int, branchId)
+        .input("branchId", sql.VarChar(sql.MAX), branchId || null)
         .input("finYearId", sql.Int, finYearId)
         .input("clientId", sql.Int, clientId)
         .input("tbGroupId", sql.Int, tbGroupId)
