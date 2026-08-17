@@ -551,7 +551,7 @@ module.exports = {
   },
   disableAdd: async (req, res) => {
     try {
-      const { tableName } = req.body;
+      const { tableName, clientId, companyId, companyBranchId, financialYearId } = req.body;
 
       // Validate required fields
       if (!tableName) {
@@ -563,6 +563,10 @@ module.exports = {
       const query = `disableAdd`;
       const parameters = {
         tableName,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {

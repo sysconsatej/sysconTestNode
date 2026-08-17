@@ -786,40 +786,40 @@ module.exports = {
       // ✅ Build params object for stored procedure
       let params = {
         clientId,
-        jobId : jobId || 0,
-        chargeId :chargeId ||0,
-        companyId :companyId || 0,
-        companyBranchId : companyBranchId || 0,
-        businessSegmentId : businessSegmentId || 0,
-        voucherTypeId : voucherTypeId || 0,
-        blId : blId || 0,
-        vesselId : vesselId || 0,
-        voyageId : voyageId || 0,
-        plrId : plrId || 0,
-        polId : polId || 0,
-        podId : podId || 0,
-        fpdId : fpdId || 0,
-        berthId : berthId || 0,
-        containerId : containerId || 0,
+        jobId: jobId || 0,
+        chargeId: chargeId || 0,
+        companyId: companyId || 0,
+        companyBranchId: companyBranchId || 0,
+        businessSegmentId: businessSegmentId || 0,
+        voucherTypeId: voucherTypeId || 0,
+        blId: blId || 0,
+        vesselId: vesselId || 0,
+        voyageId: voyageId || 0,
+        plrId: plrId || 0,
+        polId: polId || 0,
+        podId: podId || 0,
+        fpdId: fpdId || 0,
+        berthId: berthId || 0,
+        containerId: containerId || 0,
         fromDate,
         toDate,
-        billingPartyId : billingPartyId || 0,
-        containerStatusId : containerStatusId || 0,
-        cargoTypeId : cargoTypeId || 0,
-        sizeId : sizeId || 0,
-        typeId : typeId || 0,
-        agentId : agentId || 0,
-        agentBranchId : agentBranchId || 0,
+        billingPartyId: billingPartyId || 0,
+        containerStatusId: containerStatusId || 0,
+        cargoTypeId: cargoTypeId || 0,
+        sizeId: sizeId || 0,
+        typeId: typeId || 0,
+        agentId: agentId || 0,
+        agentBranchId: agentBranchId || 0,
         expImp,
         icd,
         invoiceExchageRate,
         invoiceChargeExchangeRate,
         rate,
-        transhipPortId : transhipPortId || 0,
-        cfsId : cfsId || 0,
-        containerRepairId : containerRepairId || 0,
-        depotId : depotId || 0,
-        containerTransactionId : containerTransactionId || 0,
+        transhipPortId: transhipPortId || 0,
+        cfsId: cfsId || 0,
+        containerRepairId: containerRepairId || 0,
+        depotId: depotId || 0,
+        containerTransactionId: containerTransactionId || 0,
       };
 
       // ✅ Replace undefined/empty string with null
@@ -1026,7 +1026,7 @@ module.exports = {
   getVoucherThirlLevelData: async (req, res) => {
     try {
       // Accept either { clientId, glId } or legacy { id } -> throw if missing
-      const { clientId, glId,companyId,companyBranchId } = req.body || {};
+      const { clientId, glId, companyId, companyBranchId } = req.body || {};
 
       if (!clientId || !glId) {
         return res.status(400).send({
@@ -1039,8 +1039,8 @@ module.exports = {
       const data = await executeStoredProcedure("unadjustedThirdLevelVoucherData", {
         clientId: Number(clientId),
         glId: Number(glId),
-        companyId:companyId,
-        companyBranchId:companyBranchId
+        companyId: companyId,
+        companyBranchId: companyBranchId
       });
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -1711,4 +1711,72 @@ module.exports = {
       });
     }
   },
+ getSecondThirdMasterData: async (req, res) => {
+  try {
+    const {
+      clientId,
+      masterJobId,
+      companyId,
+      companyBranchId,
+      businessSegmentId,
+      voucherTypeId,
+      billingPartyId,
+      currencyId,
+      invoiceExchangeRate,
+    } = req.body;
+
+    console.log("getSecondThirdMasterData req.body:", req.body);
+
+    const params = {
+      clientId,
+      masterJobId,
+      companyId,
+      companyBranchId,
+      businessSegmentId,
+      voucherTypeId,
+      billingPartyId,
+      currencyId,
+      invoiceExchangeRate,
+    };
+
+    console.log("SP Params:", params);
+
+    const data = await executeStoredProcedureSecond(
+      "getSecondThirdLevelDetailsMasterJob",
+      params,
+    );
+
+    console.log("SP Result:", data);
+
+    if (!data || data.length === 0) {
+      return res.send({
+        success: true,
+        message: "No data found",
+        data: [],
+        Chargers: [],
+        count: 0,
+      });
+    }
+
+    return res.send({
+      success: true,
+      message: "Data fetched successfully!",
+      data: data,        // <-- ADD THIS
+      Chargers: data,
+      count: data.length,
+    });
+  } catch (error) {
+    console.error("getSecondThirdMasterData ERROR:", error);
+
+    return res.status(500).send({
+      success: false,
+      message: "Error - " + error.message,
+      data: [],
+      Chargers: [],
+      error: error.message,
+    });
+  }
+},
 };
+
+

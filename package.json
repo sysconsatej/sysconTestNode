@@ -8,9 +8,9 @@
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
     "test": "echo \"Error: no test specified\" && exit 1",
-    // "worker": "nodemon ./src/workers/notificationWorker.js",
-    // "chat-server": "node  ./chat-module/chat-server.js",
-    // "chat-run-test": "node  ./chat-module/test/integration.test.js"
+    "worker": "nodemon ./src/workers/notificationWorker.js",
+    "chat-server": "node  ./chat-module/chat-server.js",
+    "chat-run-test": "node  ./chat-module/test/integration.test.js"
   },
   "author": "",
   "license": "ISC",
