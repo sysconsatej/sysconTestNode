@@ -122,6 +122,7 @@ module.exports = {
         totalAmountHc,
         voucherTypeId,
         isTaxApplicable,
+        rcm
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -147,6 +148,7 @@ module.exports = {
         placeOfSupply_state: placeOfSupply_state,
         voucherTypeId: voucherTypeId,
         isTaxApplicable: isTaxApplicable,
+        rcm: rcm,
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
