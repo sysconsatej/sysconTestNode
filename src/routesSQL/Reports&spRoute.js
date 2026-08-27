@@ -26,5 +26,6 @@ router.post("/blPrint", controller.spBlPrint);
 router.post("/goodsInwardQrGenerator", controller.spGoodsInwardQrGenerator);
 router.post("/croprint", controller.spCroprint);
 router.post("/cmcData", controller.spCmcData);
+router.post("/mblHblData", controller.spMblHblData);
 
 module.exports = router;
