@@ -551,7 +551,13 @@ module.exports = {
   },
   disableAdd: async (req, res) => {
     try {
-      const { tableName, clientId, companyId, companyBranchId, financialYearId } = req.body;
+      const {
+        tableName,
+        clientId,
+        companyId,
+        companyBranchId,
+        financialYearId,
+      } = req.body;
 
       // Validate required fields
       if (!tableName) {
@@ -566,7 +572,7 @@ module.exports = {
         clientId,
         companyId,
         companyBranchId,
-        financialYearId
+        financialYearId,
       };
       let data = await executeStoredProcedure(query, parameters);
       if (data) {
@@ -600,6 +606,7 @@ module.exports = {
         loginBranchId,
         loginFinYearId,
         formOrReport,
+        menuId,
       } = req.body;
 
       // Validate required fields
@@ -619,6 +626,7 @@ module.exports = {
         loginBranchId,
         loginFinYearId,
         formOrReport,
+        menuId,
       };
       //let data = await executeStoredProcedure(query, parameters);
       let data = await validatePrintExecuteStoredProcedure(query, parameters);
