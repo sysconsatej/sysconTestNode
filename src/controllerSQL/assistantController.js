@@ -31,6 +31,40 @@ function optionalInt(value) {
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
+const PARAMETER_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
+const CONTEXT_NAMES = new Set(["clientId", "userId", "companyId", "branchId", "finYearId"]);
+
+// Declared parameters of a catalog query. Names that could collide with the
+// session values are dropped, so a caller can never override clientId.
+function parseParameters(json) {
+  try {
+    const parsed = JSON.parse(json || "[]");
+    return (Array.isArray(parsed) ? parsed : [])
+      .map((parameter) => ({
+        name: String(parameter?.name || ""),
+        type: ["string", "number", "date"].includes(parameter?.type) ? parameter.type : "string",
+        description: String(parameter?.description || "").slice(0, 160),
+      }))
+      .filter((parameter) => PARAMETER_NAME.test(parameter.name) && !CONTEXT_NAMES.has(parameter.name))
+      .slice(0, 10);
+  } catch {
+    return [];
+  }
+}
+
+function coerceParameter(value, type) {
+  if (value === undefined || value === null || value === "") return null;
+  if (type === "number") {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+  if (type === "date") {
+    const text = String(value).slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : null;
+  }
+  return String(value).slice(0, 200);
+}
+
 function cleanItem(raw) {
   const id = String(raw?.id ?? "").trim();
   const kind = String(raw?.kind ?? "").trim();
@@ -119,6 +153,78 @@ module.exports = {
     } catch (error) {
       console.error("[Assistant] unsubscribe", error.message);
       return fail(res, 500, "Could not remove the push subscription");
+    }
+  },
+
+  // The catalog without procedure names: what each query answers and the
+  // parameters it takes.
+  queries: async (req, res) => {
+    const who = identity(req);
+    if (!who) return fail(res, 401, "Unauthorized");
+    try {
+      const rows = await model.listDataQueries(who.clientId);
+      return ok(
+        res,
+        rows.map((row) => ({
+          key: row.queryKey,
+          title: row.title,
+          description: row.description,
+          parameters: parseParameters(row.parameters).map(({ name, type, description }) => ({
+            name,
+            type,
+            description,
+          })),
+        })),
+      );
+    } catch (error) {
+      // Most often the catalog table has not been created yet.
+      console.error("[Assistant] queries", error.message);
+      return ok(res, []);
+    }
+  },
+
+  query: async (req, res) => {
+    const who = identity(req);
+    if (!who) return fail(res, 401, "Unauthorized");
+    const key = String(req.body?.key ?? "").trim();
+    try {
+      const entry = (await model.listDataQueries(who.clientId)).find(
+        (row) => row.queryKey === key,
+      );
+      if (!entry) return fail(res, 404, "Unknown query");
+      if (!/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/.test(entry.procedureName)) {
+        return fail(res, 500, "The query is misconfigured");
+      }
+
+      const inputs = {};
+      const supplied = req.body?.params && typeof req.body.params === "object" ? req.body.params : {};
+      parseParameters(entry.parameters).forEach((parameter) => {
+        inputs[parameter.name] = coerceParameter(supplied[parameter.name], parameter.type);
+      });
+      const session = {
+        clientId: who.clientId,
+        userId: who.userId,
+        companyId: optionalInt(req.body?.companyId),
+        branchId: optionalInt(req.body?.branchId),
+        finYearId: optionalInt(req.body?.finYearId),
+      };
+      String(entry.contextParameters || "")
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => Object.prototype.hasOwnProperty.call(session, name))
+        .forEach((name) => {
+          inputs[name] = session[name];
+        });
+
+      const rows = (await model.runDataQuery(entry.procedureName, inputs)).slice(0, 200);
+      return ok(res, {
+        title: entry.title,
+        columns: rows.length ? Object.keys(rows[0]) : [],
+        rows,
+      });
+    } catch (error) {
+      console.error("[Assistant] query", key, error.message);
+      return fail(res, 500, "Could not run the query");
     }
   },
 

@@ -139,6 +139,30 @@ module.exports = {
     );
   },
 
+  // Approved read-only queries (database/assistant/002_assistant_data_queries.sql).
+  async listDataQueries(clientId) {
+    const result = await executeQuery(
+      `SELECT queryKey, title, description, procedureName, parameters, contextParameters
+       FROM dbo.tblAssistantDataQuery
+       WHERE isActive = 1 AND (clientId IS NULL OR clientId = @clientId)`,
+      { clientId },
+    );
+    return result.recordset || [];
+  },
+
+  async runDataQuery(procedureName, inputs) {
+    // procedureName comes from the DBA-controlled catalog and is validated by
+    // the controller; each part is bracket-quoted. Inputs are bound values.
+    const quoted = procedureName
+      .split(".")
+      .map((part) => `[${part.replace(/]/g, "]]")}]`)
+      .join(".");
+    const names = Object.keys(inputs);
+    const argumentList = names.map((name) => `@${name} = @${name}`).join(", ");
+    const result = await executeQuery(`EXEC ${quoted} ${argumentList}`, inputs);
+    return result.recordset || [];
+  },
+
   async dailySummary({ clientId, userId, companyId, branchId, finYearId }) {
     const result = await executeQuery(
       `EXEC dbo.assistantDailySummary

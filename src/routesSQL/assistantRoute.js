@@ -11,5 +11,7 @@ router.get("/push/config", auth.verifyToken, controller.pushConfig);
 router.post("/push/subscribe", auth.verifyToken, controller.subscribe);
 router.post("/push/unsubscribe", auth.verifyToken, controller.unsubscribe);
 router.post("/summary", auth.verifyToken, controller.summary);
+router.get("/queries", auth.verifyToken, controller.queries);
+router.post("/query", auth.verifyToken, controller.query);
 
 module.exports = router;

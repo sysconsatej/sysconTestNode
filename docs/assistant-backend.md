@@ -55,6 +55,33 @@ client come from the token.
 | POST | `/push/unsubscribe` | `{ endpoint }` |
 | POST | `/summary` | `{ companyId, branchId, finYearId }` returns `[{ label, value }]` |
 
+## Approved data queries
+
+"What's our total outstanding this month?" can be answered without opening a
+report by running an approved read-only procedure.
+
+1. Run `database/assistant/002_assistant_data_queries.sql`.
+2. For each question type, write a read-only procedure and add a row to
+   `tblAssistantDataQuery`: a key, a title (spoken in answers), a description
+   (tells the AI when to use it), the procedure name, its user parameters
+   (JSON: name, type `string` | `number` | `date`, description), and which
+   session values it takes (`clientId,userId,companyId,branchId,finYearId`).
+   An example is commented in the script.
+3. Give the application login EXECUTE on those procedures only. Keeping them
+   read-only is the DBA's responsibility; the API cannot check what a
+   procedure does.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/queries` | The catalog for the user's client, without procedure names |
+| POST | `/query` | `{ key, params, companyId, branchId, finYearId }` returns `{ title, columns, rows }` (200 rows max) |
+
+Only catalog entries can run, only with their declared parameters, each value
+bound and type-checked. Session values come from the token, and a parameter
+named like one (`clientId` and so on) is ignored, so a caller cannot read
+another client's data. The frontend phrases results in the browser; results are
+never sent to the AI.
+
 ## How reminders are delivered
 
 A cron job runs every minute and atomically claims reminders that are due
