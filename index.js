@@ -148,7 +148,14 @@ const extractBlPdfDataRoute = require("./src/routes/extractBlPdfDataRoute");
 const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
 const extractEnquireDataRoute = require("./src/routes/extractEnquireDataRoute");
 const customerQuotationRoute = require("./src/routesSQL/customer-quotation.route");
-const assistantRoute = require("./src/routesSQL/assistantRoute");
+// The Artin assistant routes are optional: if they fail to load, the rest of
+// the server still starts and only the assistant endpoints are unavailable.
+let assistantRoute = null;
+try {
+  assistantRoute = require("./src/routesSQL/assistantRoute");
+} catch (error) {
+  console.error("[Assistant] routes disabled:", error.message);
+}
 
 const {
   deleteDeletedAttachments,
@@ -182,7 +189,7 @@ app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);
 app.use("/Sql/api/ai", extractEnquireDataRoute);
 app.use("/Sql/api/customer-quotation", customerQuotationRoute);
-app.use("/Sql/api/assistant", assistantRoute);
+if (assistantRoute) app.use("/Sql/api/assistant", assistantRoute);
 
 app.get("/api/metrics", async (req, res) => {
   res.setHeader("Content-Type", register.contentType);
@@ -202,10 +209,14 @@ cron.schedule("0 */4 * * *", async () => {
 // Artin reminders as browser push notifications, checked every minute.
 // Off unless ASSISTANT_PUSH_ENABLED=true (see docs/assistant-backend.md).
 if (String(process.env.ASSISTANT_PUSH_ENABLED || "").toLowerCase() === "true") {
-  const {
-    sendDueAssistantReminders,
-  } = require("./src/services/assistantReminderService");
-  cron.schedule("* * * * *", sendDueAssistantReminders);
+  try {
+    const {
+      sendDueAssistantReminders,
+    } = require("./src/services/assistantReminderService");
+    cron.schedule("* * * * *", sendDueAssistantReminders);
+  } catch (error) {
+    console.error("[Assistant] reminder job disabled:", error.message);
+  }
 }
 
 app.use(function (req, res, next) {

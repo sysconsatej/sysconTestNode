@@ -1,8 +1,11 @@
 // Sends Artin reminders as browser push notifications, so they arrive even
 // when every tab of the app is closed. Runs from the cron in index.js when
 // ASSISTANT_PUSH_ENABLED=true and VAPID keys are configured.
-const webpush = require("web-push");
 const model = require("../modelSQL/assistantModel");
+
+// Loaded only when push is switched on, so a server deployed without
+// `npm install` for this package still starts normally.
+let webpush = null;
 
 // An open tab fires a reminder itself and syncs its deletion within seconds;
 // waiting a minute keeps the push from arriving as a second alert.
@@ -15,6 +18,13 @@ function configureVapid() {
   if (vapidConfigured !== null) return vapidConfigured;
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    vapidConfigured = false;
+    return false;
+  }
+  try {
+    webpush = require("web-push");
+  } catch {
+    console.error("[AssistantReminders] web-push is not installed; run npm install");
     vapidConfigured = false;
     return false;
   }
