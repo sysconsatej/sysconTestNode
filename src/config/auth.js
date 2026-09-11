@@ -52,8 +52,7 @@ exports.verifyOTPToken = (req, res, next) => {
       });
     }
     req.otp_token_id = decoded.id;
-    console.log(decoded);
-    returnnext();
+    return next();
   });
   // next();
 };
@@ -77,7 +76,6 @@ exports.verifyForgotPassToken = (req, res, next) => {
       });
     }
     req.forgot_pass_token_id = decoded.id;
-    console.log(decoded);
     return next();
   });
   // next();
