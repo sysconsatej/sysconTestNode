@@ -4,7 +4,6 @@ const config = require("../../src/config/auth.config.js");
 
 exports.verifyToken = (req, res, next) => {
   let token = req.headers["x-access-token"];
-  console.log(token);
   if (!token) {
     return res.status(403).send({
       success: false,
@@ -36,7 +35,6 @@ exports.verifyToken = (req, res, next) => {
 
 exports.verifyOTPToken = (req, res, next) => {
   let token = req.headers["otp_token"];
-  console.log(token);
   if (!token) {
     return res.status(403).send({
       success: false,
@@ -62,7 +60,6 @@ exports.verifyOTPToken = (req, res, next) => {
 
 exports.verifyForgotPassToken = (req, res, next) => {
   let token = req.headers["forgot_pass_token"];
-  console.log(token);
   if (!token) {
     return res.status(403).send({
       success: false,
