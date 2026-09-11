@@ -70,6 +70,7 @@
     "socket.io": "^4.8.3",
     "uuid": "^14.0.0",
     "validatorjs": "^3.22.1",
+    "web-push": "^3.6.7",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0",
     "winston-mongodb": "^5.1.1",
