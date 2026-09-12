@@ -553,7 +553,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           }
         );
       }
-      console.log("Fetched credentials and configuration for pre-authentication:", username, password)
+      console.log("Fetched credentials and configuration for pre-authentication")
 
       // Step 3: Construct request URL
       const requestUrl = `${serverLink}/auth-server/oauth/token?username=${encodeURIComponent(
@@ -563,9 +563,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       )}&scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(
         client_id
       )}`;
-      console.log(requestUrl);
-
-      console.log(username, password, client_id, scope, gstin, basicAuthKey);
+      // The URL carries the username and password, so it is never logged.
 
       // Step 4: Make POST request to GSTHero OAuth token endpoint
       const response = await fetch(requestUrl, {
@@ -578,7 +576,8 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         },
       });
       const responseData = await parseJsonResponse(response);
-      console.log("Pre_AuthenticationResponse:", responseData);
+      // Never log the body: it contains the access token.
+      console.log("Pre-authentication response status:", response.status);
 
       if (!response.ok) {
         throw createHttpError(
@@ -634,7 +633,9 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         `EXEC einvoicingGstheroAuthentication @invoiceId = ${accInvId}, @branchid = ${loginBranch}, @companyId = ${companyId} , @clientId = ${req.clientId}`,
         {}
       );
-      console.log("AuthenticationResponse:", result.recordset);
+      // These rows become the authentication request, which can hold
+      // credentials, so only their count is logged.
+      console.log("Authentication payload rows:", result.recordset?.length ?? 0);
 
       const jsonOutput = result.recordset
         .map((row) => row[Object.keys(row)[0]])
@@ -688,18 +689,9 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       const action = "ACCESSTOKEN";
 
       console.log("Making authentication request to GSTHero with URL:", requestUrl);
-      console.log("Request headers:", {
-        method: "POST",
-        headers: {
-          "X-Connector-Auth-Token": xConnectorToken,
-          Authorization: preauthToken,
-          gstin,
-          action,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: jsonOutput,
-      });
+      // The headers carry the connector and bearer tokens, so only
+      // non-secret details are logged.
+      console.log("Authentication request:", { method: "POST", gstin, action });
       // Make authentication request
       const response = await fetch(requestUrl, {
         method: "POST",
@@ -714,7 +706,8 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         body: jsonOutput,
       });
       const responseData = await parseJsonResponse(response);
-      console.log("AuthenticationResponse:", responseData);
+      // Never log the body: it contains the access token.
+      console.log("Authentication response status:", response.status);
 
       if (!response.ok) {
         throw createHttpError(
@@ -1101,9 +1094,13 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         body: formBody,
       });
 
-      console.log("Malaysia OAuth token response:", tokenResponse);
+      console.log("Malaysia OAuth token response status:", tokenResponse.status);
       const tokenData = await parseJsonResponse(tokenResponse);
-      console.log("Malaysia OAuth response:", tokenData);
+      // Never log the response body: it contains the access token.
+      console.log("Malaysia OAuth response received:", {
+        ok: tokenResponse.ok,
+        hasAccessToken: !!tokenData?.access_token,
+      });
 
       if (!tokenResponse.ok) {
         throw createHttpError(
@@ -1203,14 +1200,8 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       ],
     };
 
-    console.log("Submitting document to Malaysia endpoint:", submitUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    // The headers carry the access token, so only the endpoint is logged.
+    console.log("Submitting document to Malaysia endpoint:", submitUrl);
     // return { submissionUid:'fsdfsfsdfsfsdfsdfsdfsd' }
     const submitResponse = await fetch(submitUrl, {
       method: "POST",

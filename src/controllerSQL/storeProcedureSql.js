@@ -82,6 +82,7 @@ module.exports = {
         totalAmountHc,
         voucherTypeId,
         isTaxApplicable,
+        rcm
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -107,6 +108,7 @@ module.exports = {
         placeOfSupply_state: placeOfSupply_state,
         voucherTypeId: voucherTypeId,
         isTaxApplicable: isTaxApplicable,
+        rcm: rcm,
       };
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
@@ -1667,4 +1669,74 @@ module.exports = {
       });
     }
   },
+ getSecondThirdMasterData: async (req, res) => {
+  try {
+    const {
+      clientId,
+      masterJobId,
+      companyId,
+      companyBranchId,
+      businessSegmentId,
+      voucherTypeId,
+      billingPartyId,
+      currencyId,
+      invoiceExchangeRate,
+      blId
+    } = req.body;
+
+    console.log("getSecondThirdMasterData req.body:", req.body);
+
+    const params = {
+      clientId,
+      masterJobId,
+      companyId,
+      companyBranchId,
+      businessSegmentId,
+      voucherTypeId,
+      billingPartyId,
+      currencyId,
+      invoiceExchangeRate,
+      blId
+    };
+
+    console.log("SP Params:", params);
+
+    const data = await executeStoredProcedureSecond(
+      "getSecondThirdLevelDetailsMasterJob",
+      params,
+    );
+
+    console.log("SP Result:", data);
+
+    if (!data || data.length === 0) {
+      return res.send({
+        success: true,
+        message: "No data found",
+        data: [],
+        Chargers: [],
+        count: 0,
+      });
+    }
+
+    return res.send({
+      success: true,
+      message: "Data fetched successfully!",
+      data: data,        // <-- ADD THIS
+      Chargers: data,
+      count: data.length,
+    });
+  } catch (error) {
+    console.error("getSecondThirdMasterData ERROR:", error);
+
+    return res.status(500).send({
+      success: false,
+      message: "Error - " + error.message,
+      data: [],
+      Chargers: [],
+      error: error.message,
+    });
+  }
+},
 };
+
+

@@ -49,6 +49,8 @@ module.exports = {
         } = req.body;
         let pageNo = parseInt(req.body.pageNo, 10) || 1; // Default to page 1 if not specified
         let limit = parseInt(req.body.limit, 10) || 10; // Default to 10 items per page if not specified
+        let isExcel = req.body.isExcel ? parseInt(req.body.isExcel, 10) : 0; // Default to 0 if not specified
+        console.log("isExcel => ", isExcel);
         let parameter = {
           clientId: req.clientId,
           tableName: tableName,
@@ -63,7 +65,9 @@ module.exports = {
           loginCompanyId: loginCompany,
           loginfinYearId: loginfinYear,
           userTypeId: userTypeId,
+          isExcel : isExcel === 1 ? 1 : 0,
         };
+        console.log("parameter => ", isExcel);
         let query = ``;
         if (
           keyName &&
@@ -122,6 +126,7 @@ module.exports = {
           ...parameter,
           pageSize: 1001,
           pageNumber: 1,
+          isExcel : isExcel === 1 ? 1 : 0,
         };
         let getDataCount = await executeStoredProcedure(
           "dynamicSearchApi",

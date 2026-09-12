@@ -41,7 +41,7 @@ const saveDeviceToken = async (req, res) => {
     console.log("Received device token data:", {
       clientId,
       deviceId,
-      fcmToken,
+      hasToken: !!fcmToken,
       os,
       appVersion,
     });
