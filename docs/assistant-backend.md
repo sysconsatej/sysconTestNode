@@ -20,6 +20,18 @@ Server side of the Artin assistant in `mainCode-NextJs-SQL`:
    rows. Replace its body with your own queries; each row is a `label`
    (plural noun phrase) and a `value` (count). An example is in the script.
 
+   `database/assistant/003_assistant_briefing.sql` fills it in with figures
+   that are true by definition: invoices raised today, jobs opened today, and
+   invoices raised in the last seven days, each scoped to the signed-in
+   client, company, branch, and financial year. Run it after 001.
+
+   It deliberately leaves out "pending approvals" and "overdue invoices".
+   Neither can be derived from this schema without a business rule:
+   `approvedFlag` is NULL on 73% of invoices, `dueDate` says nothing about
+   settlement (176,245 invoices are past due), `deletedNo` holds arbitrary
+   numbers rather than a flag, and `cancelStatus` is unused. Supply the rule
+   and each becomes one more `UNION ALL` branch.
+
 3. **Push keys.** Generate a key pair once per environment:
 
    ```sh
