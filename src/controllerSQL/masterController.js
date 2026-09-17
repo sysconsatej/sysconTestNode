@@ -305,14 +305,14 @@ module.exports = {
           const file = req.files["documents"]; // Adjust the field name based on your form
           // const allowedExtensions = /\.(png|jpg|jpeg|pdf|doc|xls|txt)$/i;
           const allowedExtensions =
-            /\.(png|jpg|jpeg|pdf|doc|docx|xls|xlsx|txt|json|xml|ppt|pptx)$/i;
+            /\.(png|jpg|jpeg|pdf|doc|docx|xls|xlsx|txt|json|xml|ppt|pptx|zip|rar)$/i;
           // Check file extension
           if (!allowedExtensions.test(file.name)) {
             responce.success = false; // Update flag since response is being sent
 
             // responce.message = 'Sorry, the file type you provided is invalid. Please upload a file with one of the following extensions: .png, .jpg, ,.jpeg, .pdf, .doc, .xls, .txt.'
             responce.message =
-              "Sorry, the file type you provided is invalid. Please upload a file with one of the following extensions: .png, .jpg, .jpeg, .pdf, .doc, .docx, .xls, .xlsx, .txt, .json, .xml, .ppt, .pptx.";
+              "Sorry, the file type you provided is invalid. Please upload a file with one of the following extensions: .png, .jpg, .jpeg, .pdf, .doc, .docx, .xls, .xlsx, .txt, .json, .xml, .ppt, .pptx, .zip, .rar.";
             // break; // Break out of the loop
           }
           // Check file size
