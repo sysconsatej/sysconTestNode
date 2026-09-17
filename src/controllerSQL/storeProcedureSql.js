@@ -1725,6 +1725,7 @@ module.exports = {
       billingPartyId,
       currencyId,
       invoiceExchangeRate,
+      blId
     } = req.body;
 
     console.log("getSecondThirdMasterData req.body:", req.body);
@@ -1739,6 +1740,7 @@ module.exports = {
       billingPartyId,
       currencyId,
       invoiceExchangeRate,
+      blId
     };
 
     console.log("SP Params:", params);
