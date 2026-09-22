@@ -534,130 +534,138 @@ module.exports = {
   //   }
   // },
 
-  saveContainerMovement: async (req, res) => {
-    try {
-      const { tblContainerMovement, clientId, userId } = req.body;
+saveContainerMovement: async (req, res) => {
+  try {
+    const { tblContainerMovement, clientId, userId, saveMode = "INSERT" } = req.body;
 
-      if (
-        !Array.isArray(tblContainerMovement) ||
-        tblContainerMovement.length === 0
-      ) {
-        return res.status(400).send({
-          success: false,
-          message: "No container movement data provided.",
-          data: [],
-        });
-      }
-
-      const pad2 = (n) => String(n).padStart(2, "0");
-      const pad3 = (n) => String(n).padStart(3, "0");
-
-      // YYYY-MM-DD (date only)
-      const toSqlDate = (value) => {
-        const d = value ? new Date(value) : new Date();
-        if (Number.isNaN(d.getTime()))
-          return new Date().toLocaleDateString("en-CA");
-        return d.toLocaleDateString("en-CA");
-      };
-
-      // YYYY-MM-DD HH:mm:ss.SSS (datetime with milliseconds)
-      const toSqlDateTimeMs = (value) => {
-        const d = value ? new Date(value) : new Date();
-        const dt = Number.isNaN(d.getTime()) ? new Date() : d;
-
-        const yyyy = dt.getFullYear();
-        const MM = pad2(dt.getMonth() + 1);
-        const dd = pad2(dt.getDate());
-        const HH = pad2(dt.getHours());
-        const mm = pad2(dt.getMinutes());
-        const ss = pad2(dt.getSeconds());
-        const SSS = pad3(dt.getMilliseconds());
-
-        return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
-      };
-
-      // If activityDate is missing/invalid => keep NULL (recommended)
-      // If you want default NOW instead of NULL, tell me and I'll change this.
-      const toSqlDateTimeMsNullable = (value) => {
-        if (!value) return null;
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return null;
-        return toSqlDateTimeMs(d);
-      };
-
-      const createdDateWithTime = toSqlDateTimeMs(new Date());
-
-      const payload = {
-        childJson1: tblContainerMovement.map((item) => ({
-          "tblContainerMovement.containerId": item.containerNo
-            ? Number(item.containerNo)
-            : null,
-          "tblContainerMovement.agentId": item.agentId
-            ? Number(item.agentId)
-            : null,
-          "tblContainerMovement.agentBranchId": item.agentBranchId
-            ? Number(item.agentBranchId)
-            : null,
-          "tblContainerMovement.fromLocationId": item.fromLocationId
-            ? Number(item.fromLocationId)
-            : null,
-          "tblContainerMovement.toLocationId": item.toLocationId
-            ? Number(item.toLocationId)
-            : null,
-          "tblContainerMovement.remarks": item.remarks || "",
-          "tblContainerMovement.activityId": item.activityId
-            ? Number(item.activityId)
-            : null,
-
-          // ✅ NOW SAVES WITH TIME (like createdDate)
-          // - If item.activityDate is blank/invalid => NULL (won't auto-fill now)
-          "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(
-            item.activityDate,
-          ),
-
-          "tblContainerMovement.clientId": clientId,
-          "tblContainerMovement.createdBy": userId,
-          "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
-          "tblContainerMovement.vesselId": item.vesselId
-            ? Number(item.vesselId)
-            : null,
-          "tblContainerMovement.voyageId": item.voyageId
-            ? Number(item.voyageId)
-            : null,
-          "tblContainerMovement.importBlId": item.importBlId
-            ? Number(item.importBlId)
-            : null,
-          "tblContainerMovement.exportBlId": item.exportBlId
-            ? Number(item.exportBlId)
-            : null,
-
-          "tblContainerMovement.status": 1,
-          "tblContainerMovement.createdDate": createdDateWithTime,
-        })),
-      };
-
-      console.log("Payload to SP:", JSON.stringify(payload, null, 2));
-
-      const data = await executeStoredProcedure("staticInsertUpdate", {
-        jsonPayload: JSON.stringify(payload),
-      });
-
-      return res.send({
-        success: true,
-        message: "Data saved successfully!",
-        Chargers: data,
-        count: data?.length || 0,
-      });
-    } catch (error) {
-      console.error("Error in saveContainerMovement:", error);
-      return res.status(500).send({
+    if (!Array.isArray(tblContainerMovement) || tblContainerMovement.length === 0) {
+      return res.status(400).send({
         success: false,
-        message: "Error - " + error.message,
+        message: "No container movement data provided.",
         data: [],
-        error: error.message,
       });
     }
-  },
+
+    if (!Number.isSafeInteger(Number(clientId)) || Number(clientId) <= 0 ||
+        !Number.isSafeInteger(Number(userId)) || Number(userId) <= 0) {
+      return res.status(400).send({
+        success: false,
+        message: "Valid clientId and userId are required.",
+        data: [],
+      });
+    }
+
+    if (!["INSERT", "UPDATE"].includes(saveMode)) {
+      return res.status(400).send({ success: false, message: "Invalid save mode.", data: [] });
+    }
+
+    const toNullableNumber = (value) => {
+      if (value === null || value === undefined || value === "" || value === "null") {
+        return null;
+      }
+      const number = Number(value);
+      if (!Number.isSafeInteger(number)) {
+        throw new Error(`Invalid numeric identifier: ${String(value)}`);
+      }
+      return number;
+    };
+
+    // UPDATE must never be allowed to fall back to INSERT when the ID was lost.
+    if (saveMode === "UPDATE" && (
+      tblContainerMovement.length !== 1 ||
+      !Number.isSafeInteger(Number(tblContainerMovement[0].id)) ||
+      Number(tblContainerMovement[0].id) <= 0
+    )) {
+      return res.status(400).send({
+        success: false,
+        message: "Update requires exactly one valid tblContainerMovement.id.",
+        data: [],
+      });
+    }
+
+    // Reject missing/invalid IDs in records that appear to be updates.
+    for (const item of tblContainerMovement) {
+      if (item.id !== null && item.id !== undefined && item.id !== "" && item.id !== 0 && item.id !== "0" &&
+          (!Number.isSafeInteger(Number(item.id)) || Number(item.id) <= 0)) {
+        return res.status(400).send({ success: false, message: "Invalid movement ID.", data: [] });
+      }
+    }
+
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const pad3 = (n) => String(n).padStart(3, "0");
+
+    const toSqlDateTimeMs = (value) => {
+      const d = value ? new Date(value) : new Date();
+      if (Number.isNaN(d.getTime())) throw new Error("Invalid date value.");
+      const yyyy = d.getFullYear();
+      const MM = pad2(d.getMonth() + 1);
+      const dd = pad2(d.getDate());
+      const HH = pad2(d.getHours());
+      const mm = pad2(d.getMinutes());
+      const ss = pad2(d.getSeconds());
+      const SSS = pad3(d.getMilliseconds());
+      return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
+    };
+    const toSqlDateTimeMsNullable = (value) => {
+      if (!value || value === "null") return null;
+      return toSqlDateTimeMs(value);
+    };
+
+    const payload = {
+      // The SP reads these from the TOP LEVEL (not childJson1).
+      clientId: Number(clientId),
+      userId: Number(userId),
+      childJson1: tblContainerMovement.map((item) => {
+        const recordId = toNullableNumber(item.id);
+        const record = {
+          "tblContainerMovement.id": recordId,
+          "tblContainerMovement.containerId": toNullableNumber(item.containerNo ?? item.containerId),
+          "tblContainerMovement.agentId": toNullableNumber(item.agentId),
+          "tblContainerMovement.agentBranchId": toNullableNumber(item.agentBranchId),
+          "tblContainerMovement.fromLocationId": toNullableNumber(item.fromLocationId),
+          "tblContainerMovement.toLocationId": toNullableNumber(item.toLocationId),
+          "tblContainerMovement.remarks": item.remarks ?? "",
+          "tblContainerMovement.activityId": toNullableNumber(item.activityId),
+          "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(item.activityDate),
+          "tblContainerMovement.clientId": Number(clientId),
+          "tblContainerMovement.jobId": toNullableNumber(item.jobId),
+          "tblContainerMovement.vesselId": toNullableNumber(item.vesselId),
+          "tblContainerMovement.voyageId": toNullableNumber(item.voyageId),
+          "tblContainerMovement.importBlId": toNullableNumber(item.importBlId),
+          "tblContainerMovement.exportBlId": toNullableNumber(item.exportBlId),
+          "tblContainerMovement.status": 1,
+        };
+
+        if (!recordId) {
+          record["tblContainerMovement.createdBy"] = Number(userId);
+          record["tblContainerMovement.createdDate"] = toSqlDateTimeMs(new Date());
+        }
+        return record;
+      }),
+    };
+
+    console.log("Payload to SP:", JSON.stringify(payload, null, 2));
+    const data = await executeStoredProcedure("staticInsertUpdate", {
+      jsonPayload: JSON.stringify(payload),
+    });
+
+    return res.send({
+      success: true,
+      message: "Data saved successfully!",
+      Chargers: data,
+      count: data?.length || 0,
+    });
+  } catch (error) {
+    console.error("Error in saveContainerMovement:", error);
+    return res.status(500).send({
+      success: false,
+      message: "Error - " + error.message,
+      data: [],
+      error: error.message,
+    });
+  }
+},
+
 
   generalLegerBillingParty: async (req, res) => {
     try {
