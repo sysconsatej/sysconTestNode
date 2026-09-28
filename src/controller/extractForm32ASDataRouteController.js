@@ -13,6 +13,10 @@ const {
   readInlinePdf,
   toPdfPart,
 } = require("../helper/geminiPdfInput");
+const {
+  startUsageLog,
+  summarizeGeminiUsage,
+} = require("../helper/aiUsageLogger");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -1280,6 +1284,11 @@ async function extractForm26ASUsingGemini(
       },
     });
 
+    extractionJobs.addUsage({
+      usageMetadata: response?.usageMetadata,
+      model: response?.modelVersion,
+    });
+
     let parsed;
 
     try {
@@ -1412,6 +1421,14 @@ module.exports = {
       }
 
       extractionId = extractionJobs.createJob(ownerKey);
+
+      const usageLog = startUsageLog({
+        documentType: "form32AS",
+        extractionId,
+        req,
+        fileNames: files.map((f) => f?.name),
+      });
+
 
       setReadingStatus(
         {
@@ -1553,6 +1570,11 @@ module.exports = {
 
           console.log("FINAL Form32AS DATA KEYS =>", Object.keys(finalData));
 
+          usageLog.finish({
+            status: "completed",
+            usage: summarizeGeminiUsage(extractionJobs.getUsage()),
+          });
+
           setReadingStatus({
             status: "completed",
             stage: "completed",
@@ -1569,6 +1591,12 @@ module.exports = {
             "Error extracting Form32AS/Form26AS PDF data:",
             safeErrorText(error),
           );
+          usageLog.finish({
+            status: "failed",
+            usage: summarizeGeminiUsage(extractionJobs.getUsage()),
+            errorMessage:
+              error.message || "Failed to extract Form32AS/Form26AS PDF data",
+          });
 
           setReadingStatus({
             status: "failed",
@@ -1580,6 +1608,12 @@ module.exports = {
             error:
               error.message || "Failed to extract Form32AS/Form26AS PDF data",
             data: null,
+          });
+        } finally {
+          // Only records if the run ended without completing or failing.
+          usageLog.finish({
+            status: "cancelled",
+            usage: summarizeGeminiUsage(extractionJobs.getUsage()),
           });
         }
       });

@@ -6,6 +6,7 @@ const { PDFDocument } = require("pdf-lib");
 const { GoogleGenAI } = require("@google/genai");
 const pdfParse = require("pdf-parse");
 const { getOwnerKey } = require("../helper/extractionJobStore");
+const { startUsageLog } = require("../helper/aiUsageLogger");
 const {
   canSendPdfInline,
   readInlinePdf,
@@ -2119,6 +2120,13 @@ module.exports = {
       );
       extractionOwners.set(extractionId, getOwnerKey(req));
 
+      const usageLog = startUsageLog({
+        documentType: "purchaseInvoice",
+        extractionId,
+        req,
+        fileNames: processingFiles.map((f) => f?.name),
+      });
+
       setReadingStatus(
         {
           status: "running",
@@ -2243,6 +2251,15 @@ module.exports = {
           mergedResult = normalizeResultShape(mergedResult);
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
+          usageLog.finish({
+            status: "completed",
+            usage: finalUsageMetadata,
+            pageCount: workItems
+                .filter((w) => w.partIndex === 1)
+                .reduce((sum, w) => sum + Number(w.totalPages || 0), 0) || null,
+            defaultModel: MODEL,
+          });
+
           completeReadingStatus(
             {
               status: "completed",
@@ -2275,6 +2292,7 @@ module.exports = {
           const friendlyError = getFriendlyExtractionError(error);
 
           if (isCurrentRun(extractionId)) {
+            usageLog.finish({ status: "failed", errorMessage: friendlyError });
             setReadingStatus(
               {
                 status: "failed",
@@ -2290,6 +2308,8 @@ module.exports = {
             );
           }
         } finally {
+          // Only records if the run ended without completing or failing.
+          usageLog.finish({ status: "cancelled" });
           await deleteGeminiFiles(uploadedGeminiNames);
           await Promise.all(uploadedSnapshots.map((item) => item.cleanup?.()));
         }

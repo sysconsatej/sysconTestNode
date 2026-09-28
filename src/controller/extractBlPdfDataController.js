@@ -15,6 +15,7 @@ const {
   toPdfPart,
   mapWithConcurrency,
 } = require("../helper/geminiPdfInput");
+const { startUsageLog } = require("../helper/aiUsageLogger");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -2217,6 +2218,14 @@ module.exports = {
       }
 
       extractionId = extractionJobs.createJob(ownerKey);
+
+      const usageLog = startUsageLog({
+        documentType: "bl",
+        extractionId,
+        req,
+        fileNames: files.map((f) => f?.name),
+      });
+
       setReadingStatus(
         {
           status: "running",
@@ -2326,6 +2335,15 @@ module.exports = {
           mergedResult = sanitizeResult(normalizeResultShape(mergedResult));
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
+          usageLog.finish({
+            status: "completed",
+            usage: finalUsageMetadata,
+            pageCount: workItems
+                .filter((w) => w.partIndex === 1)
+                .reduce((sum, w) => sum + Number(w.totalPages || 0), 0) || null,
+            defaultModel: MODEL,
+          });
+
           setReadingStatus({
             status: "completed",
             stage: "completed",
@@ -2353,6 +2371,10 @@ module.exports = {
           });
         } catch (error) {
           console.error("Error extracting BL PDF data:", error);
+          usageLog.finish({
+            status: "failed",
+            errorMessage: error.message || "Failed to extract BL PDF data",
+          });
 
           setReadingStatus({
             status: "failed",
@@ -2365,6 +2387,8 @@ module.exports = {
             data: null,
           });
         } finally {
+          // Only records if the run ended without completing or failing.
+          usageLog.finish({ status: "cancelled" });
           await deleteGeminiFiles(uploadedGeminiNames);
         }
       });

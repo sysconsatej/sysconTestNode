@@ -124,6 +124,19 @@ function createExtractionJobStore(createIdleStatus) {
     return latest;
   }
 
+  // Collects Gemini usage for the current job (for usage logging).
+  function addUsage(entry, extractionId = context.getStore()) {
+    const job = jobs.get(extractionId);
+
+    if (job && entry) {
+      job.usage = [...(job.usage || []), entry];
+    }
+  }
+
+  function getUsage(extractionId = context.getStore()) {
+    return jobs.get(extractionId)?.usage || [];
+  }
+
   // Background work checks this between steps and stops early.
   function isCancelled(extractionId = context.getStore()) {
     const job = jobs.get(extractionId);
@@ -164,6 +177,8 @@ function createExtractionJobStore(createIdleStatus) {
     findLatestForOwner,
     isCancelled,
     cancel,
+    addUsage,
+    getUsage,
   };
 }
 
