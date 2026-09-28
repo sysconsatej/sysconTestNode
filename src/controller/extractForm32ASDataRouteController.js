@@ -3,7 +3,16 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const pdfParse = require("pdf-parse");
-const { GoogleGenAI, createPartFromUri } = require("@google/genai");
+const { GoogleGenAI } = require("@google/genai");
+const {
+  getOwnerKey,
+  createExtractionJobStore,
+} = require("../helper/extractionJobStore");
+const {
+  canSendPdfInline,
+  readInlinePdf,
+  toPdfPart,
+} = require("../helper/geminiPdfInput");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -34,29 +43,8 @@ const GEMINI_GENERATE_RETRIES = Number(
 
 const GEMINI_RETRY_BASE_MS = Number(process.env.GEMINI_RETRY_BASE_MS || 3000);
 
-let readingStatus = {
-  status: "idle",
-  stage: "idle",
-  progress: 0,
-  message: "No active process",
-  currentFileIndex: null,
-  totalFiles: 0,
-  currentFileName: null,
-  data: null,
-  error: null,
-  updatedAt: new Date().toISOString(),
-};
-
-function setReadingStatus(patch = {}) {
-  readingStatus = {
-    ...readingStatus,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function resetReadingStatus() {
-  readingStatus = {
+function createIdleReadingStatus() {
+  return {
     status: "idle",
     stage: "idle",
     progress: 0,
@@ -67,6 +55,22 @@ function resetReadingStatus() {
     data: null,
     error: null,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+const extractionJobs = createExtractionJobStore(createIdleReadingStatus);
+
+// Updates the job of the extraction currently running (or the given one).
+function setReadingStatus(patch = {}, extractionId) {
+  extractionJobs.setStatus(patch, extractionId);
+}
+
+function toSafeReadingStatus(readingStatus) {
+  return {
+    ...readingStatus,
+    data: readingStatus?.data
+      ? toFlatForm32ASData(readingStatus.data)
+      : readingStatus?.data,
   };
 }
 
@@ -1209,43 +1213,50 @@ async function extractForm26ASUsingGemini(
   let uploadedName = null;
 
   try {
-    await fs.writeFile(tempPath, buffer);
+    let fetchedFile;
 
-    const uploaded = await uploadGeminiFileWithRetry(tempPath, fileName);
-    uploadedName = uploaded.name;
+    // Small PDFs go inside the request, skipping the upload and processing wait.
+    if (canSendPdfInline(buffer.length)) {
+      fetchedFile = await readInlinePdf(buffer);
+    } else {
+      await fs.writeFile(tempPath, buffer);
 
-    const startedAt = Date.now();
+      const uploaded = await uploadGeminiFileWithRetry(tempPath, fileName);
+      uploadedName = uploaded.name;
 
-    let fetchedFile = await getGeminiFileWithRetry(uploaded.name, fileName);
+      const startedAt = Date.now();
 
-    while (safeFileState(fetchedFile.state) === "PROCESSING") {
-      if (Date.now() - startedAt > GEMINI_FILE_PROCESSING_TIMEOUT_MS) {
-        throw new Error(`Gemini file processing timed out for ${fileName}`);
+      fetchedFile = await getGeminiFileWithRetry(uploaded.name, fileName);
+
+      while (safeFileState(fetchedFile.state) === "PROCESSING") {
+        if (Date.now() - startedAt > GEMINI_FILE_PROCESSING_TIMEOUT_MS) {
+          throw new Error(`Gemini file processing timed out for ${fileName}`);
+        }
+
+        setReadingStatus({
+          status: "running",
+          stage: "ocr_fallback_processing",
+          currentFileIndex: statusContext.currentFileIndex || null,
+          totalFiles: statusContext.totalFiles || null,
+          currentFileName: fileName,
+          message: `Gemini is processing ${fileName}`,
+          error: null,
+        });
+
+        await sleep(GEMINI_FILE_POLL_INTERVAL_MS);
+        fetchedFile = await getGeminiFileWithRetry(uploaded.name, fileName);
       }
 
-      setReadingStatus({
-        status: "running",
-        stage: "ocr_fallback_processing",
-        currentFileIndex: statusContext.currentFileIndex || null,
-        totalFiles: statusContext.totalFiles || null,
-        currentFileName: fileName,
-        message: `Gemini is processing ${fileName}`,
-        error: null,
-      });
-
-      await sleep(GEMINI_FILE_POLL_INTERVAL_MS);
-      fetchedFile = await getGeminiFileWithRetry(uploaded.name, fileName);
-    }
-
-    if (safeFileState(fetchedFile.state) === "FAILED") {
-      throw new Error(`Gemini failed to process file: ${fileName}`);
+      if (safeFileState(fetchedFile.state) === "FAILED") {
+        throw new Error(`Gemini failed to process file: ${fileName}`);
+      }
     }
 
     const response = await generateContentWithModelFallback({
       label: `Form26AS extraction for ${fileName}`,
       contents: [
         buildGeminiForm26ASPrompt(fileName),
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+        toPdfPart(fetchedFile),
       ],
       config: {
         temperature: 0,
@@ -1349,17 +1360,20 @@ async function extractTextFromPdfBuffer(buffer) {
 
 module.exports = {
   extractForm32AsPdfData: async (req, res) => {
+    let extractionId = null;
+
     try {
-      if (readingStatus.status === "running") {
+      const ownerKey = getOwnerKey(req);
+      const runningStatus = extractionJobs.findLatestForOwner(ownerKey, {
+        runningOnly: true,
+      });
+
+      if (runningStatus) {
         return res.status(409).json({
           success: false,
           error: "Another PDF extraction is already running",
-          readingStatus: {
-            ...readingStatus,
-            data: readingStatus.data
-              ? toFlatForm32ASData(readingStatus.data)
-              : readingStatus.data,
-          },
+          extractionId: runningStatus.extractionId,
+          readingStatus: toSafeReadingStatus(runningStatus),
         });
       }
 
@@ -1397,32 +1411,40 @@ module.exports = {
         });
       }
 
-      resetReadingStatus();
+      extractionId = extractionJobs.createJob(ownerKey);
 
-      setReadingStatus({
-        status: "running",
-        stage: "queued",
-        progress: 0,
-        totalFiles: files.length,
-        currentFileIndex: null,
-        currentFileName: null,
-        message: "Form32AS / Form26AS PDF extraction started",
-        data: null,
-        error: null,
-      });
+      setReadingStatus(
+        {
+          status: "running",
+          stage: "queued",
+          progress: 0,
+          totalFiles: files.length,
+          currentFileIndex: null,
+          currentFileName: null,
+          message: "Form32AS / Form26AS PDF extraction started",
+          data: null,
+          error: null,
+        },
+        extractionId,
+      );
 
       res.status(202).json({
         success: true,
+        extractionId,
         message: "Form32AS / Form26AS PDF extraction started",
-        readingStatus,
+        readingStatus: extractionJobs.getStatus(extractionId),
       });
 
-      (async () => {
+      extractionJobs.run(extractionId, async () => {
         try {
           const extractedResults = [];
           const pdfFiles = [];
 
           for (let i = 0; i < files.length; i++) {
+            if (extractionJobs.isCancelled()) {
+              return;
+            }
+
             const file = files[i];
             const fileName = file?.name || `file-${i + 1}.pdf`;
 
@@ -1505,6 +1527,10 @@ module.exports = {
             });
           }
 
+          if (extractionJobs.isCancelled()) {
+            return;
+          }
+
           const mergedResult = mergeForm26ASResults(extractedResults);
 
           const processingInfo = {
@@ -1556,29 +1582,70 @@ module.exports = {
             data: null,
           });
         }
-      })();
+      });
     } catch (error) {
       console.error(
         "Error starting Form32AS/Form26AS PDF extraction:",
         safeErrorText(error),
       );
 
-      setReadingStatus({
-        status: "failed",
-        stage: "failed",
-        progress: 100,
-        currentFileName: null,
-        message:
-          error.message || "Failed to start Form32AS/Form26AS PDF extraction",
-        error:
-          error.message || "Failed to start Form32AS/Form26AS PDF extraction",
-        data: null,
-      });
+      setReadingStatus(
+        {
+          status: "failed",
+          stage: "failed",
+          progress: 100,
+          currentFileName: null,
+          message:
+            error.message || "Failed to start Form32AS/Form26AS PDF extraction",
+          error:
+            error.message || "Failed to start Form32AS/Form26AS PDF extraction",
+          data: null,
+        },
+        extractionId,
+      );
 
       return res.status(500).json({
         success: false,
         error:
           error.message || "Failed to start Form32AS/Form26AS PDF extraction",
+      });
+    }
+  },
+
+  cancelForm32AsPdfExtraction: async (req, res) => {
+    try {
+      const extractionId = req.body?.extractionId || req.query?.extractionId;
+
+      if (!extractionId) {
+        return res.status(400).json({
+          success: false,
+          error: "extractionId is required",
+        });
+      }
+
+      const readingStatus = extractionJobs.cancel(
+        extractionId,
+        getOwnerKey(req),
+      );
+
+      if (!readingStatus) {
+        return res.status(404).json({
+          success: false,
+          extractionId,
+          error: "Form32AS PDF extraction status not found or expired",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        extractionId,
+        readingStatus: toSafeReadingStatus(readingStatus),
+      });
+    } catch (error) {
+      console.error("Error cancelling Form32AS PDF extraction:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Failed to cancel PDF extraction",
       });
     }
   },
@@ -1595,12 +1662,32 @@ module.exports = {
         ETag: `"${Date.now()}"`,
       });
 
-      const safeReadingStatus = {
-        ...readingStatus,
-        data: readingStatus?.data
-          ? toFlatForm32ASData(readingStatus.data)
-          : readingStatus.data,
-      };
+      const ownerKey = getOwnerKey(req);
+      const extractionId = req.query?.extractionId;
+      let readingStatus;
+
+      if (extractionId) {
+        readingStatus = extractionJobs.getStatusForOwner(
+          extractionId,
+          ownerKey,
+        );
+
+        if (!readingStatus) {
+          return res.status(404).json({
+            success: false,
+            extractionId,
+            error: "Form32AS PDF extraction status not found or expired",
+            readingStatus: null,
+          });
+        }
+      } else {
+        // Without an extractionId, report the caller's most recent job.
+        readingStatus =
+          extractionJobs.findLatestForOwner(ownerKey) ||
+          createIdleReadingStatus();
+      }
+
+      const safeReadingStatus = toSafeReadingStatus(readingStatus);
 
       return res.status(200).json({
         success: true,

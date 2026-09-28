@@ -3,8 +3,15 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const { PDFDocument } = require("pdf-lib");
-const { GoogleGenAI, createPartFromUri } = require("@google/genai");
+const { GoogleGenAI } = require("@google/genai");
 const pdfParse = require("pdf-parse");
+const { getOwnerKey } = require("../helper/extractionJobStore");
+const {
+  canSendPdfInline,
+  readInlinePdf,
+  toPdfPart,
+  mapWithConcurrency,
+} = require("../helper/geminiPdfInput");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -25,6 +32,11 @@ const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50 MB per uploaded PDF
 const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024); // 15 MB
 const BIG_PDF_PAGE_THRESHOLD = Number(process.env.BIG_PDF_PAGE_THRESHOLD || 25);
 const PDF_CHUNK_PAGE_COUNT = Number(process.env.PDF_CHUNK_PAGE_COUNT || 12);
+// Chunks of a big PDF read in parallel
+const PDF_CHUNK_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.PDF_CHUNK_CONCURRENCY) || 3,
+);
 
 // Retry / polling handling
 const GEMINI_GENERATE_RETRIES = Number(
@@ -41,19 +53,20 @@ const READING_STATUS_PROGRESS_STEP = Math.max(
   1,
   Number(process.env.READING_STATUS_PROGRESS_STEP) || 3,
 );
-const READING_STATUS_COMPLETE_DELAY_MS = Math.max(
-  0,
-  Number(process.env.READING_STATUS_COMPLETE_DELAY_MS) || 250,
-);
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const EXTRACTION_JOB_TTL_MS = Number(
   process.env.EXTRACTION_JOB_TTL_MS || 60 * 60 * 1000,
 );
 
+const EXTRACTION_STALE_JOB_MS = Number(
+  process.env.EXTRACTION_STALE_JOB_MS || 30 * 60 * 1000,
+);
+
 // extractionId wise status storage
 const extractionJobs = new Map();
+// extractionId -> logged-in user who started it
+const extractionOwners = new Map();
 
 function createInitialReadingStatus({ extractionId, totalFiles = 0 }) {
   return {
@@ -89,8 +102,12 @@ function cleanupOldExtractionJobs() {
     const updatedAt = new Date(job?.updatedAt || job?.createdAt || 0).getTime();
     const isFinished = ["completed", "failed"].includes(job?.status);
 
-    if (isFinished && now - updatedAt > EXTRACTION_JOB_TTL_MS) {
+    if (
+      (isFinished && now - updatedAt > EXTRACTION_JOB_TTL_MS) ||
+      (!isFinished && now - updatedAt > EXTRACTION_STALE_JOB_MS)
+    ) {
       extractionJobs.delete(extractionId);
+      extractionOwners.delete(extractionId);
     }
   }
 }
@@ -122,7 +139,7 @@ function setReadingStatus(patch = {}, extractionId) {
         requestedProgress,
       );
     } else {
-      nextPatch.progress = requestedProgress;
+      nextPatch.progress = currentProgress;
     }
   }
 
@@ -134,35 +151,7 @@ function setReadingStatus(patch = {}, extractionId) {
   });
 }
 
-async function completeReadingStatusSlowly(finalPatch = {}, extractionId) {
-  while (true) {
-    const currentStatus = getReadingStatus(extractionId);
-
-    if (!currentStatus) {
-      return;
-    }
-
-    if (Number(currentStatus.progress || 0) >= 99) {
-      break;
-    }
-
-    setReadingStatus(
-      {
-        status: "running",
-        stage: "finalizing",
-        progress: Math.min(
-          99,
-          Number(currentStatus.progress || 0) + READING_STATUS_PROGRESS_STEP,
-        ),
-        message: "Finalizing extracted PDF data",
-        error: null,
-      },
-      extractionId,
-    );
-
-    await sleep(READING_STATUS_COMPLETE_DELAY_MS);
-  }
-
+function completeReadingStatus(finalPatch = {}, extractionId) {
   setReadingStatus(
     {
       ...finalPatch,
@@ -346,150 +335,6 @@ function buildPdfFilesSummary(workItems = []) {
   }
 
   return [...map.values()];
-}
-
-function cleanInvoiceNo(value) {
-  if (!value) return null;
-
-  let s = String(value)
-    .replace(/\u00A0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  s = s.replace(/^[\s:=#._-]+/, "");
-  s = s.replace(/\s*([\/\\-])\s*/g, "$1");
-
-  return s || null;
-}
-
-function looksLikeInvoiceNo(value) {
-  const s = cleanInvoiceNo(value);
-  if (!s) return false;
-
-  if (s.length < 4 || s.length > 60) return false;
-  if (!/[0-9]/.test(s)) return false;
-  if (!/^[A-Za-z0-9\/._\- ]+$/.test(s)) return false;
-  if (/invoice|number|document|bill/i.test(s)) return false;
-
-  return true;
-}
-
-function getAmbiguousGroup(ch) {
-  const c = String(ch || "").toUpperCase();
-
-  if ("I1L|".includes(c)) return "I_GROUP";
-  if ("O0Q".includes(c)) return "O_GROUP";
-  if ("B8".includes(c)) return "B_GROUP";
-  if ("S5".includes(c)) return "S_GROUP";
-  if ("Z2".includes(c)) return "Z_GROUP";
-  if ("G6".includes(c)) return "G_GROUP";
-
-  return c;
-}
-
-function equivalentExceptAmbiguous(a, b) {
-  const x = cleanInvoiceNo(a)?.replace(/\s+/g, "") || "";
-  const y = cleanInvoiceNo(b)?.replace(/\s+/g, "") || "";
-
-  if (!x || !y || x.length !== y.length) return false;
-
-  for (let i = 0; i < x.length; i++) {
-    if (x[i] === y[i]) continue;
-    if (getAmbiguousGroup(x[i]) !== getAmbiguousGroup(y[i])) return false;
-  }
-
-  return true;
-}
-
-function scoreInvoiceCandidate(value, source = "unknown") {
-  const s = cleanInvoiceNo(value);
-  if (!s) return -Infinity;
-
-  let score = 0;
-
-  if (looksLikeInvoiceNo(s)) score += 10;
-  if (/[A-Za-z]/.test(s)) score += 3;
-  if (/\d/.test(s)) score += 3;
-  if (/[\/-]/.test(s)) score += 3;
-  if (/^[A-Za-z][\/-]/.test(s)) score += 5; // important for I/2526/045274
-  if (/^\d+$/.test(s)) score -= 5;
-
-  if (source === "pdf_text") score += 100; // always prefer deterministic text layer
-  if (source === "gemini_main") score += 5;
-  if (source === "gemini_invoice_fallback") score += 3;
-
-  return score;
-}
-
-function chooseBestInvoiceNo(candidates = []) {
-  const prepared = candidates
-    .map((c) => ({
-      value: cleanInvoiceNo(c?.value),
-      source: c?.source || "unknown",
-    }))
-    .filter((c) => c.value);
-
-  if (!prepared.length) return null;
-
-  prepared.sort(
-    (a, b) =>
-      scoreInvoiceCandidate(b.value, b.source) -
-      scoreInvoiceCandidate(a.value, a.source),
-  );
-
-  return prepared[0].value;
-}
-
-async function extractInvoiceNoFromPdfTextBuffer(buffer) {
-  try {
-    if (!buffer || !Buffer.isBuffer(buffer)) return null;
-
-    const parsed = await pdfParse(buffer);
-    const rawText = String(parsed?.text || "");
-    if (!rawText.trim()) return null;
-
-    const lines = rawText
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\u00A0/g, " ").trim())
-      .filter(Boolean);
-
-    const candidates = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Case 1: label and value on same line
-      let m = line.match(
-        /^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?\s*[:\-]?\s*(.+)$/i,
-      );
-      if (m?.[1]) {
-        candidates.push(m[1]);
-      }
-
-      // Case 2: label on one line, value on next line
-      if (/^(?:tax\s+)?invoice\s*(?:number|no\.?|#)?$/i.test(line)) {
-        if (lines[i + 1]) candidates.push(lines[i + 1]);
-        if (lines[i + 2] && !looksLikeInvoiceNo(lines[i + 1])) {
-          candidates.push(lines[i + 2]);
-        }
-      }
-    }
-
-    const cleaned = candidates.map(cleanInvoiceNo).filter(looksLikeInvoiceNo);
-
-    if (!cleaned.length) return null;
-
-    cleaned.sort(
-      (a, b) =>
-        scoreInvoiceCandidate(b, "pdf_text") -
-        scoreInvoiceCandidate(a, "pdf_text"),
-    );
-
-    return cleaned[0];
-  } catch (error) {
-    console.error("extractInvoiceNoFromPdfTextBuffer failed:", error);
-    return null;
-  }
 }
 
 function cleanInvoiceNoCandidate(value) {
@@ -1479,6 +1324,24 @@ async function uploadAndWaitForFile(workItem, index, totalItems, runId) {
       error: null,
     });
 
+    if (canSendPdfInline(workItem.sizeBytes)) {
+      const fetchedFile = await readInlinePdf(workItem.uploadInput);
+
+      updateStatus({
+        status: "running",
+        stage: "gemini_file_ready",
+        progress: Math.min(60 + Math.floor(((index + 1) / totalItems) * 10), 75),
+        currentFileIndex: index + 1,
+        totalFiles: totalItems,
+        currentFileName: displayName,
+        fileState: "ACTIVE",
+        message: `${displayName} is ready for extraction`,
+        error: null,
+      });
+
+      return { fetchedFile, uploadedName: null };
+    }
+
     const uploaded = await withRetry(
       async () => {
         updateStatus({
@@ -1605,7 +1468,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems, runId) {
 }
 
 async function deleteGeminiFiles(fileNames = []) {
-  for (const name of fileNames) {
+  for (const name of fileNames.filter(Boolean)) {
     try {
       await ai.files.delete({ name });
     } catch (e) {}
@@ -1640,7 +1503,7 @@ async function extractContainerFallbackFromGemini(
 
       const contents = [
         buildContainerOnlyPrompt(workItem),
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+        toPdfPart(fetchedFile),
       ];
 
       return await generateContentWithModelFallback({
@@ -1734,7 +1597,7 @@ async function extractInvoiceNoFallbackFromGemini(
 
       const contents = [
         buildInvoiceNoOnlyPrompt(workItem),
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+        toPdfPart(fetchedFile),
       ];
 
       return await generateContentWithModelFallback({
@@ -1955,6 +1818,26 @@ async function extractSingleChunkFromGemini(
     ? buildChunkTaskPrompt(workItem)
     : buildTaskPrompt([workItem.originalFileName || workItem.displayName]);
 
+  // Focused fallback for invoice number. It only depends on the PDF text, so it
+  // runs at the same time as the main extraction.
+  const invoiceFallbackPromise = looksLikeInvoiceNo(
+    workItem.textInvoiceCandidate,
+  )
+    ? Promise.resolve(null)
+    : extractInvoiceNoFallbackFromGemini(
+        fetchedFile,
+        workItem,
+        index,
+        totalItems,
+        runId,
+      ).catch((invoiceFallbackError) => {
+        console.error(
+          `InvoiceNo fallback failed for ${displayName}:`,
+          invoiceFallbackError,
+        );
+        return null;
+      });
+
   const response = await withRetry(
     async () => {
       updateStatus({
@@ -1973,7 +1856,7 @@ async function extractSingleChunkFromGemini(
 
       const contents = [
         prompt,
-        createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+        toPdfPart(fetchedFile),
       ];
 
       return await generateContentWithModelFallback({
@@ -2030,26 +1913,10 @@ async function extractSingleChunkFromGemini(
 
   const usageEntries = [response?.usageMetadata || {}];
 
-  // Focused fallback for invoice number
-  let invoiceFallback = null;
+  const invoiceFallback = await invoiceFallbackPromise;
 
-  if (!looksLikeInvoiceNo(workItem.textInvoiceCandidate)) {
-    try {
-      invoiceFallback = await extractInvoiceNoFallbackFromGemini(
-        fetchedFile,
-        workItem,
-        index,
-        totalItems,
-        runId,
-      );
-
-      usageEntries.push(invoiceFallback?.usageMetadata || {});
-    } catch (invoiceFallbackError) {
-      console.error(
-        `InvoiceNo fallback failed for ${displayName}:`,
-        invoiceFallbackError,
-      );
-    }
+  if (invoiceFallback) {
+    usageEntries.push(invoiceFallback.usageMetadata || {});
   }
 
   parsed.invoiceNo = pickBestInvoiceNo([
@@ -2250,6 +2117,7 @@ module.exports = {
           totalFiles: processingFiles.length,
         }),
       );
+      extractionOwners.set(extractionId, getOwnerKey(req));
 
       setReadingStatus(
         {
@@ -2310,38 +2178,46 @@ module.exports = {
           let mergedResult = normalizeResultShape({});
           const usageMetadataList = [];
 
-          for (let i = 0; i < workItems.length; i++) {
-            const workItem = workItems[i];
+          // Chunks are read in parallel, then merged below in page order.
+          const chunkResults = await mapWithConcurrency(
+            workItems,
+            PDF_CHUNK_CONCURRENCY,
+            async (workItem, i) => {
+              if (!isCurrentRun(extractionId)) {
+                return null;
+              }
 
-            if (!isCurrentRun(extractionId)) {
-              break;
-            }
-
-            const { fetchedFile, uploadedName } = await uploadAndWaitForFile(
-              workItem,
-              i,
-              workItems.length,
-              extractionId,
-            );
-
-            if (!isCurrentRun(extractionId)) {
-              break;
-            }
-
-            uploadedGeminiNames.push(uploadedName);
-
-            const { parsed, usageMetadata } =
-              await extractSingleChunkFromGemini(
-                fetchedFile,
+              const { fetchedFile, uploadedName } = await uploadAndWaitForFile(
                 workItem,
                 i,
                 workItems.length,
                 extractionId,
               );
 
-            if (!isCurrentRun(extractionId)) {
+              uploadedGeminiNames.push(uploadedName);
+
+              if (!isCurrentRun(extractionId)) {
+                return null;
+              }
+
+              return await extractSingleChunkFromGemini(
+                fetchedFile,
+                workItem,
+                i,
+                workItems.length,
+                extractionId,
+              );
+            },
+          );
+
+          for (let i = 0; i < workItems.length; i++) {
+            const workItem = workItems[i];
+
+            if (!chunkResults[i] || !isCurrentRun(extractionId)) {
               break;
             }
+
+            const { parsed, usageMetadata } = chunkResults[i];
 
             mergedResult = mergeExtractionResults(mergedResult, parsed);
 
@@ -2367,7 +2243,7 @@ module.exports = {
           mergedResult = normalizeResultShape(mergedResult);
           const finalUsageMetadata = buildUsageMetadata(usageMetadataList);
 
-          await completeReadingStatusSlowly(
+          completeReadingStatus(
             {
               status: "completed",
               stage: "completed",
@@ -2446,6 +2322,47 @@ module.exports = {
     }
   },
 
+  cancelPdfExtraction: async (req, res) => {
+    try {
+      const extractionId = req.body?.extractionId || req.query?.extractionId;
+
+      if (!extractionId) {
+        return res.status(400).json({
+          success: false,
+          error: "extractionId is required",
+        });
+      }
+
+      if (
+        !getReadingStatus(extractionId) ||
+        extractionOwners.get(extractionId) !== getOwnerKey(req)
+      ) {
+        return res.status(404).json({
+          success: false,
+          extractionId,
+          error: "PDF extraction status not found or expired",
+        });
+      }
+
+      // Removing the job makes the background run stop at its next
+      // isCurrentRun() check; its finally block still cleans up files.
+      extractionJobs.delete(extractionId);
+      extractionOwners.delete(extractionId);
+
+      return res.status(200).json({
+        success: true,
+        extractionId,
+        message: "PDF extraction cancelled",
+      });
+    } catch (error) {
+      console.error("Error cancelling PDF extraction:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Failed to cancel PDF extraction",
+      });
+    }
+  },
+
   getPdfExtractionStatus: async (req, res) => {
     try {
       setNoStoreHeaders(res);
@@ -2463,7 +2380,10 @@ module.exports = {
         });
       }
 
-      const readingStatus = getReadingStatus(extractionId);
+      const readingStatus =
+        extractionOwners.get(extractionId) === getOwnerKey(req)
+          ? getReadingStatus(extractionId)
+          : null;
 
       if (!readingStatus) {
         return res.status(404).json({

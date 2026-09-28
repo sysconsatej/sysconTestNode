@@ -3,8 +3,18 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const { PDFDocument } = require("pdf-lib");
-const { GoogleGenAI, createPartFromUri } = require("@google/genai");
+const { GoogleGenAI } = require("@google/genai");
 const pdfParse = require("pdf-parse");
+const {
+  getOwnerKey,
+  createExtractionJobStore,
+} = require("../helper/extractionJobStore");
+const {
+  canSendPdfInline,
+  readInlinePdf,
+  toPdfPart,
+  mapWithConcurrency,
+} = require("../helper/geminiPdfInput");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -17,6 +27,11 @@ const MAX_PDF_BYTES = 50 * 1024 * 1024;
 const BIG_PDF_BYTES = Number(process.env.BIG_PDF_BYTES || 15 * 1024 * 1024);
 const BIG_PDF_PAGE_THRESHOLD = Number(process.env.BIG_PDF_PAGE_THRESHOLD || 25);
 const PDF_CHUNK_PAGE_COUNT = Number(process.env.PDF_CHUNK_PAGE_COUNT || 12);
+// Chunks of a big PDF read in parallel
+const PDF_CHUNK_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.PDF_CHUNK_CONCURRENCY) || 3,
+);
 const GEMINI_GENERATE_RETRIES = Number(process.env.GEMINI_GENERATE_RETRIES || 3);
 const GEMINI_RETRY_BASE_MS = Number(process.env.GEMINI_RETRY_BASE_MS || 3000);
 const GEMINI_HIGH_DEMAND_RETRIES = Number(
@@ -256,30 +271,8 @@ const STOP_SECTION_WORDS = [
   "AUTHORISED SIGNATORY",
 ];
 
-let readingStatus = {
-  status: "idle",
-  stage: "idle",
-  progress: 0,
-  message: "No active process",
-  currentFileIndex: null,
-  totalFiles: 0,
-  currentFileName: null,
-  fileState: null,
-  data: null,
-  error: null,
-  updatedAt: new Date().toISOString(),
-};
-
-function setReadingStatus(patch = {}) {
-  readingStatus = {
-    ...readingStatus,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function resetReadingStatus() {
-  readingStatus = {
+function createIdleReadingStatus() {
+  return {
     status: "idle",
     stage: "idle",
     progress: 0,
@@ -292,6 +285,17 @@ function resetReadingStatus() {
     error: null,
     updatedAt: new Date().toISOString(),
   };
+}
+
+const extractionJobs = createExtractionJobStore(createIdleReadingStatus);
+
+// Updates the job of the extraction currently running (or the given one).
+function setReadingStatus(patch = {}, extractionId) {
+  extractionJobs.setStatus(patch, extractionId);
+}
+
+function isReadingStatusRunning() {
+  return extractionJobs.getStatus()?.status === "running";
 }
 
 function safeFileState(state) {
@@ -1353,7 +1357,7 @@ async function withRetry(fn, options = {}) {
             `(attempt ${attempt + 1}/${allowedRetries + 1}).`,
         );
 
-        if (readingStatus.status === "running") {
+        if (isReadingStatusRunning()) {
           setReadingStatus({
             message:
               `Gemini is temporarily unavailable. Retrying ${label} in ` +
@@ -1402,7 +1406,7 @@ async function generateContentWithModelFailover(generate, label, preferredModel 
         `${model} is unavailable due to high demand. Switching to ${nextModel}.`,
       );
 
-      if (readingStatus.status === "running") {
+      if (isReadingStatusRunning()) {
         setReadingStatus({
           message:
             `${model} is experiencing high demand. ` +
@@ -1749,6 +1753,24 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
       error: null,
     });
 
+    if (canSendPdfInline(workItem.sizeBytes)) {
+      const fetchedFile = await readInlinePdf(workItem.uploadInput);
+
+      setReadingStatus({
+        status: "running",
+        stage: "gemini_file_ready",
+        progress: Math.min(60 + Math.floor(((index + 1) / totalItems) * 10), 75),
+        currentFileIndex: index + 1,
+        totalFiles: totalItems,
+        currentFileName: displayName,
+        fileState: "ACTIVE",
+        message: `${displayName} is ready for extraction`,
+        error: null,
+      });
+
+      return { fetchedFile, uploadedName: null };
+    }
+
     const uploaded = await withRetry(
       async () => {
         setReadingStatus({
@@ -1831,7 +1853,7 @@ async function uploadAndWaitForFile(workItem, index, totalItems) {
 }
 
 async function deleteGeminiFiles(fileNames = []) {
-  for (const name of fileNames) {
+  for (const name of fileNames.filter(Boolean)) {
     try {
       await ai.files.delete({ name });
     } catch (_) {}
@@ -1864,7 +1886,7 @@ async function extractFallbackFromGemini(
         model,
         contents: [
           buildFallbackPrompt(workItem),
-          createPartFromUri(fetchedFile.uri, fetchedFile.mimeType),
+          toPdfPart(fetchedFile),
         ],
         config: {
           temperature: 0,
@@ -2042,6 +2064,19 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
     ? buildChunkTaskPrompt(workItem)
     : buildTaskPrompt([workItem.originalFileName || workItem.displayName]);
 
+  // The second (fallback) pass does not need the main result, so it runs at
+  // the same time instead of after it.
+  const fallbackPromise = extractFallbackFromGemini(
+    fetchedFile,
+    workItem,
+    index,
+    totalItems,
+    null,
+  ).catch((fallbackError) => {
+    console.error(`Fallback extraction failed for ${displayName}:`, fallbackError);
+    return null;
+  });
+
   const { response, modelUsed } = await generateContentWithModelFailover(
     async (model) => {
       setReadingStatus({
@@ -2057,7 +2092,7 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
 
       return await ai.models.generateContent({
         model,
-        contents: [prompt, createPartFromUri(fetchedFile.uri, fetchedFile.mimeType)],
+        contents: [prompt, toPdfPart(fetchedFile)],
         config: {
           temperature: 0,
           systemInstruction:
@@ -2086,21 +2121,13 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
     },
   ];
 
-  let fallbackResult = null;
-  try {
-    fallbackResult = await extractFallbackFromGemini(
-      fetchedFile,
-      workItem,
-      index,
-      totalItems,
-      modelUsed,
-    );
+  const fallbackResult = await fallbackPromise;
+
+  if (fallbackResult) {
     usageEntries.push({
-      ...(fallbackResult?.usageMetadata || {}),
-      modelUsed: fallbackResult?.modelUsed,
+      ...(fallbackResult.usageMetadata || {}),
+      modelUsed: fallbackResult.modelUsed,
     });
-  } catch (fallbackError) {
-    console.error(`Fallback extraction failed for ${displayName}:`, fallbackError);
   }
 
   const finalParsed = applyDeterministicFallback(
@@ -2140,12 +2167,20 @@ async function extractSingleChunkFromGemini(fetchedFile, workItem, index, totalI
 
 module.exports = {
   extractBlPdfData: async (req, res) => {
+    let extractionId = null;
+
     try {
-      if (readingStatus.status === "running") {
+      const ownerKey = getOwnerKey(req);
+      const runningStatus = extractionJobs.findLatestForOwner(ownerKey, {
+        runningOnly: true,
+      });
+
+      if (runningStatus) {
         return res.status(409).json({
           success: false,
           error: "Another PDF extraction is already running",
-          readingStatus,
+          extractionId: runningStatus.extractionId,
+          readingStatus: runningStatus,
         });
       }
 
@@ -2181,27 +2216,31 @@ module.exports = {
         });
       }
 
-      resetReadingStatus();
-      setReadingStatus({
-        status: "running",
-        stage: "queued",
-        progress: 0,
-        totalFiles: files.length,
-        currentFileIndex: null,
-        currentFileName: null,
-        fileState: null,
-        message: "BL PDF extraction started",
-        data: null,
-        error: null,
-      });
+      extractionId = extractionJobs.createJob(ownerKey);
+      setReadingStatus(
+        {
+          status: "running",
+          stage: "queued",
+          progress: 0,
+          totalFiles: files.length,
+          currentFileIndex: null,
+          currentFileName: null,
+          fileState: null,
+          message: "BL PDF extraction started",
+          data: null,
+          error: null,
+        },
+        extractionId,
+      );
 
       res.status(202).json({
         success: true,
+        extractionId,
         message: "BL PDF extraction started",
-        readingStatus,
+        readingStatus: extractionJobs.getStatus(extractionId),
       });
 
-      (async () => {
+      extractionJobs.run(extractionId, async () => {
         const uploadedGeminiNames = [];
 
         try {
@@ -2230,22 +2269,43 @@ module.exports = {
           let mergedResult = normalizeResultShape({});
           const usageMetadataList = [];
 
+          // Chunks are read in parallel, then merged below in page order.
+          const chunkResults = await mapWithConcurrency(
+            workItems,
+            PDF_CHUNK_CONCURRENCY,
+            async (workItem, i) => {
+              if (extractionJobs.isCancelled()) {
+                return null;
+              }
+
+              const { fetchedFile, uploadedName } = await uploadAndWaitForFile(
+                workItem,
+                i,
+                workItems.length,
+              );
+
+              uploadedGeminiNames.push(uploadedName);
+
+              if (extractionJobs.isCancelled()) {
+                return null;
+              }
+
+              return await extractSingleChunkFromGemini(
+                fetchedFile,
+                workItem,
+                i,
+                workItems.length,
+              );
+            },
+          );
+
+          if (extractionJobs.isCancelled()) {
+            return;
+          }
+
           for (let i = 0; i < workItems.length; i++) {
             const workItem = workItems[i];
-            const { fetchedFile, uploadedName } = await uploadAndWaitForFile(
-              workItem,
-              i,
-              workItems.length,
-            );
-
-            uploadedGeminiNames.push(uploadedName);
-
-            const { parsed, usageMetadata } = await extractSingleChunkFromGemini(
-              fetchedFile,
-              workItem,
-              i,
-              workItems.length,
-            );
+            const { parsed, usageMetadata } = chunkResults[i];
 
             mergedResult = mergeExtractionResults(mergedResult, parsed);
 
@@ -2307,20 +2367,23 @@ module.exports = {
         } finally {
           await deleteGeminiFiles(uploadedGeminiNames);
         }
-      })();
+      });
     } catch (error) {
       console.error("Error starting BL PDF extraction:", error);
 
-      setReadingStatus({
-        status: "failed",
-        stage: "failed",
-        progress: 100,
-        currentFileName: null,
-        fileState: null,
-        message: error.message || "Failed to start BL PDF extraction",
-        error: error.message || "Failed to start BL PDF extraction",
-        data: null,
-      });
+      setReadingStatus(
+        {
+          status: "failed",
+          stage: "failed",
+          progress: 100,
+          currentFileName: null,
+          fileState: null,
+          message: error.message || "Failed to start BL PDF extraction",
+          error: error.message || "Failed to start BL PDF extraction",
+          data: null,
+        },
+        extractionId,
+      );
 
       return res.status(500).json({
         success: false,
@@ -2329,11 +2392,77 @@ module.exports = {
     }
   },
 
-  getBlPdfExtractionStatus: async (req, res) => {
+  cancelBlPdfExtraction: async (req, res) => {
     try {
+      const extractionId = req.body?.extractionId || req.query?.extractionId;
+
+      if (!extractionId) {
+        return res.status(400).json({
+          success: false,
+          error: "extractionId is required",
+        });
+      }
+
+      const readingStatus = extractionJobs.cancel(
+        extractionId,
+        getOwnerKey(req),
+      );
+
+      if (!readingStatus) {
+        return res.status(404).json({
+          success: false,
+          extractionId,
+          error: "BL PDF extraction status not found or expired",
+        });
+      }
+
       return res.status(200).json({
         success: true,
-        readingStatus,
+        extractionId,
+        readingStatus: readingStatus,
+      });
+    } catch (error) {
+      console.error("Error cancelling BL PDF extraction:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Failed to cancel PDF extraction",
+      });
+    }
+  },
+
+  getBlPdfExtractionStatus: async (req, res) => {
+    try {
+      const ownerKey = getOwnerKey(req);
+      const extractionId = req.query?.extractionId;
+
+      if (extractionId) {
+        const readingStatus = extractionJobs.getStatusForOwner(
+          extractionId,
+          ownerKey,
+        );
+
+        if (!readingStatus) {
+          return res.status(404).json({
+            success: false,
+            extractionId,
+            error: "BL PDF extraction status not found or expired",
+            readingStatus: null,
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          extractionId,
+          readingStatus,
+        });
+      }
+
+      // Without an extractionId, report the caller's most recent job.
+      return res.status(200).json({
+        success: true,
+        readingStatus:
+          extractionJobs.findLatestForOwner(ownerKey) ||
+          createIdleReadingStatus(),
       });
     } catch (error) {
       console.error("Error getting BL PDF extraction status:", error);
