@@ -4,16 +4,15 @@ const {
   executeStoredProcedure,
   executeNonJSONStoredProcedure,
 } = require("../modelSQL/model");
-// const maxAllowedSizeInBytes = 1024 * 1024 * 1024;
-const maxAllowedSizeInBytes = 5 * 1024 * 1024 * 1024;
-const { errorLogger } = require("../helper/loggerService");
 const getFolderSize = require("../helper/getFolderSize");
 const path = require("path");
+const fs = require("fs/promises");
 const moment = require("moment"); // Assuming you use moment for the timestamp
 const { connectToSql } = require("../config/sqlConfig");
 const sql = require("mssql");
 const { auditLog } = require("../modelSQL/auditLog");
 const sharp = require("sharp");
+const SendMail = require("../helper/NodeMailer");
 
 const toNullableInt = (val) =>
   val === null || val === undefined || val === "" ? null : Number(val);
@@ -65,7 +64,7 @@ module.exports = {
           loginCompanyId: loginCompany,
           loginfinYearId: loginfinYear,
           userTypeId: userTypeId,
-          isExcel : isExcel === 1 ? 1 : 0,
+          isExcel: isExcel === 1 ? 1 : 0,
         };
         console.log("parameter => ", isExcel);
         let query = ``;
@@ -126,7 +125,7 @@ module.exports = {
           ...parameter,
           pageSize: 1001,
           pageNumber: 1,
-          isExcel : isExcel === 1 ? 1 : 0,
+          isExcel: isExcel === 1 ? 1 : 0,
         };
         let getDataCount = await executeStoredProcedure(
           "dynamicSearchApi",
@@ -294,10 +293,13 @@ module.exports = {
   upLoadFile: async (req, res) => {
     try {
       let responce = {};
-      if (getFolderSize(`./public/api/images`) >= maxAllowedSizeInBytes) {
-        responce.success = false; // Update flag since response is being sent
-        responce.message +=
-          "Your storage capacity has surpassed the 1GB limit. Kindly consider upgrading your plan.";
+      const getValues = await getFolderSize(
+        `./public/api/images/${req.clientCode}`,
+        req.clientId,
+      );
+      if (getValues?.status) {
+        responce.success = getValues?.success;
+        responce.message = getValues?.message;
       } else {
         //                // console.log(Array.isArray(req.files.documents));
         //                console.log(req.files);
@@ -333,21 +335,24 @@ module.exports = {
             // Use path module to get the file name without extension
             const fileNameWithoutExt = path.basename(element.name, extension);
 
-            if(['.png','.jpg','.png'].includes(extension)){
-               const image_name = fileNameWithoutExt + moment().format("YYYYMMDDHHmmssSSS") + ".webp";
+            if ([".png", ".jpg", ".png"].includes(extension)) {
+              const image_name =
+                fileNameWithoutExt +
+                moment().format("YYYYMMDDHHmmssSSS") +
+                ".webp";
 
-              await sharp(element.data).webp({
-                quality:75,
-                effort:6
-              }).toFile(`./public/api/images/${req.clientCode}/${image_name}`);
+              await sharp(element.data)
+                .webp({
+                  quality: 75,
+                  effort: 6,
+                })
+                .toFile(`./public/api/images/${req.clientCode}/${image_name}`);
 
               responce.data = {
                 path: `api/images/${req.clientCode}/` + image_name,
                 status: 1,
               };
-
-            }else{
-              
+            } else {
               //console.log(fileNameWithoutExt);
               // var image_name = moment().format("YYYYMMDDHHmmssSSS") + element.name;
               const image_name =
@@ -361,7 +366,6 @@ module.exports = {
                 path: `api/images/${req.clientCode}/` + image_name,
                 status: 1,
               };
-
             }
 
             // insertData["documents"] = image_name; // Store the processed file name
@@ -373,6 +377,26 @@ module.exports = {
         }
       }
       res.status(responce.success ? 200 : 403).send(responce);
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+  DeleteDocuments: async (req, res) => {
+    try {
+      try {
+        const filePath = req?.body.relativeFilePath;
+        console.log("filePath", filePath);
+       await fs.unlink(`./public/${filePath}`);
+        console.log("File delete successfully!");
+        res.status(200).send({ok: true, message:"File Delete successfully!"})
+      } catch (error) {
+        console.error("Error deleting file:", error);
+         res.status(403).send({ok: false, message:"Error deleting file:", error})
+      }
     } catch (error) {
       res.status(500).send({
         success: false,
@@ -766,5 +790,29 @@ module.exports = {
         error: String(err?.message || err),
       });
     }
+  },
+  sendDocument: async (req, res) => {
+      try {
+        const { attachments } = req.body;
+        for (const file of attachments || []) {
+          file.path = `./public/${file.path}`;
+          file.filename = file.path.split("/").pop();
+        }
+  
+        SendMail(
+          req.body.to,
+          req.body.subject,
+          req.body.text,
+          undefined,
+          req.body.attachments
+        );
+        res.send({ success: true, data: [], message: "Mail Sent" });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Error - " + error.message,
+          data: error.message,
+        });
+      }
   },
 };
