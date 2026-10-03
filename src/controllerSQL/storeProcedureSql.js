@@ -122,7 +122,8 @@ module.exports = {
         totalAmountHc,
         voucherTypeId,
         isTaxApplicable,
-        rcm
+        rcm,
+        formControlId
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -149,6 +150,7 @@ module.exports = {
         voucherTypeId: voucherTypeId,
         isTaxApplicable: isTaxApplicable,
         rcm: rcm,
+        formControlId:formControlId
       };
       console.log("parameters", parameters);
       let data = await executeStoredProcedure("getTaxDetails", parameters);
@@ -195,6 +197,7 @@ module.exports = {
         exchangeRateGrid: exchangeRateGrid,
         companyId: companyId,
         clientId: clientId,
+        formControlId:formControlId
       };
       let data = await executeStoredProcedure("GetTdsDetails", parameters);
       if (data.length === 0) {
