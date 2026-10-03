@@ -82,7 +82,8 @@ module.exports = {
         totalAmountHc,
         voucherTypeId,
         isTaxApplicable,
-        rcm
+        rcm,
+        formControlId
       } = req.body;
       let parameters = {
         chargeId: chargeId,
@@ -109,6 +110,7 @@ module.exports = {
         voucherTypeId: voucherTypeId,
         isTaxApplicable: isTaxApplicable,
         rcm: rcm,
+        formControlId:formControlId
       };
       let data = await executeStoredProcedure("getTaxDetails", parameters);
       if (data[0].tblTax === 0) {
@@ -153,6 +155,7 @@ module.exports = {
         exchangeRateGrid: exchangeRateGrid,
         companyId: companyId,
         clientId: clientId,
+        formControlId:formControlId
       };
       let data = await executeStoredProcedure("GetTdsDetails", parameters);
       if (data.length === 0) {
@@ -492,7 +495,26 @@ module.exports = {
 
   saveContainerMovement: async (req, res) => {
     try {
-      const { tblContainerMovement, clientId, userId } = req.body;
+      const {
+        tblContainerMovement,
+        clientId,
+        userId,
+        saveMode = "INSERT",
+      } = req.body || {};
+
+      // --------------------------------------------------
+      // Error helper
+      // --------------------------------------------------
+
+      const validationError = (message) => {
+        const error = new Error(message);
+        error.status = 400;
+        throw error;
+      };
+
+      // --------------------------------------------------
+      // Validate records
+      // --------------------------------------------------
 
       if (
         !Array.isArray(tblContainerMovement) ||
@@ -505,115 +527,401 @@ module.exports = {
         });
       }
 
+      // --------------------------------------------------
+      // Validate client and user
+      // --------------------------------------------------
+
+      const validClientId = Number(clientId);
+      const validUserId = Number(userId);
+
+      if (
+        !Number.isSafeInteger(validClientId) ||
+        validClientId <= 0 ||
+        !Number.isSafeInteger(validUserId) ||
+        validUserId <= 0
+      ) {
+        return res.status(400).send({
+          success: false,
+          message: "Valid clientId and userId are required.",
+          data: [],
+        });
+      }
+
+      // --------------------------------------------------
+      // Validate save mode
+      // --------------------------------------------------
+
+      if (!["INSERT", "UPDATE"].includes(saveMode)) {
+        return res.status(400).send({
+          success: false,
+          message: "Invalid save mode.",
+          data: [],
+        });
+      }
+
+      const isUpdate = saveMode === "UPDATE";
+
+      // Only one existing movement can be updated at once.
+
+      if (
+        isUpdate &&
+        tblContainerMovement.length !== 1
+      ) {
+        return res.status(400).send({
+          success: false,
+          message: "UPDATE requires exactly one movement record.",
+          data: [],
+        });
+      }
+
+      // --------------------------------------------------
+      // Convert nullable numeric IDs
+      // --------------------------------------------------
+
+      const toNullableNumber = (
+        value,
+        fieldName,
+        required = false
+      ) => {
+        if (
+          value === null ||
+          value === undefined ||
+          value === "" ||
+          value === "null" ||
+          value === 0 ||
+          value === "0"
+        ) {
+          if (required) {
+            validationError(`${fieldName} is required.`);
+          }
+
+          return null;
+        }
+
+        const number = Number(value);
+
+        if (
+          !Number.isSafeInteger(number) ||
+          number <= 0
+        ) {
+          validationError(
+            `Invalid ${fieldName}: ${String(value)}`
+          );
+        }
+
+        return number;
+      };
+
+      // --------------------------------------------------
+      // Date helpers
+      // Preserve the supplied local date/time.
+      // Do not convert it through the server timezone.
+      // --------------------------------------------------
+
       const pad2 = (n) => String(n).padStart(2, "0");
-      const pad3 = (n) => String(n).padStart(3, "0");
 
-      // YYYY-MM-DD (date only)
-      const toSqlDate = (value) => {
-        const d = value ? new Date(value) : new Date();
-        if (Number.isNaN(d.getTime()))
-          return new Date().toLocaleDateString("en-CA");
-        return d.toLocaleDateString("en-CA");
+      const toSqlDateTimeMs = (value, fieldName) => {
+        if (
+          value === null ||
+          value === undefined ||
+          value === "" ||
+          value === "null"
+        ) {
+          validationError(`${fieldName} is required.`);
+        }
+
+        const input = String(value).trim();
+
+        // Accepted:
+        // 2026-09-21T00:00:00
+        // 2026-09-21 00:00:00
+        // 2026-09-21 00:00:00.000
+
+        const match = input.match(
+          /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
+        );
+
+        if (!match) {
+          validationError(
+            `Invalid ${fieldName}. Expected YYYY-MM-DD HH:mm:ss.`
+          );
+        }
+
+        const [
+          ,
+          year,
+          month,
+          day,
+          hour,
+          minute,
+          second = "00",
+          milliseconds = "000",
+        ] = match;
+
+        const yyyy = Number(year);
+        const MM = Number(month);
+        const dd = Number(day);
+        const HH = Number(hour);
+        const mm = Number(minute);
+        const ss = Number(second);
+
+        const SSS = milliseconds.padEnd(3, "0");
+
+        // Validate actual calendar date and time.
+
+        const parsedDate = new Date(
+          Date.UTC(
+            yyyy,
+            MM - 1,
+            dd,
+            HH,
+            mm,
+            ss,
+            Number(SSS)
+          )
+        );
+
+        if (
+          yyyy < 1753 ||
+          yyyy > 9999 ||
+          parsedDate.getUTCFullYear() !== yyyy ||
+          parsedDate.getUTCMonth() + 1 !== MM ||
+          parsedDate.getUTCDate() !== dd ||
+          parsedDate.getUTCHours() !== HH ||
+          parsedDate.getUTCMinutes() !== mm ||
+          parsedDate.getUTCSeconds() !== ss
+        ) {
+          validationError(`Invalid ${fieldName}.`);
+        }
+
+        return (
+          `${year}-${month}-${day} ` +
+          `${pad2(HH)}:${pad2(mm)}:${pad2(ss)}.${SSS}`
+        );
       };
 
-      // YYYY-MM-DD HH:mm:ss.SSS (datetime with milliseconds)
-      const toSqlDateTimeMs = (value) => {
-        const d = value ? new Date(value) : new Date();
-        const dt = Number.isNaN(d.getTime()) ? new Date() : d;
-
-        const yyyy = dt.getFullYear();
-        const MM = pad2(dt.getMonth() + 1);
-        const dd = pad2(dt.getDate());
-        const HH = pad2(dt.getHours());
-        const mm = pad2(dt.getMinutes());
-        const ss = pad2(dt.getSeconds());
-        const SSS = pad3(dt.getMilliseconds());
-
-        return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}.${SSS}`;
-      };
-
-      // If activityDate is missing/invalid => keep NULL (recommended)
-      // If you want default NOW instead of NULL, tell me and I'll change this.
-      const toSqlDateTimeMsNullable = (value) => {
-        if (!value) return null;
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return null;
-        return toSqlDateTimeMs(d);
-      };
-
-      const createdDateWithTime = toSqlDateTimeMs(new Date());
 
       const payload = {
-        childJson1: tblContainerMovement.map((item) => ({
-          "tblContainerMovement.containerId": item.containerNo
-            ? Number(item.containerNo)
-            : null,
-          "tblContainerMovement.agentId": item.agentId
-            ? Number(item.agentId)
-            : null,
-          "tblContainerMovement.agentBranchId": item.agentBranchId
-            ? Number(item.agentBranchId)
-            : null,
-          "tblContainerMovement.fromLocationId": item.fromLocationId
-            ? Number(item.fromLocationId)
-            : null,
-          "tblContainerMovement.toLocationId": item.toLocationId
-            ? Number(item.toLocationId)
-            : null,
-          "tblContainerMovement.remarks": item.remarks || "",
-          "tblContainerMovement.activityId": item.activityId
-            ? Number(item.activityId)
-            : null,
+        clientId: validClientId,
+        userId: validUserId,
+        saveMode,
 
-          // ✅ NOW SAVES WITH TIME (like createdDate)
-          // - If item.activityDate is blank/invalid => NULL (won't auto-fill now)
-          "tblContainerMovement.activityDate": toSqlDateTimeMsNullable(
-            item.activityDate,
-          ),
+        childJson1: tblContainerMovement.map((item) => {
 
-          "tblContainerMovement.clientId": clientId,
-          "tblContainerMovement.createdBy": userId,
-          "tblContainerMovement.jobId": item.jobId ? Number(item.jobId) : null,
-          "tblContainerMovement.vesselId": item.vesselId
-            ? Number(item.vesselId)
-            : null,
-          "tblContainerMovement.voyageId": item.voyageId
-            ? Number(item.voyageId)
-            : null,
-          "tblContainerMovement.importBlId": item.importBlId
-            ? Number(item.importBlId)
-            : null,
-          "tblContainerMovement.exportBlId": item.exportBlId
-            ? Number(item.exportBlId)
-            : null,
+          if (!item || typeof item !== "object" || Array.isArray(item)) {
+            validationError("Invalid container movement record.");
+          }
 
-          "tblContainerMovement.status": 1,
-          "tblContainerMovement.createdDate": createdDateWithTime,
-        })),
+          // Movement ID is different from container ID.
+
+          const recordId = toNullableNumber(
+            item.id,
+            "Movement ID",
+            isUpdate
+          );
+
+          const containerId = toNullableNumber(
+            item.containerNo ?? item.containerId,
+            "Container ID",
+            true
+          );
+
+          // Prevent INSERT from accidentally updating/duplicating
+          // a record that already has an identity ID.
+
+          if (!isUpdate && recordId !== null) {
+            validationError(
+              "INSERT cannot contain an existing movement ID."
+            );
+          }
+
+          // --------------------------------------------------
+          // Create database record
+          // --------------------------------------------------
+
+          const record = {
+
+            "tblContainerMovement.containerId":
+              containerId,
+
+            "tblContainerMovement.agentId":
+              toNullableNumber(
+                item.agentId,
+                "Agent ID",
+                true
+              ),
+
+            "tblContainerMovement.agentBranchId":
+              toNullableNumber(
+                item.agentBranchId,
+                "Agent Branch ID",
+                true
+              ),
+
+            "tblContainerMovement.fromLocationId":
+              toNullableNumber(
+                item.fromLocationId,
+                "From Location ID"
+              ),
+
+            "tblContainerMovement.toLocationId":
+              toNullableNumber(
+                item.toLocationId,
+                "To Location ID"
+              ),
+
+            "tblContainerMovement.remarks":
+              String(item.remarks ?? ""),
+
+            "tblContainerMovement.activityId":
+              toNullableNumber(
+                item.activityId,
+                "Activity ID",
+                true
+              ),
+
+            "tblContainerMovement.activityDate":
+              toSqlDateTimeMs(
+                item.activityDate,
+                "Activity Date"
+              ),
+
+            "tblContainerMovement.clientId":
+              validClientId,
+
+            "tblContainerMovement.jobId":
+              toNullableNumber(
+                item.jobId,
+                "Job ID"
+              ),
+
+            "tblContainerMovement.vesselId":
+              toNullableNumber(
+                item.vesselId,
+                "Vessel ID"
+              ),
+
+            "tblContainerMovement.voyageId":
+              toNullableNumber(
+                item.voyageId,
+                "Voyage ID"
+              ),
+
+            "tblContainerMovement.importBlId":
+              toNullableNumber(
+                item.importBlId,
+                "Import BL ID"
+              ),
+
+            "tblContainerMovement.exportBlId":
+              toNullableNumber(
+                item.exportBlId,
+                "Export BL ID"
+              ),
+
+            "tblContainerMovement.status": 1,
+          };
+
+          // --------------------------------------------------
+          // UPDATE
+          // --------------------------------------------------
+
+          if (isUpdate) {
+
+            // Use tblContainerMovement.id.
+            // Never substitute containerId here.
+
+            record["tblContainerMovement.id"] =
+              recordId;
+
+          }
+
+          // --------------------------------------------------
+          // INSERT
+          // --------------------------------------------------
+
+          else {
+
+            // Do not send the identity ID.
+            // SQL Server generates the new ID.
+
+            record["tblContainerMovement.createdBy"] =
+              validUserId;
+
+            // createdDate is generated by SQL Server.
+
+          }
+
+          return record;
+        }),
       };
 
-      console.log("Payload to SP:", JSON.stringify(payload, null, 2));
+      const jsonPayload = JSON.stringify(payload);
 
-      const data = await executeStoredProcedure("staticInsertUpdate", {
-        jsonPayload: JSON.stringify(payload),
-      });
+      console.log("Save Mode:", saveMode);
+
+      console.log(
+        "Payload to SP:",
+        JSON.stringify(payload, null, 2)
+      );
+
+      const data = await executeStoredProcedure(
+        "saveContainerMovement",
+        {
+          jsonPayload,
+        }
+      );
+      const savedRecords = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.recordset)
+          ? data.recordset
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+
+      const expectedCount = isUpdate
+        ? 1
+        : tblContainerMovement.length;
+
+      if (savedRecords.length !== expectedCount) {
+        throw new Error(
+          "Save procedure did not return the expected number of records."
+        );
+      }
+
+      // --------------------------------------------------
+      // Success response
+      // --------------------------------------------------
 
       return res.send({
         success: true,
-        message: "Data saved successfully!",
-        Chargers: data,
-        count: data?.length || 0,
+
+        message: isUpdate
+          ? "Container movement updated successfully!"
+          : "Container movement inserted successfully!",
+
+        Chargers: savedRecords,
+
+        count: savedRecords.length,
       });
+
     } catch (error) {
-      console.error("Error in saveContainerMovement:", error);
-      return res.status(500).send({
+
+      console.error(
+        "Error in saveContainerMovement:",
+        error
+      );
+
+      return res.status(error.status || 500).send({
         success: false,
         message: "Error - " + error.message,
         data: [],
         error: error.message,
       });
+
     }
   },
+
 
   generalLegerBillingParty: async (req, res) => {
     try {
@@ -1669,74 +1977,74 @@ module.exports = {
       });
     }
   },
- getSecondThirdMasterData: async (req, res) => {
-  try {
-    const {
-      clientId,
-      masterJobId,
-      companyId,
-      companyBranchId,
-      businessSegmentId,
-      voucherTypeId,
-      billingPartyId,
-      currencyId,
-      invoiceExchangeRate,
-      blId
-    } = req.body;
+  getSecondThirdMasterData: async (req, res) => {
+    try {
+      const {
+        clientId,
+        masterJobId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+        voucherTypeId,
+        billingPartyId,
+        currencyId,
+        invoiceExchangeRate,
+        blId
+      } = req.body;
 
-    console.log("getSecondThirdMasterData req.body:", req.body);
+      console.log("getSecondThirdMasterData req.body:", req.body);
 
-    const params = {
-      clientId,
-      masterJobId,
-      companyId,
-      companyBranchId,
-      businessSegmentId,
-      voucherTypeId,
-      billingPartyId,
-      currencyId,
-      invoiceExchangeRate,
-      blId
-    };
+      const params = {
+        clientId,
+        masterJobId,
+        companyId,
+        companyBranchId,
+        businessSegmentId,
+        voucherTypeId,
+        billingPartyId,
+        currencyId,
+        invoiceExchangeRate,
+        blId
+      };
 
-    console.log("SP Params:", params);
+      console.log("SP Params:", params);
 
-    const data = await executeStoredProcedureSecond(
-      "getSecondThirdLevelDetailsMasterJob",
-      params,
-    );
+      const data = await executeStoredProcedureSecond(
+        "getSecondThirdLevelDetailsMasterJob",
+        params,
+      );
 
-    console.log("SP Result:", data);
+      console.log("SP Result:", data);
 
-    if (!data || data.length === 0) {
+      if (!data || data.length === 0) {
+        return res.send({
+          success: true,
+          message: "No data found",
+          data: [],
+          Chargers: [],
+          count: 0,
+        });
+      }
+
       return res.send({
         success: true,
-        message: "No data found",
+        message: "Data fetched successfully!",
+        data: data,        // <-- ADD THIS
+        Chargers: data,
+        count: data.length,
+      });
+    } catch (error) {
+      console.error("getSecondThirdMasterData ERROR:", error);
+
+      return res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
         data: [],
         Chargers: [],
-        count: 0,
+        error: error.message,
       });
     }
-
-    return res.send({
-      success: true,
-      message: "Data fetched successfully!",
-      data: data,        // <-- ADD THIS
-      Chargers: data,
-      count: data.length,
-    });
-  } catch (error) {
-    console.error("getSecondThirdMasterData ERROR:", error);
-
-    return res.status(500).send({
-      success: false,
-      message: "Error - " + error.message,
-      data: [],
-      Chargers: [],
-      error: error.message,
-    });
-  }
-},
+  },
 };
 
 

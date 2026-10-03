@@ -8,6 +8,7 @@ router.post("/demo", auth.verifyToken, controller.infoData);
 router.post("/Insert_into_master", auth.verifyToken, controller.createMaster);
 router.post("/Delete", auth.verifyToken, controller.delete);
 router.post("/Upload", auth.verifyToken, controller.upLoadFile);
+router.post("/DeleteDocuments", auth.verifyToken, controller.DeleteDocuments);
 router.post(
   "/fetchVoucherSearchPageData",
   controller.fetchVoucherSearchPageData,
@@ -19,5 +20,6 @@ router.post(
 router.post("/fetchVoucherData", controller.fetchVoucherData);
 router.post("/fetchVoucherDataDynamic", controller.fetchVoucherDataDynamic);
 router.post("/saveJsonToDB", auth.verifyToken, controller.saveJsonToDB);
+router.post("/sendMail",auth.verifyToken,controller.sendDocument);
 
 module.exports = router;

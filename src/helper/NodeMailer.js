@@ -24,7 +24,7 @@ function SendMail(to, subject, text, html,attachments) {
     // Send mail with defined transport object
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            return console.log(error);
+            return console.log('mail error',error);
         }
         console.log('Message sent: %s', info.messageId);
     });
