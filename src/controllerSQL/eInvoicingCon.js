@@ -80,7 +80,7 @@ function requireFields(source, fields) {
     throw createHttpError(
       400,
       `Missing required parameter: ${missingFields.join(", ")}`,
-      { data: [] }
+      { data: [] },
     );
   }
 }
@@ -111,7 +111,7 @@ function getMalaysiaSubmissionErrors(result) {
 
   const fromRejected =
     result?.rejectedDocuments?.flatMap((doc) =>
-      extractMessages(doc?.error?.details)
+      extractMessages(doc?.error?.details),
     ) ?? [];
   if (fromRejected.length) {
     return fromRejected.join(", ");
@@ -127,7 +127,10 @@ function getMalaysiaSubmissionErrors(result) {
     return fromTopLevelDetails.join(", ");
   }
 
-  if (typeof result?.error?.message === "string" && result.error.message.trim()) {
+  if (
+    typeof result?.error?.message === "string" &&
+    result.error.message.trim()
+  ) {
     return result.error.message.trim();
   }
   if (typeof result?.message === "string" && result.message.trim()) {
@@ -161,9 +164,32 @@ function getGstHeroErrorMessage(responseData, fallbackMessage) {
   }
 
   return (
-    responseData?.error_description ||
-    responseData?.message ||
-    fallbackMessage
+    responseData?.error_description || responseData?.message || fallbackMessage
+  );
+}
+
+function getCleanTaxErrorMessage(responseData, fallbackMessage) {
+  if (
+    responseData &&
+    Array.isArray(responseData.error) &&
+    responseData.error.length > 0
+  ) {
+    const errorMessage = responseData.error
+      .map((item) => item?.errorMsg || item?.message || item)
+      .filter(Boolean)
+      .join(", ");
+
+    if (errorMessage) {
+      return errorMessage;
+    }
+  }
+
+  if (typeof responseData === "string" && responseData.trim()) {
+    return responseData;
+  }
+
+  return (
+    responseData?.error_description || responseData?.message || fallbackMessage
   );
 }
 
@@ -173,7 +199,7 @@ function isDuplicateIrnResponse(responseData) {
   }
 
   const hasDuplicateErrorCode = responseData.error.some(
-    (item) => String(item?.errorCodes || item?.errorCode || "") === "2150"
+    (item) => String(item?.errorCodes || item?.errorCode || "") === "2150",
   );
   const infoCode = String(responseData?.info?.[0]?.InfCd || "").toUpperCase();
 
@@ -257,7 +283,8 @@ module.exports = {
       if (isEinvoicing !== "y") {
         return res.send({
           success: true,
-          message: "Invoice saved successfully but not eligible for e-invoicing",
+          message:
+            "Invoice saved successfully but not eligible for e-invoicing",
           isEinvoicing,
         });
       }
@@ -265,12 +292,12 @@ module.exports = {
       // Route by provider (GSTHero vs MyInvois Malaysia) based on tblCompanyParameter
       const providerResult = await executeQuery(
         `SELECT ISNULL(gstSuvidhaProvider, '') AS provider FROM tblCompanyParameter WHERE companyId = ${Number(
-          companyId
+          companyId,
         )}`,
-        {}
+        {},
       );
       const provider = String(
-        providerResult?.recordset?.[0]?.provider || ""
+        providerResult?.recordset?.[0]?.provider || "",
       ).toUpperCase();
 
       console.log("Resolved e-invoicing provider:", provider);
@@ -288,6 +315,19 @@ module.exports = {
           provider,
           ...malaysiaResult,
         });
+      } else if (provider === "CLEARTAX") {
+        const clearTaxResult = await module.exports.eInvoicing_Cleartax({
+          accInvId: invoiceId,
+          branchId: req.body.loginBranch,
+          companyId,
+        });
+
+        return res.send({
+          success: true,
+          isEinvoicing,
+          provider,
+          ...clearTaxResult,
+        });
       }
 
       // Step 2: Fetch auth credentials
@@ -303,9 +343,13 @@ module.exports = {
       const connectorToken = authRespons?.xConnectorResult;
 
       if (!accessToken || !gstin || !serverLink || !connectorToken) {
-        throw createHttpError(400, "GSTHero authentication details are missing", {
-          data: authRespons,
-        });
+        throw createHttpError(
+          400,
+          "GSTHero authentication details are missing",
+          {
+            data: authRespons,
+          },
+        );
       }
 
       // Step 4: Fetch invoice data
@@ -375,7 +419,7 @@ module.exports = {
       console.log("Normalized IRN response:", irnResponseData);
       console.log(
         "Normalized IRN response keys:",
-        Object.keys(irnResponseData || {})
+        Object.keys(irnResponseData || {}),
       );
 
       if (!irnResponse.ok) {
@@ -383,9 +427,9 @@ module.exports = {
           irnResponse.status || 502,
           getGstHeroErrorMessage(
             irnResponseData,
-            "IRN generation failed at GSTHero"
+            "IRN generation failed at GSTHero",
           ),
-          { data: [] }
+          { data: [] },
         );
       }
 
@@ -393,7 +437,7 @@ module.exports = {
         if (!isDuplicateIrnResponse(irnResponseData)) {
           const errorMessage = getGstHeroErrorMessage(
             irnResponseData,
-            "IRN generation failed with errors from GSTHero"
+            "IRN generation failed with errors from GSTHero",
           );
           throw createHttpError(400, errorMessage, { data: [] });
         }
@@ -418,7 +462,7 @@ module.exports = {
         throw createHttpError(
           400,
           "IRN response received, but required fields could not be extracted",
-          { data: irnResponseData }
+          { data: irnResponseData },
         );
       }
 
@@ -429,13 +473,26 @@ module.exports = {
 
       const updateQuery =
         "UPDATE tblInvoice SET " +
-        "ackDate = " + (AckDt ? `'${escapeSqlString(AckDt)}'` : "NULL") + "," +
-        "ackNo = " + (AckNo ? `'${escapeSqlString(String(AckNo))}'` : "NULL") + "," +
-        "irn = " + (Irn ? `'${escapeSqlString(Irn)}'` : "NULL") + "," +
-        "signedQrCode = " + (SignedQRCode ? `'${escapeSqlString(SignedQRCode)}'` : "NULL") + "," +
-        "signedInvoice = " + (SignedInvoice ? `'${escapeSqlString(SignedInvoice)}'` : "NULL") + "," +
-        "irnResponse = " + irnResponseJson + " " +
-        "WHERE id = " + invoiceId;
+        "ackDate = " +
+        (AckDt ? `'${escapeSqlString(AckDt)}'` : "NULL") +
+        "," +
+        "ackNo = " +
+        (AckNo ? `'${escapeSqlString(String(AckNo))}'` : "NULL") +
+        "," +
+        "irn = " +
+        (Irn ? `'${escapeSqlString(Irn)}'` : "NULL") +
+        "," +
+        "signedQrCode = " +
+        (SignedQRCode ? `'${escapeSqlString(SignedQRCode)}'` : "NULL") +
+        "," +
+        "signedInvoice = " +
+        (SignedInvoice ? `'${escapeSqlString(SignedInvoice)}'` : "NULL") +
+        "," +
+        "irnResponse = " +
+        irnResponseJson +
+        " " +
+        "WHERE id = " +
+        invoiceId;
 
       await executeQuery(updateQuery, {});
 
@@ -499,10 +556,7 @@ module.exports = {
       const accInvId = req.body.invoiceId;
       const { loginBranch } = req.body;
 
-      requireFields(
-        { accInvId, loginBranch },
-        ["accInvId", "loginBranch"]
-      );
+      requireFields({ accInvId, loginBranch }, ["accInvId", "loginBranch"]);
 
       // Step 1: Fetch username, password, client_id, scope, gstin
       const credentialsResult = await executeQuery(
@@ -510,7 +564,7 @@ module.exports = {
        
 select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroClientId as client_id,c.scope as scope,c.gstNo as gstin  from tblinvoice a inner join tblCompanyBranchParameter c on a.companyBranchId= c.companyBranchId where a.id= ${accInvId}
       `,
-        {}
+        {},
       );
 
       if (!credentialsResult.recordset.length) {
@@ -519,7 +573,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           "No credentials found for the given account invoice ID",
           {
             data: [],
-          }
+          },
         );
       }
 
@@ -532,14 +586,14 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           "Missing required parameters: username, password, client_id, scope, gstin",
           {
             data: [],
-          }
+          },
         );
       }
 
       // Match the legacy .NET flow: pre-auth always targets GSTHero directly.
       const authKeyResult = await executeQuery(
         `SELECT ISNULL(basicAuthKey, '') AS keys,einvoiceServerLink FROM tblCompanyBranchParameter WHERE companyBranchId = ${loginBranch}`,
-        {}
+        {},
       );
       const serverLink = "https://gsthero.com";
       const basicAuthKey = authKeyResult.recordset[0]?.keys;
@@ -550,18 +604,20 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           "Basic authorization key not found for the given branch",
           {
             data: [],
-          }
+          },
         );
       }
-      console.log("Fetched credentials and configuration for pre-authentication")
+      console.log(
+        "Fetched credentials and configuration for pre-authentication",
+      );
 
       // Step 3: Construct request URL
       const requestUrl = `${serverLink}/auth-server/oauth/token?username=${encodeURIComponent(
-        username
+        username,
       )}&grant_type=password&password=${encodeURIComponent(
-        password
+        password,
       )}&scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(
-        client_id
+        client_id,
       )}`;
       // The URL carries the username and password, so it is never logged.
 
@@ -584,16 +640,16 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           response.status || 502,
           getGstHeroErrorMessage(
             responseData,
-            "Pre-authentication response fetch failed"
+            "Pre-authentication response fetch failed",
           ),
           {
             data: [],
-          }
+          },
         );
       }
 
       const updateQuery = `update tblCompanyBranchParameter set preAuthToken='${escapeSqlString(
-        responseData?.access_token
+        responseData?.access_token,
       )}' where companyBranchId=${loginBranch}`;
       await executeQuery(updateQuery, {});
 
@@ -610,11 +666,15 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         throw error;
       }
 
-      throw createHttpError(500, "Something went wrong during pre-authentication", {
-        data: [],
-        includeErrorField: true,
-        originalMessage: error.message,
-      });
+      throw createHttpError(
+        500,
+        "Something went wrong during pre-authentication",
+        {
+          data: [],
+          includeErrorField: true,
+          originalMessage: error.message,
+        },
+      );
     }
   },
 
@@ -623,19 +683,23 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       const accInvId = req.body.invoiceId;
       const { loginBranch, companyId } = req.body;
 
-      requireFields(
-        { accInvId, loginBranch, companyId },
-        ["accInvId", "loginBranch", "companyId"]
-      );
+      requireFields({ accInvId, loginBranch, companyId }, [
+        "accInvId",
+        "loginBranch",
+        "companyId",
+      ]);
 
       // Get JSON payload from stored procedure
       const result = await executeQuery(
         `EXEC einvoicingGstheroAuthentication @invoiceId = ${accInvId}, @branchid = ${loginBranch}, @companyId = ${companyId} , @clientId = ${req.clientId}`,
-        {}
+        {},
       );
       // These rows become the authentication request, which can hold
       // credentials, so only their count is logged.
-      console.log("Authentication payload rows:", result.recordset?.length ?? 0);
+      console.log(
+        "Authentication payload rows:",
+        result.recordset?.length ?? 0,
+      );
 
       const jsonOutput = result.recordset
         .map((row) => row[Object.keys(row)[0]])
@@ -652,19 +716,19 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         await Promise.all([
           executeQuery(
             `SELECT ISNULL(einvoiceServerLink, '') AS link FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-            {}
+            {},
           ),
           executeQuery(
             `SELECT ISNULL(gstNo, '') AS gstin FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-            {}
+            {},
           ),
           executeQuery(
             `SELECT ISNULL(preAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId=${loginBranch}`,
-            {}
+            {},
           ),
           executeQuery(
             `SELECT ISNULL(xconnectorAuthToken, '') AS token FROM tblCompanyBranchParameter WHERE companyBranchId= ${loginBranch}`,
-            {}
+            {},
           ),
         ]);
 
@@ -680,7 +744,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           "Authentication configuration is incomplete for the given branch",
           {
             data: [],
-          }
+          },
         );
       }
 
@@ -688,7 +752,10 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       const preauthToken = `Bearer ${token}`;
       const action = "ACCESSTOKEN";
 
-      console.log("Making authentication request to GSTHero with URL:", requestUrl);
+      console.log(
+        "Making authentication request to GSTHero with URL:",
+        requestUrl,
+      );
       // The headers carry the connector and bearer tokens, so only
       // non-secret details are logged.
       console.log("Authentication request:", { method: "POST", gstin, action });
@@ -714,7 +781,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           response.status || 502,
           getGstHeroErrorMessage(
             responseData,
-            "Authentication response fetch failed"
+            "Authentication response fetch failed",
           ),
           {
             data: [],
@@ -724,12 +791,12 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
               statusCode: response.status || 502,
               response: responseData,
             },
-          }
+          },
         );
       }
 
       const updateQuery = `update tblCompanyBranchParameter set authToken='${escapeSqlString(
-        responseData?.access_token
+        responseData?.access_token,
       )}' where companyBranchId=${loginBranch}`;
       await executeQuery(updateQuery, {});
 
@@ -839,20 +906,27 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
     try {
       const { invoiceId, reasonId, remark } = req.body;
 
-      requireFields(req.body, ["invoiceId", "companyId", "loginBranch", "reasonId"]);
+      requireFields(req.body, [
+        "invoiceId",
+        "companyId",
+        "loginBranch",
+        "reasonId",
+      ]);
 
       const result = await executeNonJSONStoredProcedure("isEinvoicing", {
         invoiceId,
       });
-      const isEinvoicing =
-        String(result?.recordset?.[0]?.isenvoicing || "n").toLowerCase();
+      const isEinvoicing = String(
+        result?.recordset?.[0]?.isenvoicing || "n",
+      ).toLowerCase();
 
       console.log("Cancel IRN e-invoicing result:", result);
 
       if (isEinvoicing !== "y") {
         return res.send({
           success: true,
-          message: "Innvoice Deleted successfully but not eligible for e-invoicing",
+          message:
+            "Innvoice Deleted successfully but not eligible for e-invoicing",
           isEinvoicing,
         });
       }
@@ -861,11 +935,11 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         `
         EXEC CheckIRNStatus @InvoiceId = ${invoiceId};
       `,
-        {}
+        {},
       );
 
       const isIRNGenerated = String(
-        irnResult?.recordset?.[0]?.isIRN || ""
+        irnResult?.recordset?.[0]?.isIRN || "",
       ).toLowerCase();
 
       if (isIRNGenerated !== "true") {
@@ -876,30 +950,27 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         });
       }
 
-      const reason = await executeQuery(`SELECT name , code from tblMasterData where masterListName = 'tblReason' and id=${req.body.reasonId}`, {});
+      const reason = await executeQuery(
+        `SELECT name , code from tblMasterData where masterListName = 'tblReason' and id=${req.body.reasonId}`,
+        {},
+      );
       console.log("Fetched reason for cancellation:", reason);
       const reasonCode = reason?.recordset?.[0]?.code;
       const jsonResult = await executeQuery(
         `
         EXEC irnCancellationGsthero @invoiceId = ${invoiceId}
       `,
-        {}
+        {},
       );
 
       let jsonOutput = jsonResult.recordset
         .map((row) => Object.values(row)[0])
         .join("");
 
-
-
       if (!jsonOutput) {
-        throw createHttpError(
-          404,
-          "No JSON data found from stored procedure",
-          {
-            data: [],
-          }
-        );
+        throw createHttpError(404, "No JSON data found from stored procedure", {
+          data: [],
+        });
       }
       jsonOutput = JSON.parse(jsonOutput);
       jsonOutput.Data.CnlRsn = reasonCode;
@@ -908,9 +979,8 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       jsonOutput = JSON.stringify(jsonOutput);
 
       await module.exports.Pre_AuthenticationResponse(req);
-      const authRespons = await module.exports.getAuthenticationResponse_GSTHero(
-        req
-      );
+      const authRespons =
+        await module.exports.getAuthenticationResponse_GSTHero(req);
 
       const accessToken = authRespons.access_token;
       const gstin = authRespons.gstin;
@@ -924,7 +994,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           "Authentication configuration is incomplete for the given branch",
           {
             data: [],
-          }
+          },
         );
       }
 
@@ -951,18 +1021,21 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         body: jsonOutput,
       });
       const cancelIrnResponse = await parseJsonResponse(response);
-      console.log("Cancel IRN response from GSTHero:", JSON.stringify(cancelIrnResponse));
+      console.log(
+        "Cancel IRN response from GSTHero:",
+        JSON.stringify(cancelIrnResponse),
+      );
 
       if (!response.ok) {
         throw createHttpError(
           response.status || 502,
           getGstHeroErrorMessage(
             cancelIrnResponse,
-            "IRN cancellation failed at GSTHero"
+            "IRN cancellation failed at GSTHero",
           ),
           {
             data: [],
-          }
+          },
         );
       }
 
@@ -975,24 +1048,23 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           400,
           getGstHeroErrorMessage(
             cancelIrnResponse,
-            "IRN cancellation failed with errors from GSTHero"
+            "IRN cancellation failed with errors from GSTHero",
           ),
           {
             data: [],
-          }
+          },
         );
       }
 
-      const cancelIrnNo = cancelIrnResponse?.data?.Irn
-      const cancelDate = cancelIrnResponse?.data?.CancelDate
-
+      const cancelIrnNo = cancelIrnResponse?.data?.Irn;
+      const cancelDate = cancelIrnResponse?.data?.CancelDate;
 
       if (cancelIrnNo) {
         await executeQuery(
           `UPDATE tblInvoice set cancelIrnNo='${escapeSqlString(
-            cancelIrnNo
+            cancelIrnNo,
           )}', cancelDate='${escapeSqlString(cancelDate)}' where id=${invoiceId}`,
-          {}
+          {},
         );
       }
 
@@ -1027,14 +1099,14 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
            ISNULL(einvoiceServerLink, '')    AS einvoiceServerLink
          FROM tblCompanyBranchParameter
          WHERE companyBranchId = ${Number(branchId)}`,
-        {}
+        {},
       );
 
       if (!credentialsResult?.recordset?.length) {
         throw createHttpError(
           404,
           "No Malaysia e-invoicing credentials found for the given branch",
-          { data: [] }
+          { data: [] },
         );
       }
 
@@ -1052,7 +1124,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         throw createHttpError(
           400,
           "Malaysia eMalaysiaClientId is missing for this branch; please configure tblCompanyBranchParameter.",
-          { data: [] }
+          { data: [] },
         );
       }
 
@@ -1060,7 +1132,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         throw createHttpError(
           400,
           "Malaysia einvoiceServerLink is not configured for this branch.",
-          { data: [] }
+          { data: [] },
         );
       }
 
@@ -1082,7 +1154,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         scope,
         "grant_type:",
         grantType,
-        formBody
+        formBody,
       );
 
       const tokenResponse = await fetch(tokenUrl, {
@@ -1094,7 +1166,10 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         body: formBody,
       });
 
-      console.log("Malaysia OAuth token response status:", tokenResponse.status);
+      console.log(
+        "Malaysia OAuth token response status:",
+        tokenResponse.status,
+      );
       const tokenData = await parseJsonResponse(tokenResponse);
       // Never log the response body: it contains the access token.
       console.log("Malaysia OAuth response received:", {
@@ -1109,7 +1184,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
             tokenData?.error ||
             tokenData?.message ||
             "Malaysia OAuth token request failed",
-          { data: tokenData ?? [] }
+          { data: tokenData ?? [] },
         );
       }
 
@@ -1118,7 +1193,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         throw createHttpError(
           502,
           "Malaysia OAuth response did not contain access_token",
-          { data: tokenData ?? [] }
+          { data: tokenData ?? [] },
         );
       }
 
@@ -1126,7 +1201,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         `UPDATE tblCompanyBranchParameter
          SET authToken = '${escapeSqlString(access_token)}'
          WHERE companyBranchId = ${Number(branchId)}`,
-        {}
+        {},
       );
 
       return { access_token, einvoiceServerLink };
@@ -1144,7 +1219,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
           data: [],
           includeErrorField: true,
           originalMessage: error.message,
-        }
+        },
       );
     }
   },
@@ -1157,15 +1232,15 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
     const invNoResult = await executeQuery(
       `SELECT ISNULL(CAST(invoiceNo AS NVARCHAR(500)), '') AS invoiceNumber
        FROM tblInvoice WHERE id = ${Number(accInvId)}`,
-      {}
+      {},
     );
     const invoiceNumber = String(
-      invNoResult?.recordset?.[0]?.invoiceNumber ?? ""
+      invNoResult?.recordset?.[0]?.invoiceNumber ?? "",
     ).trim();
 
     const spRes = await executeQuery(
       `EXEC einvoicingMalaysia @accountInvoiceId = ${Number(accInvId)}`,
-      {}
+      {},
     );
     const jsonString = (spRes?.recordset ?? [])
       .map((row) => row[Object.keys(row)[0]] ?? "")
@@ -1175,7 +1250,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       throw createHttpError(
         404,
         "No invoice JSON returned from einvoicingMalaysia for this invoice",
-        { data: [] }
+        { data: [] },
       );
     }
 
@@ -1222,15 +1297,15 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       throw createHttpError(
         400,
         `There is error while generating IRN as ${errText || "unknown rejection from MyInvois"}, Please update the invoice again and check.`,
-        { data: result ?? [] }
+        { data: result ?? [] },
       );
     }
 
     await executeQuery(
       `UPDATE tblInvoice SET submissionUid = '${escapeSqlString(
-        submissionUid
+        submissionUid,
       )}' WHERE id = ${Number(accInvId)}`,
-      {}
+      {},
     );
 
     return { submissionUid };
@@ -1244,7 +1319,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
   }) => {
     const baseUrl = String(einvoiceServerLink || "").replace(/\/$/, "");
     const statusUrl = `${baseUrl}/api/v1.0/documentsubmissions/${encodeURIComponent(
-      submissionUid
+      submissionUid,
     )}?pageNo=1&pageSize=10`;
 
     const statusResponse = await fetch(statusUrl, {
@@ -1263,7 +1338,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       throw createHttpError(
         statusResponse.status || 502,
         errText || "Malaysia submission status request failed",
-        { data: statusPayload ?? [] }
+        { data: statusPayload ?? [] },
       );
     }
 
@@ -1281,7 +1356,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
       throw createHttpError(
         502,
         "Malaysia status response did not include uuid/longId in documentSummary; try again later.",
-        { data: statusPayload ?? [] }
+        { data: statusPayload ?? [] },
       );
     }
 
@@ -1301,7 +1376,7 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
          dateTimeReceived = ${dtRecv},
          signedQrCode = '${escapeSqlString(malaysiaShareUrl)}'
        WHERE id = ${Number(accInvId)}`,
-      {}
+      {},
     );
 
     return {
@@ -1321,28 +1396,795 @@ select  c.gstHeroUsername as username,c.gstHeroPassword as password ,c.gstHeroCl
         branchId,
       });
 
-    const { submissionUid } =
-      await module.exports.documentSubmission_Malaysia({
-        accInvId,
-        einvoiceServerLink,
-        accessToken: access_token,
-      });
+    const { submissionUid } = await module.exports.documentSubmission_Malaysia({
+      accInvId,
+      einvoiceServerLink,
+      accessToken: access_token,
+    });
 
     await new Promise((r) => setTimeout(r, 30 * 1000));
 
-    const status = await module.exports.documentSubmissionStatusCheck_Malaysia(
-      {
-        accInvId,
-        einvoiceServerLink,
-        accessToken: access_token,
-        submissionUid,
-      }
-    );
+    const status = await module.exports.documentSubmissionStatusCheck_Malaysia({
+      accInvId,
+      einvoiceServerLink,
+      accessToken: access_token,
+      submissionUid,
+    });
 
     return {
       message: "Malaysia e-invoice submitted successfully",
       submissionUid,
       ...status,
     };
+  },
+
+  // eInvoicing_Cleartax: async ({ accInvId, branchId, companyId }) => {
+  //   requireFields({ accInvId, branchId }, ["accInvId", "branchId"]);
+
+  //   const { access_token, einvoiceServerLink } =
+  //     await module.exports.AuthenticationResponse_Cleartax({
+  //       branchId,
+  //     });
+
+  //   const { submissionUid } = await module.exports.documentSubmission_Cleartax({
+  //     accInvId,
+  //     einvoiceServerLink,
+  //     accessToken: access_token,
+  //   });
+
+  //   await new Promise((r) => setTimeout(r, 30 * 1000));
+
+  //   const status = await module.exports.documentSubmissionStatusCheck_Cleartax({
+  //     accInvId,
+  //     einvoiceServerLink,
+  //     accessToken: access_token,
+  //     submissionUid,
+  //   });
+
+  //   return {
+  //     message: "ClearTax e-invoice submitted successfully",
+  //     submissionUid,
+  //     ...status,
+  //   };
+  // },
+
+  // AuthenticationResponse_Cleartax: async ({ branchId }) => {
+  //   try {
+  //     requireFields({ branchId }, ["branchId"]);
+
+  //     const credentialsResult = await executeQuery(
+  //       `SELECT
+  //        ISNULL(eMalaysiaClientId, '') AS eMalaysiaClientId,
+  //        ISNULL(clientSecret, '') AS clientSecret,
+  //        ISNULL(grantType, '') AS grantType,
+  //        ISNULL(scope, '') AS scope,
+  //        ISNULL(einvoiceServerLink, '') AS einvoiceServerLink
+  //      FROM tblCompanyBranchParameter
+  //      WHERE companyBranchId = ${Number(branchId)}`,
+  //       {},
+  //     );
+
+  //     if (!credentialsResult?.recordset?.length) {
+  //       throw createHttpError(
+  //         404,
+  //         "No ClearTax e-invoicing credentials found for the given branch",
+  //         { data: [] },
+  //       );
+  //     }
+
+  //     const {
+  //       eMalaysiaClientId,
+  //       clientSecret,
+  //       scope,
+  //       grantType,
+  //       einvoiceServerLink,
+  //     } = credentialsResult.recordset[0];
+
+  //     const client_id = String(eMalaysiaClientId || "").trim();
+
+  //     if (!client_id) {
+  //       throw createHttpError(
+  //         400,
+  //         "ClearTax eMalaysiaClientId is missing for this branch; please configure tblCompanyBranchParameter.",
+  //         { data: [] },
+  //       );
+  //     }
+
+  //     if (!einvoiceServerLink) {
+  //       throw createHttpError(
+  //         400,
+  //         "ClearTax einvoiceServerLink is not configured for this branch.",
+  //         { data: [] },
+  //       );
+  //     }
+
+  //     const tokenUrl = `${einvoiceServerLink.replace(/\/$/, "")}/connect/token`;
+
+  //     const formBody = new URLSearchParams({
+  //       client_id,
+  //       client_secret: clientSecret || "",
+  //       scope: scope || "",
+  //       grant_type: grantType || "client_credentials",
+  //     }).toString();
+
+  //     console.log(
+  //       "Calling ClearTax OAuth token endpoint:",
+  //       tokenUrl,
+  //       "with client_id:",
+  //       client_id,
+  //       "scope:",
+  //       scope,
+  //       "grant_type:",
+  //       grantType,
+  //       formBody,
+  //     );
+
+  //     const tokenResponse = await fetch(tokenUrl, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/x-www-form-urlencoded",
+  //         Accept: "application/json",
+  //       },
+  //       body: formBody,
+  //     });
+
+  //     console.log(
+  //       "ClearTax OAuth token response status:",
+  //       tokenResponse.status,
+  //     );
+
+  //     const tokenData = await parseJsonResponse(tokenResponse);
+
+  //     // Never log the response body: it contains the access token.
+  //     console.log("ClearTax OAuth response received:", {
+  //       ok: tokenResponse.ok,
+  //       hasAccessToken: !!tokenData?.access_token,
+  //     });
+
+  //     if (!tokenResponse.ok) {
+  //       throw createHttpError(
+  //         tokenResponse.status || 502,
+  //         tokenData?.error_description ||
+  //           tokenData?.error ||
+  //           tokenData?.message ||
+  //           "ClearTax OAuth token request failed",
+  //         { data: tokenData ?? [] },
+  //       );
+  //     }
+
+  //     const access_token = tokenData?.access_token;
+
+  //     if (!access_token) {
+  //       throw createHttpError(
+  //         502,
+  //         "ClearTax OAuth response did not contain access_token",
+  //         { data: tokenData ?? [] },
+  //       );
+  //     }
+
+  //     await executeQuery(
+  //       `UPDATE tblCompanyBranchParameter
+  //      SET authToken = '${escapeSqlString(access_token)}'
+  //      WHERE companyBranchId = ${Number(branchId)}`,
+  //       {},
+  //     );
+
+  //     return {
+  //       access_token,
+  //       einvoiceServerLink,
+  //     };
+  //   } catch (error) {
+  //     console.error("Error in AuthenticationResponse_Cleartax:", error);
+
+  //     if (error.isOperational) {
+  //       throw error;
+  //     }
+
+  //     throw createHttpError(
+  //       500,
+  //       "Something went wrong during ClearTax authentication",
+  //       {
+  //         data: [],
+  //         includeErrorField: true,
+  //         originalMessage: error.message,
+  //       },
+  //     );
+  //   }
+  // },
+
+  // documentSubmission_Cleartax: async ({
+  //   accInvId,
+  //   einvoiceServerLink,
+  //   accessToken,
+  // }) => {
+  //   const invNoResult = await executeQuery(
+  //     `SELECT
+  //      ISNULL(CAST(invoiceNo AS NVARCHAR(500)), '') AS invoiceNumber
+  //    FROM tblInvoice
+  //    WHERE id = ${Number(accInvId)}`,
+  //     {},
+  //   );
+
+  //   const invoiceNumber = String(
+  //     invNoResult?.recordset?.[0]?.invoiceNumber ?? "",
+  //   ).trim();
+
+  //   const spRes = await executeQuery(
+  //     `EXEC einvoicingMalaysia @accountInvoiceId = ${Number(accInvId)}`,
+  //     {},
+  //   );
+
+  //   const jsonString = (spRes?.recordset ?? [])
+  //     .map((row) => row[Object.keys(row)[0]] ?? "")
+  //     .join("");
+
+  //   if (!jsonString || !jsonString.trim()) {
+  //     throw createHttpError(
+  //       404,
+  //       "No invoice JSON returned from einvoicingMalaysia for this invoice",
+  //       { data: [] },
+  //     );
+  //   }
+
+  //   const jsonBytes = Buffer.from(jsonString, "utf-8");
+
+  //   const base64Document = jsonBytes.toString("base64");
+
+  //   const documentHash = crypto
+  //     .createHash("sha256")
+  //     .update(jsonBytes)
+  //     .digest("hex");
+
+  //   const baseUrl = String(einvoiceServerLink || "").replace(/\/$/, "");
+
+  //   const submitUrl = `${baseUrl}/api/v1.0/documentsubmissions/`;
+
+  //   const body = {
+  //     documents: [
+  //       {
+  //         format: "json",
+  //         document: base64Document,
+  //         documentHash,
+  //         codeNumber: invoiceNumber,
+  //       },
+  //     ],
+  //   };
+
+  //   // The headers carry the access token, so only the endpoint is logged.
+  //   console.log("Submitting document to ClearTax endpoint:", submitUrl);
+
+  //   // return { submissionUid:'fsdfsfsdfsfsdfsdfsdfsd' }
+
+  //   const submitResponse = await fetch(submitUrl, {
+  //     method: "POST",
+  //     headers: {
+  //       Authorization: `Bearer ${accessToken}`,
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify(body),
+  //   });
+
+  //   const result = await parseJsonResponse(submitResponse);
+
+  //   console.log("ClearTax document submission response:", result);
+
+  //   const submissionUid = result?.submissionUid;
+
+  //   if (!submitResponse.ok || !submissionUid) {
+  //     const errText = getMalaysiaSubmissionErrors(result);
+
+  //     throw createHttpError(
+  //       400,
+  //       `There is error while generating IRN as ${
+  //         errText || "unknown rejection from ClearTax"
+  //       }, Please update the invoice again and check.`,
+  //       { data: result ?? [] },
+  //     );
+  //   }
+
+  //   await executeQuery(
+  //     `UPDATE tblInvoice
+  //    SET submissionUid = '${escapeSqlString(submissionUid)}'
+  //    WHERE id = ${Number(accInvId)}`,
+  //     {},
+  //   );
+
+  //   return {
+  //     submissionUid,
+  //   };
+  // },
+
+  // documentSubmissionStatusCheck_Cleartax: async ({
+  //   accInvId,
+  //   einvoiceServerLink,
+  //   accessToken,
+  //   submissionUid,
+  // }) => {
+  //   const baseUrl = String(einvoiceServerLink || "").replace(/\/$/, "");
+
+  //   const statusUrl =
+  //     `${baseUrl}/api/v1.0/documentsubmissions/` +
+  //     `${encodeURIComponent(submissionUid)}` +
+  //     `?pageNo=1&pageSize=10`;
+
+  //   const statusResponse = await fetch(statusUrl, {
+  //     method: "GET",
+  //     headers: {
+  //       Authorization: `Bearer ${accessToken}`,
+  //       Accept: "application/json",
+  //     },
+  //   });
+
+  //   const statusPayload = await parseJsonResponse(statusResponse);
+
+  //   console.log("ClearTax document submission status:", statusPayload);
+
+  //   if (!statusResponse.ok) {
+  //     const errText = getMalaysiaSubmissionErrors(statusPayload);
+
+  //     throw createHttpError(
+  //       statusResponse.status || 502,
+  //       errText || "ClearTax submission status request failed",
+  //       { data: statusPayload ?? [] },
+  //     );
+  //   }
+
+  //   const { dateTimeReceived, documentSummary } = statusPayload || {};
+
+  //   const uuidCombined = (documentSummary || [])
+  //     .map((d) => d?.uuid ?? d?.UUID)
+  //     .filter(Boolean)
+  //     .join(" ");
+
+  //   const longIdCombined = (documentSummary || [])
+  //     .map((d) => d?.longId ?? d?.LongId)
+  //     .filter(Boolean)
+  //     .join(" ");
+
+  //   if (!uuidCombined || !longIdCombined) {
+  //     throw createHttpError(
+  //       502,
+  //       "ClearTax status response did not include uuid/longId in documentSummary; try again later.",
+  //       { data: statusPayload ?? [] },
+  //     );
+  //   }
+
+  //   // Public share URL stored in tblInvoice.signedQrCode
+  //   const cleartaxShareUrl =
+  //     `https://myinvois.hasil.gov.my/` +
+  //     `${uuidCombined}/share/${longIdCombined}`;
+
+  //   const finalUid = String(statusPayload?.submissionUid || submissionUid);
+
+  //   const dtRecv = dateTimeReceived
+  //     ? `'${escapeSqlString(String(dateTimeReceived))}'`
+  //     : "NULL";
+
+  //   await executeQuery(
+  //     `UPDATE tblInvoice SET
+  //      finalSubmissionUid = '${escapeSqlString(finalUid)}',
+  //      [UUID] = '${escapeSqlString(uuidCombined)}',
+  //      longId = '${escapeSqlString(longIdCombined)}',
+  //      dateTimeReceived = ${dtRecv},
+  //      signedQrCode = '${escapeSqlString(cleartaxShareUrl)}'
+  //    WHERE id = ${Number(accInvId)}`,
+  //     {},
+  //   );
+
+  //   return {
+  //     submissionUid: finalUid,
+  //     uuidCombined,
+  //     longIdCombined,
+  //     dateTimeReceived: dateTimeReceived || null,
+  //     signedQrCode: cleartaxShareUrl,
+  //   };
+  // },
+
+  eInvoicing_Cleartax: async ({
+    accInvId,
+    branchId,
+    companyId,
+    userId = 999,
+  }) => {
+    try {
+      requireFields(
+        {
+          accInvId,
+          branchId,
+          companyId,
+        },
+        ["accInvId", "branchId", "companyId"],
+      );
+
+      /*
+    |--------------------------------------------------------------------------
+    | GET CLEARTAX CREDENTIALS
+    |--------------------------------------------------------------------------
+    */
+
+      let authToken = "";
+      let owner_id = "";
+      let gstin = "";
+
+      const credentialResult = await executeQuery(
+        `SELECT
+          ISNULL(authToken, '') AS authToken,
+          ISNULL(ownerId, '') AS ownerId,
+          ISNULL(gstNo, '') AS gstin
+       FROM tblCompanyBranchParameter
+       WHERE companyBranchId = ${Number(branchId)}`,
+        {},
+      );
+
+      if (credentialResult?.recordset?.length) {
+        authToken = String(
+          credentialResult.recordset[0]?.authToken || "",
+        ).trim();
+
+        owner_id = String(credentialResult.recordset[0]?.ownerId || "").trim();
+
+        gstin = String(credentialResult.recordset[0]?.gstin || "").trim();
+      }
+
+      if (!authToken) {
+        throw createHttpError(400, "ClearTax authToken is not configured.", {
+          data: [],
+        });
+      }
+
+      if (!owner_id) {
+        throw createHttpError(400, "ClearTax owner_id is not configured.", {
+          data: [],
+        });
+      }
+
+      if (!gstin) {
+        throw createHttpError(400, "GSTIN is not configured for ClearTax.", {
+          data: [],
+        });
+      }
+
+      const responseGenerateIRN = await module.exports.GenerateIRN_Cleartax({
+        accInvId,
+        authToken,
+        owner_id,
+        gstin,
+        companyId,
+        branchId,
+      });
+
+      let clearTaxResponse;
+
+      try {
+        clearTaxResponse = JSON.parse(responseGenerateIRN);
+      } catch (error) {
+        throw createHttpError(
+          502,
+          "Invalid JSON response received from ClearTax.",
+          {
+            data: responseGenerateIRN,
+          },
+        );
+      }
+
+      const generateIRN = Array.isArray(clearTaxResponse)
+        ? clearTaxResponse[0]
+        : clearTaxResponse;
+
+      if (!generateIRN) {
+        throw createHttpError(502, "Empty response received from ClearTax.", {
+          data: clearTaxResponse || [],
+        });
+      }
+
+      const generateIRNstatus = String(
+        generateIRN?.document_status || "",
+      ).trim();
+
+      if (
+        generateIRNstatus === "NOT_CREATED" ||
+        generateIRNstatus === "IRN_GENERATION_FAILED" ||
+        !generateIRNstatus
+      ) {
+        const errorMessage = getCleanTaxErrorMessage(
+          generateIRN,
+          "IRN generation failed at ClearTax",
+        );
+
+        return {
+          success: false,
+          message: `There is error while generating IRN as ${errorMessage}, Please update the invoice again and check.`,
+          documentStatus: generateIRNstatus,
+          data: generateIRN,
+        };
+      }
+      const govtResponse = generateIRN?.govt_response || {};
+      const Irn = govtResponse?.Irn || null;
+      const SignedQRCode = govtResponse?.SignedQRCode || null;
+      const SignedInvoice = govtResponse?.SignedInvoice || null;
+      const AckNo = govtResponse?.AckNo || null;
+      const AckDt = govtResponse?.AckDt || null;
+      const EwbNo = govtResponse?.EwbNo || null;
+
+      if (!AckDt && !AckNo && !Irn) {
+        throw createHttpError(
+          400,
+          "IRN response received, but required fields could not be extracted",
+          { data: govtResponse },
+        );
+      }
+
+      const irnResponseJson =
+        govtResponse && Object.keys(govtResponse).length > 0
+          ? `'${escapeSqlString(JSON.stringify(govtResponse))}'`
+          : "NULL";
+
+      const updateQuery =
+        "UPDATE tblInvoice SET " +
+        "ackDate = " +
+        (AckDt ? `'${escapeSqlString(AckDt)}'` : "NULL") +
+        "," +
+        "ackNo = " +
+        (AckNo ? `'${escapeSqlString(String(AckNo))}'` : "NULL") +
+        "," +
+        "irn = " +
+        (Irn ? `'${escapeSqlString(String(Irn))}'` : "NULL") +
+        "," +
+        "signedQrCode = " +
+        (SignedQRCode ? `'${escapeSqlString(String(SignedQRCode))}'` : "NULL") +
+        "," +
+        "signedInvoice = " +
+        (SignedInvoice
+          ? `'${escapeSqlString(String(SignedInvoice))}'`
+          : "NULL") +
+        "," +
+        "irnResponse = " +
+        irnResponseJson +
+        " " +
+        "WHERE id = " +
+        Number(accInvId);
+
+      await executeQuery(updateQuery, {});
+
+      return {
+        success: true,
+        message: "ClearTax e-invoice generated successfully",
+        documentStatus: generateIRNstatus,
+        Irn,
+        SignedQRCode,
+        SignedInvoice,
+        AckNo,
+        AckDt,
+        EwbNo,
+        data: generateIRN,
+      };
+    } catch (error) {
+      console.error("Error in eInvoicing_Cleartax:", error);
+
+      if (error?.isOperational) {
+        throw error;
+      }
+
+      throw createHttpError(
+        500,
+        error?.message || "Something went wrong while generating ClearTax IRN",
+        {
+          data: [],
+          includeErrorField: true,
+          originalMessage: error?.message,
+        },
+      );
+    }
+  },
+
+  GenerateIRN_Cleartax: async ({
+    accInvId,
+    authToken,
+    owner_id,
+    gstin,
+    companyId,
+    branchId,
+  }) => {
+    try {
+      requireFields(
+        {
+          accInvId,
+          authToken,
+          owner_id,
+          gstin,
+          companyId,
+          branchId,
+        },
+        ["accInvId", "authToken", "owner_id", "gstin", "companyId", "branchId"],
+      );
+
+      // const spResult = await executeQuery(
+      //   `EXEC eInvoicingClearTax
+      //  @invoiceId = ${Number(accInvId)}`,
+      //   {},
+      // );
+      const requestBody = {
+        invoiceId: Number(accInvId),
+      };
+
+      const spResult = await executeStoredProcedure(
+        "eInvoicingClearTax",
+        requestBody,
+      );
+      console.log("Stored Procedure Result:", spResult);
+      console.log(
+        "Buyer PIN:",
+        spResult?.[0]?.transaction?.BuyerDtls?.Pin,
+        typeof spResult?.[0]?.transaction?.BuyerDtls?.Pin,
+      );
+
+      let jsonOutputString = "";
+
+      if (Array.isArray(spResult) && spResult.length) {
+        jsonOutputString = JSON.stringify(spResult);
+      }
+
+      console.log("ClearTax Request Body:", jsonOutputString);
+
+      if (!jsonOutputString || !jsonOutputString.trim()) {
+        throw createHttpError(
+          404,
+          "No invoice JSON returned from eInvoicingClearTax.",
+          {
+            data: [],
+          },
+        );
+      }
+
+      /*
+    |--------------------------------------------------------------------------
+    | VALIDATE JSON FROM STORED PROCEDURE
+    |--------------------------------------------------------------------------
+    */
+
+      try {
+        JSON.parse(jsonOutputString);
+      } catch (error) {
+        console.error(
+          "Invalid JSON generated by einvoicing_ssl:",
+          jsonOutputString,
+        );
+
+        throw createHttpError(
+          500,
+          "Invalid JSON generated by einvoicing_ssl.",
+          {
+            data: [],
+            includeErrorField: true,
+            originalMessage: error?.message,
+          },
+        );
+      }
+
+      const serverResult = await executeQuery(
+        `SELECT
+          ISNULL(einvoiceServerLink, '') AS einvoiceServerLink
+       FROM tblCompanyBranchParameter
+       WHERE companyBranchid = ${Number(branchId)}`,
+        {},
+      );
+
+      if (!serverResult?.recordset?.length) {
+        throw createHttpError(404, "ClearTax server configuration not found.", {
+          data: [],
+        });
+      }
+
+      const serverLink = String(
+        serverResult.recordset[0]?.einvoiceServerLink || "",
+      ).trim();
+
+      if (!serverLink) {
+        throw createHttpError(
+          400,
+          "ClearTax einvoice_server_link is not configured.",
+          {
+            data: [],
+          },
+        );
+      }
+
+      const generateIRNLink = `${serverLink.replace(/\/$/, "")}/generate`;
+      const clearTaxProduct = "EInvoice";
+      console.log("ClearTax Generate IRN URL:", generateIRNLink);
+      let httpResponse;
+      try {
+        httpResponse = await fetch(generateIRNLink, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "x-cleartax-auth-token": authToken,
+            owner_id: owner_id,
+            gstin: gstin,
+            "x-cleartax-product": clearTaxProduct,
+          },
+          body: jsonOutputString,
+        });
+      } catch (error) {
+        console.error("ClearTax API connection error:", error);
+
+        throw createHttpError(
+          502,
+          `Unable to connect to ClearTax API: ${
+            error?.message || "Connection failed"
+          }`,
+          {
+            data: [],
+          },
+        );
+      }
+
+      /*
+    |--------------------------------------------------------------------------
+    | READ RESPONSE
+    |--------------------------------------------------------------------------
+    */
+
+      const responseJson = await httpResponse.text();
+
+      console.log("ClearTax Response Status:", httpResponse.status);
+
+      /*
+    |--------------------------------------------------------------------------
+    | HANDLE HTTP ERROR
+    |--------------------------------------------------------------------------
+    */
+
+      if (!httpResponse.ok) {
+        let errorMessage = responseJson;
+
+        try {
+          const parsed = JSON.parse(responseJson);
+
+          errorMessage = parsed?.message || parsed?.error || responseJson;
+        } catch (error) {
+          // Keep original response text.
+        }
+
+        throw createHttpError(
+          httpResponse.status || 502,
+
+          errorMessage || "ClearTax request failed.",
+
+          {
+            data: responseJson || [],
+          },
+        );
+      }
+
+      /*
+    |--------------------------------------------------------------------------
+    | RETURN RAW RESPONSE
+    |--------------------------------------------------------------------------
+    |
+    | Old VB GenerateIRN_SSL returns responseJson.
+    |
+    */
+
+      return responseJson;
+    } catch (error) {
+      console.error("Error in GenerateIRN_Cleartax:", error);
+
+      if (error?.isOperational) {
+        throw error;
+      }
+
+      throw createHttpError(
+        500,
+        error?.message ||
+          "Something went wrong while calling ClearTax Generate IRN API",
+        {
+          data: [],
+          includeErrorField: true,
+          originalMessage: error?.message,
+        },
+      );
+    }
   },
 };
