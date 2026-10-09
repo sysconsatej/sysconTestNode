@@ -341,7 +341,7 @@ module.exports = {
                 moment().format("YYYYMMDDHHmmssSSS") +
                 ".webp";
 
-              await sharp(element.data)
+           const fileWebp =  await sharp(element.data)
                 .webp({
                   quality: 75,
                   effort: 6,
@@ -351,6 +351,7 @@ module.exports = {
               responce.data = {
                 path: `api/images/${req.clientCode}/` + image_name,
                 status: 1,
+                fileSize: fileWebp.size,
               };
             } else {
               //console.log(fileNameWithoutExt);
@@ -365,6 +366,7 @@ module.exports = {
               responce.data = {
                 path: `api/images/${req.clientCode}/` + image_name,
                 status: 1,
+                fileSize: file.size,
               };
             }
 
