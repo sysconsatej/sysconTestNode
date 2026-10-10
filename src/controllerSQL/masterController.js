@@ -341,7 +341,7 @@ module.exports = {
                 moment().format("YYYYMMDDHHmmssSSS") +
                 ".webp";
 
-              await sharp(element.data)
+           const fileWebp =  await sharp(element.data)
                 .webp({
                   quality: 75,
                   effort: 6,
@@ -351,6 +351,7 @@ module.exports = {
               responce.data = {
                 path: `api/images/${req.clientCode}/` + image_name,
                 status: 1,
+                fileSize: fileWebp.size,
               };
             } else {
               //console.log(fileNameWithoutExt);
@@ -365,6 +366,7 @@ module.exports = {
               responce.data = {
                 path: `api/images/${req.clientCode}/` + image_name,
                 status: 1,
+                fileSize: file.size,
               };
             }
 
@@ -389,13 +391,24 @@ module.exports = {
     try {
       try {
         const filePath = req?.body.relativeFilePath;
-        console.log("filePath", filePath);
-       await fs.unlink(`./public/${filePath}`);
+
+        const query = `
+          update tblAttachement
+          set status = 0, updatedDate = getdate(), updatedBy = ${req?.userId} 
+          where path = '${filePath}'
+        `;
+        await executeQuery(query, {});
+
+        await fs.unlink(`./public/${filePath}`);
         console.log("File delete successfully!");
-        res.status(200).send({ok: true, message:"File Delete successfully!"})
+        res
+          .status(200)
+          .send({ ok: true, message: "File Delete successfully!" });
       } catch (error) {
         console.error("Error deleting file:", error);
-         res.status(403).send({ok: false, message:"Error deleting file:", error})
+        res
+          .status(403)
+          .send({ ok: false, message: "Error deleting file:", error });
       }
     } catch (error) {
       res.status(500).send({
@@ -792,27 +805,57 @@ module.exports = {
     }
   },
   sendDocument: async (req, res) => {
-      try {
-        const { attachments } = req.body;
-        for (const file of attachments || []) {
-          file.path = `./public/${file.path}`;
-          file.filename = file.path.split("/").pop();
-        }
-  
-        SendMail(
-          req.body.to,
-          req.body.subject,
-          req.body.text,
-          undefined,
-          req.body.attachments
-        );
-        res.send({ success: true, data: [], message: "Mail Sent" });
-      } catch (error) {
-        res.status(500).send({
-          success: false,
-          message: "Error - " + error.message,
-          data: error.message,
-        });
+    try {
+      const { attachments } = req.body;
+      for (const file of attachments || []) {
+        file.path = `./public/${file.path}`;
+        file.filename = file.path.split("/").pop();
       }
+
+      SendMail(
+        req.body.to,
+        req.body.subject,
+        req.body.text,
+        undefined,
+        req.body.attachments,
+      );
+      res.send({ success: true, data: [], message: "Mail Sent" });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: "Error - " + error.message,
+        data: error.message,
+      });
+    }
+  },
+  deleteAttachMultiple: async (req, res) => {
+    try {
+      const { userId, clientId, deletedRows } = req.body;
+      let query = `update tblAttachement
+             set status = 0, updatedBy = ${userId}, updatedDate = getdate() 
+            where id in (${deletedRows?.map((item) => item?.id).join(",")}) and clientId = ${clientId} `;
+      let deleteCheck = await executeQuery(query, {});
+
+      await Promise.all(
+        deletedRows.map(async ({ path }) => {
+          try {
+            await fs.unlink(`./public/api/images/${req.clientCode}/${path}`);
+            console.log("Deleted:", path);
+          } catch (error) {
+            console.error("Fail to delete", error);
+          }
+        }),
+      );
+
+      res
+        .status(200)
+        .json({ success: true, message: "Delete Attachment Successfully!" });
+    } catch (error) {
+      (console.log("error", error),
+        res.status(500).json({
+          error: error,
+          success: false,
+        }));
+    }
   },
 };

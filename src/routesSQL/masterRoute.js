@@ -9,6 +9,7 @@ router.post("/Insert_into_master", auth.verifyToken, controller.createMaster);
 router.post("/Delete", auth.verifyToken, controller.delete);
 router.post("/Upload", auth.verifyToken, controller.upLoadFile);
 router.post("/DeleteDocuments", auth.verifyToken, controller.DeleteDocuments);
+router.post("/DeleteMultipleDocuments", auth.verifyToken, controller.deleteAttachMultiple);
 router.post(
   "/fetchVoucherSearchPageData",
   controller.fetchVoucherSearchPageData,
