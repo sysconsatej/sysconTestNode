@@ -157,10 +157,10 @@ try {
   console.error("[Assistant] routes disabled:", error.message);
 }
 
-const {
-  deleteDeletedAttachments,
-  deleteUnsavedAttachments,
-} = require("./src/modelSQL/fileDelete");
+// const {
+//   deleteDeletedAttachments,
+//   deleteUnsavedAttachments,
+// } = require("./src/modelSQL/fileDelete");
 
 app.post("/Sql/api/insertdata", SQLDynamicRouterMiddleware);
 app.use("/Sql/api/menuControl", SQlMenuRouter);
@@ -200,11 +200,11 @@ app.get("/api/metrics", async (req, res) => {
  * Uncomment the following lines to enable the cron job for cleaning up attachments every 4 hours
  ********************************************/
 
-cron.schedule("0 */4 * * *", async () => {
-  console.log("🕒 Running bulk attachment cleanup job...");
-  await deleteUnsavedAttachments();
-  await deleteDeletedAttachments();
-});
+// cron.schedule("0 */4 * * *", async () => {
+//   console.log("🕒 Running bulk attachment cleanup job...");
+//   await deleteUnsavedAttachments();
+//   await deleteDeletedAttachments();
+// });
 
 // Artin reminders as browser push notifications, checked every minute.
 // Off unless ASSISTANT_PUSH_ENABLED=true (see docs/assistant-backend.md).
