@@ -5,5 +5,6 @@ const auth = require("../config/auth");
 
 router.post("/list", auth.verifyToken, controller.getMenuList);
 router.post("/menuAccessSubmit", auth.verifyToken, controller.menuAccessSubmit);
+router.post("/menuById", auth.verifyToken, controller.getMenuById);
 
 module.exports = router;
