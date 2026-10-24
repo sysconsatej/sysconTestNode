@@ -80,6 +80,8 @@ const ssoLoginRoute = require("./src/routesSQL/ssoRoutes"); // by aakash yadav  
 // const extractForm32ASDataRoute = require("./src/routes/extractForm32ASDataRoute");
 // const extractEnquireDataRoute = require("./src/routes/extractEnquireDataRoute");
 const customerQuotationRoute = require("./src/routesSQL/customer-quotation.route");
+const excelRouteValidate = require("./src/routesSQL/excel.router");
+
 // The Artin assistant routes are optional: if they fail to load, the rest of
 // the server still starts and only the assistant endpoints are unavailable.
 let assistantRoute = null;
@@ -116,6 +118,7 @@ app.use("/Sql/api/fetch", SQLAllocation);
 app.use("/Sql/api/create", mergeBl);
 app.use("/Sql/api/v1", operationalApi);
 app.use("/Sql/api/", ssoLoginRoute); // by aakash yadav  a new sso route for by pass login for mobile app
+app.use("/Sql/api/v1/excel", excelRouteValidate)
 // app.use("/Sql/api/extract", extractInvoicePdfDataRoute);
 // app.use("/Sql/api/ai/extract", extractBlPdfDataRoute);
 // app.use("/Sql/api/ai/extract", extractForm32ASDataRoute);

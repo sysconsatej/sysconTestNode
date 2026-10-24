@@ -53,7 +53,7 @@ module.exports = {
       return (
         JSON.parse(
           result.recordsets[2]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"] ||
-            result.recordset[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
+          result.recordset[0]?.["JSON_F52E2B61-18A1-11d1-B105-00805F49916B"]
         ) || []
       ); // Return the result set
     } catch (error) {
@@ -94,7 +94,7 @@ module.exports = {
       return (
         JSON.parse(
           result.recordsets[1]?.[0]?.[
-            "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
+          "JSON_F52E2B61-18A1-11d1-B105-00805F49916B"
           ]
         ) || []
       ); // Return the result set
@@ -273,7 +273,7 @@ module.exports = {
       if (pool) await pool.close();
     }
   },
-   executeStoredProcedureSecond: async (procedureName, data) => {
+  executeStoredProcedureSecond: async (procedureName, data) => {
     try {
       const pool = await connectToSql();
       const request = pool.request();
@@ -294,6 +294,62 @@ module.exports = {
       console.error("Error inserting data:", error);
       return [];
     }
+  },
+  // DynamicJsonStoredProcedure
+  executeDynamicJsonStoredProcedure: async (
+    procedureName,
+    jsonPayload,
+    paramName = "filterCondition"
+  ) => {
+    if (!procedureName || typeof procedureName !== "string") {
+      throw new Error("procedureName is required");
+    }
+
+    const payload =
+      typeof jsonPayload === "string"
+        ? jsonPayload
+        : JSON.stringify(jsonPayload);
+
+    const pool = await connectToSql();
+    const request = pool.request();
+
+    request.input(paramName, sql.NVarChar(sql.MAX), payload);
+
+    const result = await request.execute(procedureName);
+
+    if (!result.recordsets?.length) {
+      throw new Error(`${procedureName} returned no result sets`);
+    }
+
+    // Handle SoaJv without changing its existing behavior
+    if (procedureName.toLowerCase() === "soajv") {
+      return result.recordsets[result.recordsets.length - 1] || [];
+    }
+
+    // SQL procedure returns: SELECT @Output AS result
+    for (const recordset of result.recordsets) {
+      if (!recordset?.length) continue;
+
+      const row = recordset[0];
+
+      // Custom JSON output column
+      if (typeof row.result === "string") {
+        return JSON.parse(row.result);
+      }
+
+      // Standard SQL FOR JSON output
+      const jsonColumn =
+        "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
+
+      if (typeof row[jsonColumn] === "string") {
+        return JSON.parse(row[jsonColumn]);
+      }
+    }
+
+
+    throw new Error(
+      `${procedureName} returned data in an unsupported format`
+    );
   },
 };
 
