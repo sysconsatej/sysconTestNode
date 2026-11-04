@@ -60,4 +60,10 @@ router.post(
   excelController.insertExcelDataInDatabase
 );
 
+// New MBL PDF import route
+router.post(
+  "/mblimportpdf",
+  formControlController.mblImportPdf
+);
+
 module.exports = router;

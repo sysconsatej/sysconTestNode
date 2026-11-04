@@ -8,6 +8,7 @@ const {
   executeMultipleStoredProcedure,
   executeNonQueryStoredProcedure,
   execSpWithJsonParam,
+  executeDynamicJsonStoredProcedure,
 } = require("../../modelSQL/model");
 
 const userFindByEmail = async (email) => {
@@ -665,4 +666,62 @@ module.exports = {
       });
     }
   },
+
+
+
+  mblImportPdf: async (req, res) => {
+    try {
+      const { extraction } = req.body;
+
+      if (
+        !extraction ||
+        typeof extraction !== "object" ||
+        !extraction.fields ||
+        !Array.isArray(extraction.containers)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid BL extraction JSON is required",
+        });
+      }
+
+      // Same existing implementation as uploadExcelFunc
+      const response = await executeDynamicJsonStoredProcedure(
+        "mblexportpdf",
+        extraction,
+        "json"
+      );
+
+      // The SQL helper already parses the JSON response.
+      if (
+        !response ||
+        !Array.isArray(response.bl) ||
+        !Array.isArray(response.containers)
+      ) {
+        throw new Error("Invalid MBL mapping response from SQL");
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          response.errors?.length > 0
+            ? "MBL mapping completed with unmatched masters"
+            : "MBL mapping completed successfully",
+        data: response,
+      });
+
+    } catch (error) {
+      console.error("mblImportPdf error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to map extracted BL data",
+        ...(process.env.NODE_ENV !== "production"
+          ? { debugMessage: error.message }
+          : {}),
+      });
+    }
+  },
+
+
 };
